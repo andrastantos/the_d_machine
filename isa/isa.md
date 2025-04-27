@@ -2,10 +2,11 @@ ISA overview
 ============
 
 This is a two-address ISA. One of the operands is a memory location or immediate, the other is a register.
-The instruction set allows for a memory read-modify-write and a register read-modify-write operation in one instructions. The destination can be either of the operands selected by the 'D' bit.
+The instruction set allows for read-modify-write of either (or both) operands.
 
-NOTE: read-modify-write of core memories is practically free because of the destructive nature of reads. They way the machine is organized is that the memory controller doesn't automatically write
-back the data read in a read cycle. Thus, the CPU has to write back everything (including the instruction code). So, in practice, the CPU is always doing read-modify-write operations.
+NOTE: read-modify-write for core memories is practically free due to the destructive nature of reads. The memory controller doesn't do automatic write-backs (to save a data-register) so the CPU needs to make sure it happens.
+
+Every instruction takes 8 clock cycles. A memory read or write takes two cycles each (to allow the column-select transient to settle in the core memory). Since a write *must* follow a read, a memory access is four cycles. With one argument coming from memory, 8 is the minimum execution period for an instruction; in other words, the execution speed is memory limited, no (significant) gain can be had from variable execution times. Also, since these 8 cycles completely saturate the memory bus, pipelining or other parallel tricks to increase IPC are pointless, even if they were possible in a transistor-based implementation (which they are not).
 
 Registers
 -----------
@@ -23,92 +24,102 @@ Addressing modes
 CPU organization
 ----------------
 
-The CPU is build around an ALU. The ALU has input registers for all of its inputs. The output is not registered. These registers are:
-- ALU_A
-- ALU_B
-- ALU_CMD
+The CPU is build around an ALU. The ALU has input registers for all of its inputs. These registers are:
+- REG_ALU_A
+- REG_ALU_B
+- REG_ALU_CMD
 
-The memory bus output (address, data, control signals) are also registered.
-- BUS_A
-- BUS_D
-- BUS_CMD
+The output is not registered.
+
+The system bus outputs (address, data, control signals) are also registered.
+- REG_BUS_A
+- REG_BUS_D
+- REG_BUS_CMD
+
+The system bus input (BUS_D) is not registered.
 
 Finally there's the register bank for the 4 registers.
-- PC
-- SP
-- R0
-- R1
+- REG_PC
+- REG_SP
+- REG_R0
+- REG_R1
 
-I'll do my best to use latches instead of true registers for all of these locations as they are much cheaper in transistor counts.
-The busses connecting these things are driven by load-switches and - when reasonable - by-directional.
 There's an instruction register holding the currently executing instruction
-- INST
+- REG_INST
 
 The following mode registers are also needed:
 - INTDIS: set when interrupts are disabled
 - INHIBIT: set when interrupts are inhibited (due to a predicate that disabled the following instruction)
-- ICYCLE: a 3-bit counter (or an 8-bit one-hot counter?) to time the execution phases of an instruction
-
-Instruction decode, well, I don't know yet. I think it's mostly combinatorial, taking both the instruction register and ICYCLE
+- REG_ICYCLE: a 3-bit counter (or an 8-bit one-hot counter?) to time the execution phases of an instruction
 
 Operation in each cycle
 ------------------------
 
-Every instruction takes 8 clock cycles. A memory read or write takes two cycles each. Since a write *must* follow a read, a memory access thus us four cycles. So, with one argument coming from memory, 8 is the minimum execution period for an instruction; in other words, the execution speed is memory limited, no (significant) gain can be had from variable execution times. Also, since these 8 cycles completely saturate the memory bus, pipelining or other parallel tricks to increase IPC are pointless, even if they were possible in a transistor-based implementation (which they are not).
-
 Cycle 1:
-- write ALU result into PC
-- write ALU result to BUS_A
-- write READ_1 into BUS_CMD
+- write ALU_RESULT into REG_PC
+- write ALU_RESULT to REG_BUS_A
+- write READ_1 into REG_BUS_CMD
 
 Cycle 2:
-- write READ_2 into BUS_CMD
+- write READ_2 into REG_BUS_CMD
 
 Cycle 3:
-- write BUS data content into BUS_D
-- Load the INST register:
-  - if INHIBIT is 1, load 16b0_100_0_011_00_000000 (i.e. OR PC with 0, i.e. NOP) into INST
-  - else if INTEN is 1 and INT is 0 (i.e. there's an enabled and pending interrupt), load 0x0000 into INST
-  - else write BUS data content into INST
-- write WRITE_1 into BUS_CMD
+- write BUS_D into REG_BUS_D
+- Load the REG_INST:
+  - if INHIBIT is 1, load 16b0_100_0_011_00_000000 (i.e. OR PC with 0, i.e. NOP)
+  - else if INTDIS is 0 and INT is 0 (i.e. there's an enabled and pending interrupt), load 0x0000
+  - else write BUS_D into INST
+- write WRITE_1 into REG_BUS_CMD
 - clear INHIBIT (this can be moved to any subsequent cycle, if needed)
 
 Cycle 4:
-- write INST IMMED field into ALU_A
-- write INST OPB-selected value into ALU_B
-- write ADD;C=0 into ALU_CMD
-- write WRITE_2 into BUS_CMD
-- write WRITE_2 into BUS_CMD
+- Calculate sum of index register and immediate:
+  - write REG_INST IMMED field into REG_ALU_B
+  - write REG_INST OPB-selected value into REG_ALU_A
+  - write ADD;C=0 into REG_ALU_CMD
+- write WRITE_2 into REG_BUS_CMD
 
 Cycle 5:
-- write ALU_RESULT into BUS_A
-- write READ_1 into BUS_CMD, if needed
+- write ALU_RESULT into REG_BUS_A
+- write READ_1 into REG_BUS_CMD, if needed
 
 Cycle 6:
-- write READ_2 into BUS_CMD, if needed
+- write READ_2 into REG_BUS_CMD, if needed
 
 Cycle 7:
-- write BUS data content or BUS_A into ALU_A, depending on addressing mode
-- write BUS data content into BUS_D
-- write register content into ALU_B, depending on OPA field of INST
-- write ALU_CMD based on INST register content (i.e. instruction type and opcode)
+- Write BUS_D into REG_BUS_D
+- Execute instruction:
+  - write BUS_D or BUS_A into REG_ALU_B, depending on addressing mode
+  - write register content or 0 into REG_ALU_A, depending on OPA field of INST
+  - write REG_ALU_CMD based on OPCODE or 'OR' if we won't write data (i.e. we get the original data out)
 - write WRITE_1 into BUS_CMD, if needed
 
 Cycle 8:
-- write ALU_RESULT into BUS_D, if required based on INST
-- write ALU_RESULT into selected register, if required based on INST
-- write WRITE_2 into BUS_CMD, if needed
-- set INHIBIT, if needed
-- flip INTEN, if needed
-- write PC in ALU_A
-- write 0 into ALU_B
-- write ADD (and CIN=1) into ALU_CMD
+- Write back result into CPU state:
+  - write ALU_RESULT into selected register, if required based on INST
+  - set INHIBIT, if needed
+  - flip INTDIS, if needed
+- Increment PC:
+  - write PC in REG_ALU_A
+  - write 0 into REG_ALU_B
+  - write ADD (and CIN=1) into REG_ALU_CMD
+- Write back result into memory:
+  - write ALU_RESULT into BUS_D, if required based on INST
+  - write WRITE_2 into BUS_CMD, if needed
 
 NOTE: we assume that memory only needs correct data in WRITE_2. In other words, the inhibit lines are only activated with row-select, which, I think is fair.
 
 
 Instruction encoding
 ---------------------
+
+General instruction format:
+
+```
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+|       OPCODE      |    OPB    |  OPA  |         IMMED         |
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+```
 
 OPA codes (i.e. where does the first operand come from):
 - 2b00 - PC
@@ -126,19 +137,15 @@ OPB input codes (i.e. where does the second operand come from):
 - 3b110 - MEM[ IMMED+R0 ]
 - 3b111 - MEM[ IMMED+R1 ]
 
-D codes:
-- 1b0 - reg is destination
-- 1b1 - memory is destination
-
 BINARY group
 
 ```
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-| 0 |  OPCODE   | D |    OPB    |  OPA  |         IMMED         |
+| 0 |    B_OP   | D |    OPB    |  OPA  |         IMMED         |
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 ```
 
-OPCODE codes:
+B_OP codes:
 - 3b000 - SWAP <-- this one is weird as it writes both operands
 - 3b001 - MOV
 - 3b010 - ADD
@@ -150,53 +157,55 @@ OPCODE codes:
 
 NOTE: SWAP is special in several ways:
 - It writes both operands. This means that the 'D' bit is meaningless and can be re-purposed as follows:
-  - If 'D' is set to 0, it forces OPB to be IMMED or MEM[ IMMED ], in other words, it blocks the load of the base register into the ALU in cycle 4. In this case the INTEN bit is also flipped during execution.
+  - If 'D' is set to 0, it forces OPB to be IMMED or MEM[ IMMED ], in other words, it blocks the load of the base register into the ALU in cycle 4. In this case the INTDIS bit is also flipped during execution.
   - If 'D' is set to 1, normal SWAP operation is performed.
 
-SHIFT group
+D codes:
+- 1b0 - reg is destination
+- 1b1 - memory is destination
+
+UNARY group
 
 ```
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-| 1 | 1 | OPCODE| D |    OPB    |  OPA  |         IMMED         |
+| 1 | 1 | U_OP  | D |    OPB    |  OPA  |         IMMED         |
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 ```
 
-OPCODE codes:
+U_OP codes:
 - 2b00 - SHR
 - 2b01 - SAR
 - 2b10 - SHL
-- 2b11 - INTSTAT (pending interrupt in bit 0, INTEN in bit 1)
+- 2b11 - INTSTAT (pending interrupt in bit 0, INTDIS in bit 1)
 
 D code:
 - 1b0 - use OPB and IMMED for both source and destination
 - 1b1 - use OPA for both source and destination
 
-Note: here immediate doesn't make sense
+Note: in this group, OPB encoding that don't address memory are not meaningful.
 
 PREDICATE group
 
 ```
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-| 1 | 0 |   OPCODE  |    OPB    |  OPA  |         IMMED         |
+| 1 | 0 |    P_OP   |    OPB    |  OPA  |         IMMED         |
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 ```
 
 in this case, we do all operations as if we were doing a SUB and see what the result would be
 Note: all comparisons are assumed signed.
 
-OPCODE codes:
+P_OP codes:
 - 3b000 - ==0
 - 3b001 - !=0
-- 3b010 - <0
-- 3b011 - >=0
-- 3b100 - <=0
-- 3b101 - >0
-- 3b110 - INT=1 (i.e. interrupt is pending)
-- 3b111 - INT=0 (i.e. no interrupt is pending)
+- 3b010 - <0  (unsigned)
+- 3b011 - >=0 (unsigned)
+- 3b110 - <0  (signed)
+- 3b111 - >=0 (signed)
+- 3b100 - <=0 (signed)
+- 3b101 - >0  (signed)
 
 These instructions test the condition and if it is satisfied, set INHIBIT bit. This bit disables interrupts for the next instruction as well as force that instruction to be replaced by a NOP. This allows any instruction to be conditional.
-
-TODO: Not sure if interrupt testing is needed, it could be done with the INTSTAT instruction already...
 
 Interrupts and reset
 -----------------------
@@ -205,13 +214,13 @@ Interrupts and reset
 
   Simply put, when an interrupt happens, the INST register is forced to 0 cycle 3. Because of this, the saved PC points to the instruction that needs to be retried once the interrupt handler returns.
 
-  Any SWAP with the 'D' bit cleared also inverts INTEN. This facilitates return from interrupt operations: in an atomic operation, we restore the execution to where it got interrupted while also enabling interrupts. Interrupts are immediately enabled, so if there's a pending interrupt, no forward progress is made. This is a minor price to pay for simplicity.
+  Any SWAP with the 'D' bit cleared also inverts INTDIS. This facilitates return from interrupt operations: in an atomic operation, we restore the execution to where it got interrupted while also enabling interrupts. Interrupts are immediately enabled, so if there's a pending interrupt, no forward progress is made. This is a minor price to pay for simplicity.
 
 - reset is done the same way as interrupts, in other words, on reset, INST is forced to 0x0000 and ICYCLE is forced to 4.
 
 - one can enable/disable interrupts by storing the subsequent location of execution in some convenient low address (something that an IMMED field can address), then performing the requisite SWAP operation (with the D bit cleared). By convention MEM[ 1 ] is used for this purpose.
 
-- The interrupt status as well as the INTEN bit can be checked by the INT_STAT unary operation.
+- The interrupt status as well as the INTDIS bit can be checked by the INT_STAT unary operation.
 
 Pseudo instructions
 ---------------------
@@ -265,8 +274,8 @@ Either way, the kind of memory cycle (fetch v.s. read/write) will need to be com
 
 The control signals to the memory include:
 
-- ADDRESS
-- DATA (in/out as a bi-directional bus)
+- ADDRESS (generated by REG_BUS_A)
+- DATA (generated by REG_BUS_D)
 - READ_1
 - READ_2
 - WRITE_1
