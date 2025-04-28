@@ -119,3 +119,9 @@ The following control signals need to be generated:
 
 
 So we need to generate about 30-35 signals based on 16 or so inputs. That's not a small state-machine, though - of course - can be easily done by a few EPROMs. Not so much with transistors, so let's hope it partitions nicely.
+
+Here's an idea: since (if) the ALU is uses a ripple-carry implementation, it's not going to be faster than a bit-serial ALU implementation. So, what if we did that? This would make the ALU buses single-bit and most of the registers into shift-registers. Shift-register (I think) can be implemented using latches, if they get a divided-down clock: they will shift on both clock edges.
+
+But, if we have a bit-serial implementation of the ALU, maybe we should embrace the bit-serial nature fully? Not sure what that would mean for control for instance. But, maybe we could make things go faster as we don't necessarily have to make all cycles the same length: whenever we don't have an ALU operation, those cycles can go faster, provided the memory can go faster.
+
+One could also look at the carry-skip adder: https://en.wikipedia.org/wiki/Carry-skip_adder. This is approximately twice as fast as a ripple-carry adder would be, but requires a parallel implementation.

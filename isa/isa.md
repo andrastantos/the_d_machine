@@ -102,7 +102,8 @@ Cycle 8:
 - Increment PC:
   - write PC in REG_ALU_A
   - write 0 into REG_ALU_B
-  - write ADD (and CIN=1) into REG_ALU_CMD
+  - write ADD into REG_ALU_CMD
+  - set carry-in to 1 if PC is not the target register, otherwise set it to 0
 - Write back result into memory:
   - write ALU_RESULT into BUS_D, if required based on INST
   - write WRITE_2 into BUS_CMD, if needed
