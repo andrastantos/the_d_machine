@@ -8,6 +8,8 @@ NOTE: read-modify-write for core memories is practically free due to the destruc
 
 Every instruction takes 8 clock cycles. A memory read or write takes two cycles each (to allow the column-select transient to settle in the core memory). Since a write *must* follow a read, a memory access is four cycles. With one argument coming from memory, 8 is the minimum execution period for an instruction; in other words, the execution speed is memory limited, no (significant) gain can be had from variable execution times. Also, since these 8 cycles completely saturate the memory bus, pipelining or other parallel tricks to increase IPC are pointless, even if they were possible in a transistor-based implementation (which they are not).
 
+NOTE: I think it's best to do a bit-serial implementation where each of the 8 cycles are broken up into 16 micro-cycles. This allows for most buses to be 1-bit wide, muxes to be much cheaper, the ALU to be a single-bit one and most registers be turned into shift-registers.
+
 Registers
 -----------
 - R0
@@ -154,36 +156,18 @@ B_OP codes:
 - 3b100 - OR
 - 3b101 - AND
 - 3b110 - XOR
-- 3b111 - ???????????
+- 3b111 - ROR/INTSTAT <-- this one is also weird as it uses 'D' to encode two different operations
 
 NOTE: SWAP is special in several ways:
 - It writes both operands. This means that the 'D' bit is meaningless and can be re-purposed as follows:
   - If 'D' is set to 0, it forces OPB to be IMMED or MEM[ IMMED ], in other words, it blocks the load of the base register into the ALU in cycle 4. In this case the INTDIS bit is also flipped during execution.
   - If 'D' is set to 1, normal SWAP operation is performed.
 
+NOTE: ROR is special in that it can only rotate register operands (i.e. OPA). If D is set, it turns into the INTSTAT operation: INT in bit 0, INTDIS in bit 1
+
 D codes:
 - 1b0 - reg is destination
 - 1b1 - memory is destination
-
-UNARY group
-
-```
-+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-| 1 | 1 | U_OP  | D |    OPB    |  OPA  |         IMMED         |
-+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-```
-
-U_OP codes:
-- 2b00 - SHR
-- 2b01 - SAR
-- 2b10 - SHL
-- 2b11 - INTSTAT (pending interrupt in bit 0, INTDIS in bit 1)
-
-D code:
-- 1b0 - use OPB and IMMED for both source and destination
-- 1b1 - use OPA for both source and destination
-
-Note: in this group, OPB encoding that don't address memory are not meaningful.
 
 PREDICATE group
 
