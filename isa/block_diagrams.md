@@ -60,6 +60,7 @@ Data-plane block diagram
                                              |                               |
                                              \/                              \/
 ```
+TOOD: I don't think this data-flow supports SWAP.
 
 Multiplexers are implemented using distributed OR gates. That is: PFETs on the outputs of the drivers and pull-down somewhere to create the default 0. This works well for ALU_A and ALU_B muxes. INST MUX can work that we as well, but 3 bits would need to be drive to '1' as well to implement the NOP constant.
 
