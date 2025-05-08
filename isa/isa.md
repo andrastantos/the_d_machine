@@ -140,7 +140,8 @@ OPB input codes (i.e. where does the second operand come from):
 - 3b110 - MEM[ IMMED+R0 ]
 - 3b111 - MEM[ IMMED+R1 ]
 
-BINARY group
+ALU group
+============
 
 ```
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
@@ -153,8 +154,8 @@ B_OP codes:
 - 3b001 - MOV
 - 3b010 - ADD
 - 3b011 - SUB
-- 3b100 - OR
-- 3b101 - AND
+- 3b100 - NOR
+- 3b101 - NAND
 - 3b110 - XOR
 - 3b111 - ROR/INTSTAT <-- this one is also weird as it uses 'D' to encode two different operations
 
@@ -169,7 +170,12 @@ D codes:
 - 1b0 - reg is destination
 - 1b1 - memory is destination
 
+NOTE: due to the way the ALU operates, OR and AND returns negated results. Thus OR and AND will have to be followed by an XOR immediate with all IMMED bits set to 1 (which gets sign-extended, thus resulting in a 'NOT' operation). However, this only works if the target of the previous operation was a register. If the target was a memory location, things are significantly more complicated.
+
+TODO: since C and other high-level languages really like OR and AND, I should seriously consider adding the extra ~5-10 transistors to the ALU to implement them.
+
 PREDICATE group
+===============
 
 ```
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
@@ -178,7 +184,6 @@ PREDICATE group
 ```
 
 in this case, we do all operations as if we were doing a SUB and see what the result would be
-Note: all comparisons are assumed signed.
 
 P_OP codes:
 - 3b000 - ==0
@@ -211,7 +216,8 @@ Pseudo instructions
 ---------------------
 
 NOP:
-- this can be achieved by for example OR-ing a register with an immediate value of 0.
+- this can be achieved by for example XOR-ing a register with an immediate value of 0.
+
 
 High level language support
 -------------------------------
