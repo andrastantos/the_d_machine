@@ -57,6 +57,14 @@ The following mode registers are also needed:
 Operation in each cycle
 ------------------------
 
+The core memory manual page 37 onwards details the timing of the memory. This is crucial to understanding the timing of the CPU as well.
+TODO: although at this point the two are not consolidated.
+
+At any rate, a cycle takes 500ns on the memory, be it a read or write (I think, this is not a read-modify-write cycle). There are several sub-steps 25ns apart. That is to say a memory access takes 20 clock cycles. The CPU is a bit-serial implementation, so a cycle there takes 16 (maybe 17, maybe even 18?) clock cycles to complete. These numbers are close enough that I think we can fudge them to be the same. That is to say: the CPU needs to operate on a 33ns (32MHz) clock cycle to achieve full-speed operation. That's a tall order, I don't think I can do that. At the same time, I might not be able to make the memory subsystem as fast as it used to be in the PDP11 either. Also, the 500ns is not the cycle time of the memory, it's the access time, though I'm not sure why the two would be drastically different.
+
+The ALU is pretty much maxed out at 32MHz clock, so maybe, just maybe it's possible?
+
+
 Cycle 1:
 - write ALU_RESULT into REG_PC
 - write ALU_RESULT to REG_BUS_A
