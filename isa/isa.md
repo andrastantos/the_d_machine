@@ -6,10 +6,6 @@ The instruction set allows for read-modify-write of either (or both) operands.
 
 NOTE: read-modify-write for core memories is practically free due to the destructive nature of reads. The memory controller doesn't do automatic write-backs (to save a data-register) so the CPU needs to make sure it happens.
 
-Every instruction takes 8 clock cycles. A memory read or write takes two cycles each (to allow the column-select transient to settle in the core memory). Since a write *must* follow a read, a memory access is four cycles. With one argument coming from memory, 8 is the minimum execution period for an instruction; in other words, the execution speed is memory limited, no (significant) gain can be had from variable execution times. Also, since these 8 cycles completely saturate the memory bus, pipelining or other parallel tricks to increase IPC are pointless, even if they were possible in a transistor-based implementation (which they are not).
-
-NOTE: I think it's best to do a bit-serial implementation where each of the 8 cycles are broken up into 16 micro-cycles. This allows for most buses to be 1-bit wide, muxes to be much cheaper, the ALU to be a single-bit one and most registers be turned into shift-registers.
-
 Registers
 -----------
 - R0
@@ -54,71 +50,6 @@ The following mode registers are also needed:
 - INHIBIT: set when interrupts are inhibited (due to a predicate that disabled the following instruction)
 - REG_ICYCLE: a 3-bit counter (or an 8-bit one-hot counter?) to time the execution phases of an instruction
 
-Operation in each cycle
-------------------------
-
-The core memory manual page 37 onwards details the timing of the memory. This is crucial to understanding the timing of the CPU as well.
-TODO: although at this point the two are not consolidated.
-
-At any rate, a cycle takes 500ns on the memory, be it a read or write (I think, this is not a read-modify-write cycle). There are several sub-steps 25ns apart. That is to say a memory access takes 20 clock cycles. The CPU is a bit-serial implementation, so a cycle there takes 16 (maybe 17, maybe even 18?) clock cycles to complete. These numbers are close enough that I think we can fudge them to be the same. That is to say: the CPU needs to operate on a 33ns (32MHz) clock cycle to achieve full-speed operation. That's a tall order, I don't think I can do that. At the same time, I might not be able to make the memory subsystem as fast as it used to be in the PDP11 either. Also, the 500ns is not the cycle time of the memory, it's the access time, though I'm not sure why the two would be drastically different.
-
-The ALU is pretty much maxed out at 32MHz clock, so maybe, just maybe it's possible?
-
-
-Cycle 1:
-- write ALU_RESULT into REG_PC
-- write ALU_RESULT to REG_BUS_A
-- write READ_1 into REG_BUS_CMD
-
-Cycle 2:
-- write READ_2 into REG_BUS_CMD
-
-Cycle 3:
-- write BUS_D into REG_BUS_D
-- Load the REG_INST:
-  - if INHIBIT is 1, load 16b0_100_0_011_00_000000 (i.e. OR PC with 0, i.e. NOP)
-  - else if INTDIS is 0 and INT is 0 (i.e. there's an enabled and pending interrupt), load 0x0000
-  - else write BUS_D into INST
-- write WRITE_1 into REG_BUS_CMD
-- clear INHIBIT (this can be moved to any subsequent cycle, if needed)
-
-Cycle 4:
-- Calculate sum of index register and immediate:
-  - write REG_INST IMMED field into REG_ALU_B
-  - write REG_INST OPB-selected value into REG_ALU_A
-  - write ADD;C=0 into REG_ALU_CMD
-- write WRITE_2 into REG_BUS_CMD
-
-Cycle 5:
-- write ALU_RESULT into REG_BUS_A
-- write READ_1 into REG_BUS_CMD, if needed
-
-Cycle 6:
-- write READ_2 into REG_BUS_CMD, if needed
-
-Cycle 7:
-- Write BUS_D into REG_BUS_D
-- Execute instruction:
-  - write BUS_D or BUS_A into REG_ALU_B, depending on addressing mode
-  - write register content or 0 into REG_ALU_A, depending on OPA field of INST
-  - write REG_ALU_CMD based on OPCODE or 'OR' if we won't write data (i.e. we get the original data out)
-- write WRITE_1 into BUS_CMD, if needed
-
-Cycle 8:
-- Write back result into CPU state:
-  - write ALU_RESULT into selected register, if required based on INST
-  - set INHIBIT, if needed
-  - flip INTDIS, if needed
-- Increment PC:
-  - write PC in REG_ALU_A
-  - write 0 into REG_ALU_B
-  - write ADD into REG_ALU_CMD
-  - set carry-in to 1 if PC is not the target register, otherwise set it to 0
-- Write back result into memory:
-  - write ALU_RESULT into BUS_D, if required based on INST
-  - write WRITE_2 into BUS_CMD, if needed
-
-NOTE: we assume that memory only needs correct data in WRITE_2. In other words, the inhibit lines are only activated with row-select, which, I think is fair.
 
 
 Instruction encoding
