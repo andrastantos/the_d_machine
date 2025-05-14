@@ -107,6 +107,10 @@ class DataPath(Module):
     alu_z_out = Output(logic)
     alu_s_out = Output(logic)
 
+    inst_field_opcode = Output(Unsigned(5))
+    inst_field_opb = Output(Unsigned(3))
+    inst_field_opa = Output(Unsigned(2))
+
     def body(self):
         # The 8 latches we have in our system
         l_bus_a = LowLatch()
@@ -129,6 +133,9 @@ class DataPath(Module):
             l_inst[5], l_inst[5], l_inst[5], l_inst[5],
             l_inst[5], l_inst[5], l_inst[5:0]
         }
+        self.inst_field_opcode = l_inst[15:11]
+        self.inst_field_opb = l_inst[10:8]
+        self.inst_field_opa = l_inst[7:6]
 
         alu = ALU()
         alu_result <<= alu.o_out
