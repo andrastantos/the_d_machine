@@ -112,7 +112,7 @@ Cycle 1:
 
 Cycle 2:
 - close L_BUS_A -> it will maintain the instruction address while the ALU is busy
-- open L_PC and set it's input to BUS_A <-- NOTE: this is a special path that needs consideration!
+- open L_PC and set it's input to BUS_A <-- NOTE: this is a special path that needs consideration! Can we maybe use L_ALU_RESULT? Not that that's not a special path...
 - close L_BUS_D -> now it retains BUS_D
 - close L_INST -> now it contains the next instruction (interrupt, NOP or otherwise)
 - set BUS_CMD to WRITE
@@ -159,3 +159,34 @@ Here we set up pretty long logical chains:
 - Get through the ALU
 - Get through the output MUX
 All this in a single cycle; granted that cycle is now 500ns.
+
+I think this wavedrom scrip captures what's going on relatively well:
+
+{signal: [
+  {name: 'cycle', wave:'4333338', data: [5,1,2,3,4,5,1]},
+  {name: 'clk', wave: 'p......'},
+  {name: 'BUS_CMD', wave: '6555557', data: ['write','read', 'write', 'read', 'write', 'write', 'read']},
+  {name: 'L_BUS_A_ld',      wave: '01010.1'},
+  {name: 'L_BUS_A', wave: '65.5..7', data: ['OP--', 'PC', 'opb_result', 'PC+1']},
+  {name: 'L_BUS_D_ld',      wave: '1.0101.'},
+  {name: 'BUS_D_in', wave: 'x5x5x.', data: ['INST', 'data'], phase: -1.5},
+  {name: 'L_BUS_D', wave: '6x5x55x', data: ['op_result--','INST', 'data', 'op_result']},
+  {},
+  {name: 'L_INST_ld',       wave: '010...1'},
+  {name: 'L_INST', wave: '6x5...x', data: ['INST--', 'INST']},
+  {},
+  {name: 'ALU_A', wave: '6.5.55.', data: [ 'PC-1', 'reg[OPB]', 'reg[OPA]', 'PC']},
+  {name: 'ALU_B', wave: '6.5.55.', data: ['0', 'IMM', 'data??', '0']},
+  {name: 'ALU_CMD', wave: '6.5.55.', data: ['INC/NOP--', 'ADD', 'OPCODE', 'INC/NOP']},
+  {name: 'cycle', wave:'4333338', data: [5,1,2,3,4,5,1]},
+  {name: 'ALU_RESULT', wave: '5.5.57', data: ['PC', 'opb_result', 'op_result', 'PC+1'], phase: -1.5},
+  {name: 'L_ALU_RESULT_ld', wave: '0...10.'},
+  {name: 'L_ALU_RESULT', wave: '6...x5.', data: ['op_result--', 'op_result']},
+  {},
+  {name: 'L_PC_ld',         wave: '0.10...'},
+  {name: 'L_PC', wave: '6.5....', data: ['PC-1', 'PC']},
+  {},
+  {name: 'L_<target_reg>_ld', wave: '0....10'},
+],
+config: { hscale: 2 }
+}
