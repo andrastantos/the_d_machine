@@ -109,10 +109,11 @@ Cycle 1:
   - if INHIBIT is 1, set 16b0_100_0_011_00_000000 (i.e. OR PC with 0, i.e. NOP)
   - else if INTDIS is 0 and INT is 0 (i.e. there's an enabled and pending interrupt), set 0x0000
   - else mux BUS_D
+- open L_ALU_RESULT (this will load the current PC)
 
 Cycle 2:
 - close L_BUS_A -> it will maintain the instruction address while the ALU is busy
-- open L_PC and set it's input to BUS_A <-- NOTE: this is a special path that needs consideration! Can we maybe use L_ALU_RESULT? Not that that's not a special path...
+- open L_PC and set it's input to L_ALU_RESULT
 - close L_BUS_D -> now it retains BUS_D
 - close L_INST -> now it contains the next instruction (interrupt, NOP or otherwise)
 - set BUS_CMD to WRITE
@@ -121,6 +122,7 @@ Cycle 2:
   - set ALU_B to the sign-extended version of the IMMED field of L_INST
   - set ALU_A to the register selected by the OPB field of L_INST
   - set ALU_CMD to ADD;C=0
+- close L_ALU_RESULT
 
 Cycle 3:
 - open L_BUS_A and set its input to ALU_RESULT
@@ -180,8 +182,8 @@ I think this wavedrom scrip captures what's going on relatively well:
   {name: 'ALU_CMD', wave: '6.5.55.', data: ['INC/NOP--', 'ADD', 'OPCODE', 'INC/NOP']},
   {name: 'cycle', wave:'4333338', data: [5,1,2,3,4,5,1]},
   {name: 'ALU_RESULT', wave: '5.5.57', data: ['PC', 'opb_result', 'op_result', 'PC+1'], phase: -1.5},
-  {name: 'L_ALU_RESULT_ld', wave: '0...10.'},
-  {name: 'L_ALU_RESULT', wave: '6...x5.', data: ['op_result--', 'op_result']},
+  {name: 'L_ALU_RESULT_ld', wave: '010.10.'},
+  {name: 'L_ALU_RESULT', wave: '6x5.x5.', data: ['op_result--','PC', 'op_result']},
   {},
   {name: 'L_PC_ld',         wave: '0.10...'},
   {name: 'L_PC', wave: '6.5....', data: ['PC-1', 'PC']},
