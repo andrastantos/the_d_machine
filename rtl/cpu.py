@@ -570,3 +570,25 @@ class Sequencer(Module):
             0
         )
         l_intdis.input_port <<= l_intdis_prev.output_port ^ (self.inst_field_opcode == INST_SWAP) & ~self.inst_field_d
+
+        """
+        Swap is very difficult! We might need an extra latch to implement it.
+        Either that, or a whole bus to get any register into L_BUS_D in phase 3, which might be slightly less expensive.
+        The ALU is occupied in PHASE 1 and 2 with offset computation (and it needs to do it twice because L_BUS_A is a latch
+        that can only capture the data in phase 3 (so it needs to be ready by the beginning of phase 3) and needs to remain
+        stable throughout phase 3)
+        The ALU is also occupied in PHASE 3 with the actual operation (in case of a swap, it doesn't do much, just passes the data through)
+        The ALU updates the PC in PHASE 0, so that's not available, but maybe in PHASE 4, it can be used?
+
+        So, really the only thing we can do is
+        -----------------------------------------
+        phase 3: ALU passes register data **directly to BUS_D**, so the write outputs that, instead of L_BUS_D
+        phase 4: ALU passes L_BUS_D **directly** into the destination register (actually it can pass through L_ALU_RESULT, if needed)
+
+        This is ugly to say the least, but the only true other option is to add an extra 16-bit latch somewhere. For
+        instance, have an L_BUS_D2 register, which captures L_BUS_D so it can be overwritten through the ALU in phase 3 while
+        loaded into L_ALU_RESULT in the same phase (such that it's available in phase 4 for write-back). This BTW also adds an extra mux
+        as L_ALU_RESULT now have two sources.
+
+        ... I really have to think through if SWAP is all that necessary ...
+        """
