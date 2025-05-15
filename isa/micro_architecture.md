@@ -165,7 +165,7 @@ All this in a single cycle; granted that cycle is now 500ns.
 I think this wavedrom scrip captures what's going on relatively well:
 
 {signal: [
-  {name: 'cycle', wave:'4333338', data: [5,1,2,3,4,5,1]},
+  {name: 'phase', wave:'4333338', data: [4,0,1,2,3,4,0]},
   {name: 'clk', wave: 'p......'},
   {name: 'BUS_CMD', wave: '6555557', data: ['write','read', 'write', 'read', 'write', 'write', 'read']},
   {name: 'L_BUS_A_ld',      wave: '01010.1'},
@@ -192,3 +192,4 @@ I think this wavedrom scrip captures what's going on relatively well:
 ],
 config: { hscale: 2 }
 }
+

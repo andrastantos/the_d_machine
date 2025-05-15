@@ -34,7 +34,7 @@ class AluCmds(Enum):
 
 class LBusDSelect(Enum):
     bus_d = 0
-    l_alu_result = 1
+    alu_result = 1
 
 class AluASelect(Enum):
     pc = 0
@@ -48,6 +48,29 @@ class AluBSelect(Enum):
     immed = 0
     zero = 1
     l_bus_d = 2
+
+# Values for instruction fields
+OPA_PC = 0b00
+OPA_SP = 0b01
+OPA_R0 = 0b10
+OPA_R1 = 0b11
+
+OPB_IMMED_PC =     0b000
+OPB_IMMED_SP =     0b001
+OPB_IMMED_R0 =     0b010
+OPB_IMMED =        0b011
+OPB_MEM_IMMED_PC = 0b100
+OPB_MEM_IMMED_SP = 0b101
+OPB_MEM_IMMED_R0 = 0b110
+OPB_MEM_IMMED_R1 = 0b111
+
+INST_SWAP = 0b0000
+INST_MOV  = 0b0001
+INST_ADD  = 0b0010
+INST_SUB  = 0b0011
+INST_NOR  = 0b0100
+INST_NAND = 0b0101
+INST_XOR  = 0b0110
 
 class ALU(Module):
     a_in = Input(DataType)
@@ -83,7 +106,6 @@ class DataPath(Module):
     bus_d_out = Output(DataType)
     bus_d_in = Input(DataType)
     bus_a = Output(DataType)
-    bus_cmd = Output(EnumNet(BusCmds))
 
     l_bus_a_ld = Input(logic)
     l_bus_d_ld = Input(logic)
@@ -159,7 +181,7 @@ class DataPath(Module):
         l_bus_a.input_port <<= alu_result
         l_bus_d.input_port <<= SelectOne(
             self.l_bus_d_select == LBusDSelect.bus_d, self.bus_d_in,
-            self.l_bus_d_select == LBusDSelect.l_alu_result, l_alu_result.output_port
+            self.l_bus_d_select == LBusDSelect.alu_result, alu_result
         )
         l_alu_result.input_port <<= alu_result
         l_pc.input_port <<= l_alu_result.output_port
@@ -188,3 +210,95 @@ class DataPath(Module):
         )
 
 
+class Sequencer(Module):
+    clk = ClkInput()
+    rst = RstInput()
+
+    interrupt = Input(logic)
+
+    bus_cmd = Output(EnumNet(BusCmds))
+
+    l_bus_a_ld =      Output(logic)
+    l_bus_d_ld =      Output(logic)
+    l_alu_result_ld = Output(logic)
+    l_pc_ld =         Output(logic)
+    l_sp_ld =         Output(logic)
+    l_r0_ld =         Output(logic)
+    l_r1_ld =         Output(logic)
+    l_inst_ld =       Output(logic)
+
+    l_bus_d_select = Output(EnumNet(LBusDSelect))
+    alu_a_select =   Output(EnumNet(AluASelect))
+    alu_b_select =   Output(EnumNet(AluBSelect))
+    alu_cmd =        Output(EnumNet(AluCmds))
+
+    inhibit = Output(logic)
+    intdis =  Output(logic)
+
+    alu_c_in =  Output(logic)
+    alu_c_out = Input(logic)
+    alu_z_out = Input(logic)
+    alu_s_out = Input(logic)
+
+    inst_field_opcode = Input(Unsigned(5))
+    inst_field_opb    = Input(Unsigned(3))
+    inst_field_opa    = Input(Unsigned(2))
+
+    def body(self):
+        # State
+        update_reg = Wire(logic)
+        update_mem = Wire(logic)
+        l_inhibit = Wire(logic)
+        l_intdis = Wire(logic)
+
+        phase = Wire(Number(low=0,high=4))
+
+        phase <<= Select(self.rst, Select(phase == 4, phase + 1, 0), 0)
+
+        self.bus_cmd <<= Select(phase,
+            BusCmds.read,
+            BusCmds.write,
+            BusCmds.read,
+            BusCmds.write,
+            Select(update_mem, BusCmds.idle, BusCmds.write),
+        )
+
+        self.l_bus_a_ld <<= Select(phase,
+            1,
+            0,
+            1,
+            0,
+            0,
+        )
+
+        self.l_bus_d_ld <<= Select(phase,
+            1,
+            0,
+            1,
+            0,
+            1,
+        )
+
+        self.l_bus_d_select <<= Select(phase,
+            LBusDSelect.bus_d,
+            LBusDSelect.bus_d,
+            LBusDSelect.bus_d,
+            LBusDSelect.bus_d,
+            LBusDSelect.alu_result,
+        )
+
+        self.l_alu_result_ld <<= Select(phase,
+            1,
+            0,
+            0,
+            1,
+            0,
+        )
+
+        self.l_pc_ld <<= Select(phase,
+            0,
+            1,
+            0,
+            0,
+            update_reg & (self.inst_field_opa == OPA_PC),
+        )
