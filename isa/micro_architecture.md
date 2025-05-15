@@ -180,7 +180,7 @@ I think this wavedrom scrip captures what's going on relatively well:
   {name: 'ALU_A', wave: '6.5.55.', data: [ 'PC-1', 'reg[OPB]', 'reg[OPA]', 'PC']},
   {name: 'ALU_B', wave: '6.5.55.', data: ['0', 'IMM', 'data??', '0']},
   {name: 'ALU_CMD', wave: '6.5.55.', data: ['INC/NOP--', 'ADD', 'OPCODE', 'INC/NOP']},
-  {name: 'cycle', wave:'4333338', data: [5,1,2,3,4,5,1]},
+  {name: 'phase', wave:'4333338', data: [4,0,1,2,3,4,0]},
   {name: 'ALU_RESULT', wave: '5.5.57', data: ['PC', 'opb_result', 'op_result', 'PC+1'], phase: -1.5},
   {name: 'L_ALU_RESULT_ld', wave: '010.10.'},
   {name: 'L_ALU_RESULT', wave: '6x5.x5.', data: ['op_result--','PC', 'op_result']},

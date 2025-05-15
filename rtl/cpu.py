@@ -2,9 +2,6 @@
 from typing import *
 from silicon import *
 from silicon.memory import SimpleDualPortMemory
-#sys.path.append(str(Path(__file__).parent))
-
-from .brew_types import *
 
 """
 This is a simulation model of the transistorized computer.
@@ -25,12 +22,11 @@ class BusCmds(Enum):
 
 class AluCmds(Enum):
     alu_add                 = 0
-    alu_sub                 = 1
-    alu_or                  = 2
-    alu_and                 = 3
-    alu_xor                 = 4
-    alu_ror                 = 5
-    alu_rol                 = 6
+    alu_nor                 = 1
+    alu_nand                = 2
+    alu_xor                 = 3
+    alu_ror                 = 4
+    alu_rol                 = 5
 
 class LBusDSelect(Enum):
     bus_d = 0
@@ -43,11 +39,14 @@ class AluASelect(Enum):
     r1 = 3
     zero = 4
     int_stat = 5
+    l_bus_d = 6
+    l_bus_a = 7
 
 class AluBSelect(Enum):
     immed = 0
     zero = 1
     l_bus_d = 2
+    l_bus_a = 3
 
 # Values for instruction fields
 OPA_PC = 0b00
@@ -64,18 +63,40 @@ OPB_MEM_IMMED_SP = 0b101
 OPB_MEM_IMMED_R0 = 0b110
 OPB_MEM_IMMED_R1 = 0b111
 
-INST_SWAP = 0b0000
-INST_MOV  = 0b0001
-INST_ADD  = 0b0010
-INST_SUB  = 0b0011
-INST_NOR  = 0b0100
-INST_NAND = 0b0101
-INST_XOR  = 0b0110
+OPB_CLASS_IMM = 0b0
+OPB_CLASS_MEM = 0b1
+
+# Binary ops
+INST_SWAP  = 0b0000
+INST_OR    = 0b0001
+INST_AND   = 0b0010
+INST_XOR   = 0b0011
+INST_MOV   = 0b0100
+INST_ADD   = 0b0101
+INST_SUB   = 0b0110
+INST_ISUB  = 0b0111
+# Unary ops
+INST_ROR   = 0b1100
+INST_ROL   = 0b1101
+INST_ISTAT = 0b1111
+# Predicate ops (their inverse comes from the 'D' bit)
+INST_EQ   = 0b1000
+INST_LTU  = 0b1001
+INST_LTS  = 0b1010
+INST_LES  = 0b1011
+
+INST_GROUP_UNARY = 0b11
+INST_GROUP_PREDICATE = 0b10
+
+DEST_REG = 0b0
+DEST_MEM = 0b1
 
 class ALU(Module):
     a_in = Input(DataType)
     b_in = Input(DataType)
     cmd_in = Input(EnumNet(AluCmds))
+    inv_a_in = Input(logic)
+    inv_b_in = Input(logic)
     c_in = Input(logic)
 
     o_out = Output(DataType)
@@ -84,15 +105,16 @@ class ALU(Module):
     s_out = Output(logic)
 
     def body(self):
-        full_add = self.a_in + Select(self.cmd_in == AluCmds.alu_sub, self.b_in, ~self.b_in) + self.c_in
+        a_in = self.a_in ^ {self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in}
+        b_in = self.b_in ^ {self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in}
+        full_add = a_in + b_in + self.c_in
         result = SelectOne(
             self.cmd_in == AluCmds.alu_add, full_add[15:0],
-            self.cmd_in == AluCmds.alu_sub, full_add[15:0],
-            self.cmd_in == AluCmds.alu_or, self.a_in | self.b_in,
-            self.cmd_in == AluCmds.alu_and, self.a_in & self.b_in,
-            self.cmd_in == AluCmds.alu_xor, self.a_in ^ self.b_in,
-            self.cmd_in == AluCmds.alu_ror, {self.a_in[15], self.a_in[14:0]},
-            self.cmd_in == AluCmds.alu_xor, {self.a_in[14:0], self.a_in[15]},
+            self.cmd_in == AluCmds.alu_or, a_in | b_in,
+            self.cmd_in == AluCmds.alu_and, a_in & b_in,
+            self.cmd_in == AluCmds.alu_xor, a_in ^ b_in,
+            self.cmd_in == AluCmds.alu_ror, {a_in[15], a_in[14:0]},
+            self.cmd_in == AluCmds.alu_rol, {a_in[14:0], a_in[15]},
         )
         self.a_out = result
         self.c_out = full_add[16]
@@ -120,6 +142,8 @@ class DataPath(Module):
     alu_a_select = Input(EnumNet(AluASelect))
     alu_b_select = Input(EnumNet(AluBSelect))
     alu_cmd = Input(EnumNet(AluCmds))
+    alu_inv_a_in = Input(logic)
+    alu_inv_b_in = Input(logic)
 
     inhibit = Input(logic)
     intdis = Input(logic)
@@ -130,19 +154,20 @@ class DataPath(Module):
     alu_s_out = Output(logic)
 
     inst_field_opcode = Output(Unsigned(5))
+    inst_field_d   = Output(logic)
     inst_field_opb = Output(Unsigned(3))
     inst_field_opa = Output(Unsigned(2))
 
     def body(self):
         # The 8 latches we have in our system
-        l_bus_a = LowLatch()
-        l_bus_d = LowLatch()
-        l_alu_result = LowLatch()
-        l_pc = LowLatch()
-        l_sp = LowLatch()
-        l_r0 = LowLatch()
-        l_r1 = LowLatch()
-        l_inst = LowLatch()
+        l_bus_a = HighLatch()
+        l_bus_d = HighLatch()
+        l_alu_result = HighLatch()
+        l_pc = HighLatch()
+        l_sp = HighLatch()
+        l_r0 = HighLatch()
+        l_r1 = HighLatch()
+        l_inst = HighLatch()
 
         alu_a_in = Wire()
         alu_b_in = Wire()
@@ -155,7 +180,8 @@ class DataPath(Module):
             l_inst[5], l_inst[5], l_inst[5], l_inst[5],
             l_inst[5], l_inst[5], l_inst[5:0]
         }
-        self.inst_field_opcode = l_inst[15:11]
+        self.inst_field_opcode = l_inst[15:12]
+        self.inst_field_d = l_inst[11]
         self.inst_field_opb = l_inst[10:8]
         self.inst_field_opa = l_inst[7:6]
 
@@ -167,6 +193,8 @@ class DataPath(Module):
         alu.a_in <<= alu_a_in
         alu.b_in <<= alu_b_in
         alu.cmd_in <<= self.alu_cmd
+        alu.inv_a_in <<= self.alu_inv_a_in
+        alu.inv_b_in <<= self.alu_inv_b_in
         alu.c_in <<= self.alu_c_in
 
         l_bus_a.latch_port <<= self.l_bus_a_ld
@@ -190,8 +218,8 @@ class DataPath(Module):
         l_r1.input_port <<= l_alu_result.output_port
 
         l_inst.input_port <<= SelectFirst(
-            self.inhibit == 1, 0b0_100_0_011_00_000000,
-            (self.intdis == 0) & (self.interrupt | self.rst), 0b0_000_0_000_00_000000,
+            self.inhibit == 1,                                (INST_OR   << 12) | (DEST_REG << 11) | (OPB_IMMED        << 8) | (OPA_PC << 6) | (0 << 0),
+            (self.intdis == 0) & (self.interrupt | self.rst), (INST_SWAP << 12) | (DEST_REG << 11) | (OPB_MEM_IMMED_PC << 8) | (OPA_PC << 6) | (0 << 0),
             self.bus_d_in
         )
 
@@ -231,6 +259,8 @@ class Sequencer(Module):
     alu_a_select =   Output(EnumNet(AluASelect))
     alu_b_select =   Output(EnumNet(AluBSelect))
     alu_cmd =        Output(EnumNet(AluCmds))
+    alu_inv_a =      Output(logic)
+    alu_inv_b =      Output(logic)
 
     inhibit = Output(logic)
     intdis =  Output(logic)
@@ -240,7 +270,8 @@ class Sequencer(Module):
     alu_z_out = Input(logic)
     alu_s_out = Input(logic)
 
-    inst_field_opcode = Input(Unsigned(5))
+    inst_field_opcode = Input(Unsigned(4))
+    inst_field_d      = Input(logic)
     inst_field_opb    = Input(Unsigned(3))
     inst_field_opa    = Input(Unsigned(2))
 
@@ -248,12 +279,40 @@ class Sequencer(Module):
         # State
         update_reg = Wire(logic)
         update_mem = Wire(logic)
-        l_inhibit = Wire(logic)
-        l_intdis = Wire(logic)
+        l_inhibit = HighLatch()
+        l_intdis_prev = HighLatch()
+        l_intdis = HighLatch()
 
         phase = Wire(Number(low=0,high=4))
 
         phase <<= Select(self.rst, Select(phase == 4, phase + 1, 0), 0)
+
+        update_mem <<= Select(
+            self.inst_field_opcode == INST_SWAP,
+            # Not a swap instruction
+            Select(
+                self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE,
+                # Not a predicate instruction --> field D determines if we write to memory
+                self.inst_field_d,
+                # predicate instructions never write to memory
+                0
+            ),
+            # swap always writes to memory
+            1
+        )
+        update_reg <<= Select(
+            self.inst_field_opcode == INST_SWAP,
+            # Not a swap instruction
+            Select(
+                self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE,
+                # Not a predicate instruction --> field D determines if we write to registers
+                ~self.inst_field_d,
+                # predicate instructions never write to registers
+                0
+            ),
+            # swap always writes to registers
+            1
+        )
 
         self.bus_cmd <<= Select(phase,
             BusCmds.read,
@@ -280,11 +339,11 @@ class Sequencer(Module):
         )
 
         self.l_bus_d_select <<= Select(phase,
-            LBusDSelect.bus_d,
-            LBusDSelect.bus_d,
-            LBusDSelect.bus_d,
-            LBusDSelect.bus_d,
-            LBusDSelect.alu_result,
+            LBusDSelect.bus_d, # Instruction fetch, capture it for write-back
+            LBusDSelect.bus_d, # Doesn't matter, latch is disabled
+            LBusDSelect.bus_d, # Data fetch, capture it for write-back
+            LBusDSelect.bus_d, # Doesn't matter, latch is disabled
+            LBusDSelect.alu_result # Capture ALU result for result write-back
         )
 
         self.l_alu_result_ld <<= Select(phase,
@@ -302,3 +361,212 @@ class Sequencer(Module):
             0,
             update_reg & (self.inst_field_opa == OPA_PC),
         )
+
+        ld_target <<= Select(phase,
+            0,
+            0,
+            0,
+            0,
+            update_reg
+        )
+
+        self.l_sp_ld <<= ld_target & (self.inst_field_opa == OPA_SP)
+        self.l_r0_ld <<= ld_target & (self.inst_field_opa == OPA_R0)
+        self.l_r1_ld <<= ld_target & (self.inst_field_opa == OPA_R1)
+
+        # Let's figure out what the ALU should do and on what for each cycle
+
+        self.alu_cmd <<= Select(phase,
+            AluCmds.alu_add,   # increment PC or do nothing (i.e. adding 0)
+            AluCmds.alu_add,   # compute opb offset
+            AluCmds.alu_add,   # compute opb offset
+            SelectOne(
+                self.inst_field_opcode == INST_SWAP,   AluCmds.alu_add,
+                self.inst_field_opcode == INST_OR,     AluCmds.alu_nand,
+                self.inst_field_opcode == INST_AND,    AluCmds.alu_nor,
+                self.inst_field_opcode == INST_XOR,    AluCmds.alu_xor,
+                self.inst_field_opcode == INST_MOV,    AluCmds.alu_add,
+                self.inst_field_opcode == INST_ADD,    AluCmds.alu_add,
+                self.inst_field_opcode == INST_SUB,    AluCmds.alu_add,
+                self.inst_field_opcode == INST_ISUB,   AluCmds.alu_add,
+                self.inst_field_opcode == INST_ROR,    AluCmds.alu_ror,
+                self.inst_field_opcode == INST_ROL,    AluCmds.alu_rol,
+                self.inst_field_opcode == INST_ISTAT,  AluCmds.alu_add,
+                self.inst_field_opcode == INST_EQ,     AluCmds.alu_add,
+                self.inst_field_opcode == INST_LTU,    AluCmds.alu_add,
+                self.inst_field_opcode == INST_LTS,    AluCmds.alu_add,
+                self.inst_field_opcode == INST_LES,    AluCmds.alu_add,
+            ),
+            AluCmds.alu_add,   # increment PC or do nothing (i.e. adding 0)
+        )
+        self.alu_inv_a <<= Select(phase,
+            0,   # increment PC or do nothing (i.e. adding 0)
+            0,   # compute opb offset
+            0,   # compute opb offset
+            SelectOne(
+                self.inst_field_opcode == INST_SWAP,   0,
+                self.inst_field_opcode == INST_OR,     1,
+                self.inst_field_opcode == INST_AND,    1,
+                self.inst_field_opcode == INST_XOR,    0,
+                self.inst_field_opcode == INST_MOV,    0,
+                self.inst_field_opcode == INST_ADD,    0,
+                self.inst_field_opcode == INST_SUB,    0,
+                self.inst_field_opcode == INST_ISUB,   1,
+                self.inst_field_opcode == INST_ROR,    0,
+                self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_ISTAT,  0,
+                self.inst_field_opcode == INST_EQ,     self.inst_field_d,
+                self.inst_field_opcode == INST_LTU,    self.inst_field_d,
+                self.inst_field_opcode == INST_LTS,    self.inst_field_d,
+                self.inst_field_opcode == INST_LES,    self.inst_field_d,
+            ),
+            0,   # increment PC or do nothing (i.e. adding 0)
+        )
+        self.alu_inv_b <<= Select(phase,
+            0,   # increment PC or do nothing (i.e. adding 0)
+            0,   # compute opb offset
+            0,   # compute opb offset
+            SelectOne(
+                self.inst_field_opcode == INST_SWAP,   0,
+                self.inst_field_opcode == INST_OR,     1,
+                self.inst_field_opcode == INST_AND,    1,
+                self.inst_field_opcode == INST_XOR,    0,
+                self.inst_field_opcode == INST_MOV,    0,
+                self.inst_field_opcode == INST_ADD,    0,
+                self.inst_field_opcode == INST_SUB,    1,
+                self.inst_field_opcode == INST_ISUB,   0,
+                self.inst_field_opcode == INST_ROR,    0,
+                self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_ISTAT,  0,
+                self.inst_field_opcode == INST_EQ,     ~self.inst_field_d,
+                self.inst_field_opcode == INST_LTU,    ~self.inst_field_d,
+                self.inst_field_opcode == INST_LTS,    ~self.inst_field_d,
+                self.inst_field_opcode == INST_LES,    ~self.inst_field_d,
+            ),
+            0,   # increment PC or do nothing (i.e. adding 0)
+        )
+        self.alu_c_in <<= Select(phase,
+            update_reg & (self.inst_field_opa == OPA_PC),   # increment PC or do nothing (i.e. adding 0)
+            0,   # compute opb offset
+            0,   # compute opb offset
+            SelectOne(
+                self.inst_field_opcode == INST_SWAP,   0,
+                self.inst_field_opcode == INST_OR,     0,
+                self.inst_field_opcode == INST_AND,    0,
+                self.inst_field_opcode == INST_XOR,    0,
+                self.inst_field_opcode == INST_MOV,    0,
+                self.inst_field_opcode == INST_ADD,    0,
+                self.inst_field_opcode == INST_SUB,    1,
+                self.inst_field_opcode == INST_ISUB,   1,
+                self.inst_field_opcode == INST_ROR,    0,
+                self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_ISTAT,  0,
+                self.inst_field_opcode == INST_EQ,     1,
+                self.inst_field_opcode == INST_LTU,    1,
+                self.inst_field_opcode == INST_LTS,    1,
+                self.inst_field_opcode == INST_LES,    1,
+            ),
+            update_reg & (self.inst_field_opa == OPA_PC),   # increment PC or do nothing (i.e. adding 0)
+        )
+        opb_base = Select(
+            (self.inst_field_opcode == INST_SWAP) & (self.inst_field_d == 0),
+            # Not a SWAP with D=0
+            Select(self.inst_field_opcode == INST_ISTAT,
+                # not an ISTAT instruction
+                SelectOne(
+                    self.inst_field_opb == OPB_IMMED_PC,      AluASelect.pc,
+                    self.inst_field_opb == OPB_IMMED_SP,      AluASelect.sp,
+                    self.inst_field_opb == OPB_IMMED_R0,      AluASelect.r0,
+                    self.inst_field_opb == OPB_IMMED,         AluASelect.zero,
+                    self.inst_field_opb == OPB_MEM_IMMED_PC,  AluASelect.pc,
+                    self.inst_field_opb == OPB_MEM_IMMED_SP,  AluASelect.sp,
+                    self.inst_field_opb == OPB_MEM_IMMED_R0,  AluASelect.r0,
+                    self.inst_field_opb == OPB_MEM_IMMED_R1,  AluASelect.r1,
+                ),
+                # ISTAT instruction
+                AluASelect.int_stat
+            ),
+            # SWAP with D=0
+            AluASelect.zero
+        )
+        opa_select = Select(
+            self.inst_field_opcode[1:0] == INST_GROUP_UNARY,
+            Select(
+                self.inst_field_opcode == INST_ISTAT,
+                # Not ISTAT
+                # Unary group select operand based on 'D' bit
+                Select(self.inst_field_d,
+                    # register source and destination
+                    SelectOne(
+                        self.inst_field_opa == OPA_PC, AluASelect.pc,
+                        self.inst_field_opa == OPA_SP, AluASelect.sp,
+                        self.inst_field_opa == OPA_R0, AluASelect.r0,
+                        self.inst_field_opa == OPA_R1, AluASelect.r1,
+                    ),
+                    # memory source and destination
+                    AluASelect.l_bus_d
+                ),
+                # ISTAT
+                AluASelect.int_stat
+            ),
+            # Others select based on OPA
+            SelectOne(
+                self.inst_field_opa == OPA_PC, AluASelect.pc,
+                self.inst_field_opa == OPA_SP, AluASelect.sp,
+                self.inst_field_opa == OPA_R0, AluASelect.r0,
+                self.inst_field_opa == OPA_R1, AluASelect.r1,
+            ),
+        )
+        self.alu_a_select <<= Select(phase,
+            AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
+            opb_base,   # compute opb offset
+            opb_base,   # compute opb offset
+            opa_select, # execute instruction
+            AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
+        )
+        self.alu_b_select <<= Select(phase,
+            AluASelect.zero,   # increment PC or do nothing (i.e. adding 0)
+            AluBSelect.immed,   # compute opb offset
+            AluBSelect.immed,   # compute opb offset
+            Select( # execute instruction
+                self.inst_Field_opb[2] == OPB_CLASS_IMM,
+                AluBSelect.l_bus_d,
+                AluBSelect.l_bus_a,
+            )
+            AluASelect.zero,   # increment PC or do nothing (i.e. adding 0)
+        )
+
+        l_inhibit.latch_port <<= Select(phase,
+            0,
+            1, # Clear inhibit here
+            0,
+            1, # Set inhibit here, if needed
+            0
+        )
+        # TODO: figure out the right condition codes!!!!
+        raw_condition_match = SelectOne(
+            self.inst_field_opcode == INST_EQ, (self.alu_c_out == 0) & (self.alu_z_out == 1),
+            self.inst_field_opcode == INST_LTU, (self.alu_c_out == 0) & (self.alu_z_out == 1),
+            self.inst_field_opcode == INST_LTS, (self.alu_c_out == 0) & (self.alu_z_out == 1),
+            self.inst_field_opcode == INST_LES, (self.alu_c_out == 0) & (self.alu_z_out == 1),
+        )
+        condition_match = raw_condition_match ^ self.inst_field_d
+
+        l_inhibit.input_port <<= (phase == 3) & (self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE) & condition_match
+
+        l_intdis_prev.latch_port <<= Select(phase,
+            0,
+            1,
+            0,
+            0,
+            0
+        )
+        l_intdis_prev.input_port <<= l_intdis.output_port
+        l_intdis.latch_port <<= Select(phase,
+            0,
+            0,
+            0,
+            1,
+            0
+        )
+        l_intdis.input_port <<= l_intdis_prev.output_port ^ (self.inst_field_opcode == INST_SWAP) & ~self.inst_field_d

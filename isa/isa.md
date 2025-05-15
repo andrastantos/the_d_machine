@@ -79,7 +79,7 @@ OPB input codes (i.e. where does the second operand come from):
 - 3b110 - MEM[ IMMED+R0 ]
 - 3b111 - MEM[ IMMED+R1 ]
 
-ALU group
+BINARY group
 ============
 
 ```
@@ -90,20 +90,18 @@ ALU group
 
 B_OP codes:
 - 3b000 - SWAP <-- this one is weird as it writes both operands
-- 3b001 - MOV
-- 3b010 - ADD
-- 3b011 - SUB
-- 3b100 - NOR
-- 3b101 - NAND
-- 3b110 - XOR
-- 3b111 - ROR/INTSTAT <-- this one is also weird as it uses 'D' to encode two different operations
+- 3b001 - OR
+- 3b010 - AND
+- 3b011 - XOR
+- 3b100 - MOV
+- 3b101 - ADD
+- 3b110 - SUB
+- 3b111 - ISUB <-- this is inverse sub, i.e. B-A as opposed to A-B
 
 NOTE: SWAP is special in several ways:
 - It writes both operands. This means that the 'D' bit is meaningless and can be re-purposed as follows:
   - If 'D' is set to 0, it forces OPB to be IMMED or MEM[ IMMED ], in other words, it blocks the load of the base register into the ALU in cycle 4. In this case the INTDIS bit is also flipped during execution.
   - If 'D' is set to 1, normal SWAP operation is performed.
-
-NOTE: ROR is special in that it can only rotate register operands (i.e. OPA). If D is set, it turns into the INTSTAT operation: INT in bit 0, INTDIS in bit 1
 
 D codes:
 - 1b0 - reg is destination
@@ -112,6 +110,25 @@ D codes:
 NOTE: due to the way the ALU operates, OR and AND returns negated results. Thus OR and AND will have to be followed by an XOR immediate with all IMMED bits set to 1 (which gets sign-extended, thus resulting in a 'NOT' operation). However, this only works if the target of the previous operation was a register. If the target was a memory location, things are significantly more complicated.
 
 TODO: since C and other high-level languages really like OR and AND, I should seriously consider adding the extra ~5-10 transistors to the ALU to implement them.
+
+UNARY group
+============
+
+```
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+| 1 | 1 | U_OP  | D |    OPB    |  OPA  |         IMMED         |
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+```
+
+U_OP codes:
+- 2b00 - ROR
+- 2b01 - ROL
+- 2b10 - ?????
+- 2b11 - ISTAT <-- stores INT in bit0, INTDIS in bit1
+
+D codes:
+- 1b0 - reg is both source and destination
+- 1b1 - memory is both source and destination
 
 PREDICATE group
 ===============
@@ -129,10 +146,10 @@ P_OP codes:
 - 3b001 - !=0
 - 3b010 - <0  (unsigned)
 - 3b011 - >=0 (unsigned)
-- 3b110 - <0  (signed)
-- 3b111 - >=0 (signed)
-- 3b100 - <=0 (signed)
-- 3b101 - >0  (signed)
+- 3b100 - <0  (signed)
+- 3b101 - >=0 (signed)
+- 3b110 - <=0 (signed)
+- 3b111 - >0  (signed)
 
 These instructions test the condition and if it is satisfied, set INHIBIT bit. This bit disables interrupts for the next instruction as well as force that instruction to be replaced by a NOP. This allows any instruction to be conditional.
 
