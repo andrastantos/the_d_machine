@@ -169,22 +169,24 @@ class DataPath(Module):
         l_r0 = HighLatch()
         l_r1 = HighLatch()
         l_inst = HighLatch()
+        inst = Wire(DataType)
 
         alu_a_in = Wire()
         alu_b_in = Wire()
         alu_result = Wire()
 
+        inst <<= l_inst.output_port
         immed = Wire(Unsigned(16))
         # Sign-extend the immediate field to 16 bits
         immed <<= concat(
-            l_inst.output_port[5], l_inst.output_port[5], l_inst.output_port[5], l_inst.output_port[5],
-            l_inst.output_port[5], l_inst.output_port[5], l_inst.output_port[5], l_inst.output_port[5],
-            l_inst.output_port[5], l_inst.output_port[5], l_inst.output_port[5:0]
+            inst[5], inst[5], inst[5], inst[5],
+            inst[5], inst[5], inst[5], inst[5],
+            inst[5], inst[5], inst[5:0]
         )
-        self.inst_field_opcode <<= l_inst.output_port[15:12]
-        self.inst_field_d <<= l_inst.output_port[11]
-        self.inst_field_opb <<= l_inst.output_port[10:8]
-        self.inst_field_opa <<= l_inst.output_port[7:6]
+        self.inst_field_opcode <<= inst[15:12]
+        self.inst_field_d <<= inst[11]
+        self.inst_field_opb <<= inst[10:8]
+        self.inst_field_opa <<= inst[7:6]
 
         alu = ALU()
         alu_result <<= alu.o_out
@@ -288,19 +290,17 @@ class Sequencer(Module):
         phase = Wire(Unsigned(3))
         l_phase = HighLatch()
         l_phase_next = HighLatch()
-        l_phase.latch_port <<= ~self.clk
-        l_phase_next.latch_port <<= self.clk
+        l_phase.latch_port <<= self.clk
+        l_phase_next.latch_port <<= ~self.clk
         l_phase.input_port <<= l_phase_next.output_port
+        l_phase.reset_value_port <<= 1
+        l_phase_next.reset_value_port <<= 2
         phase <<= l_phase.output_port
 
         # We skip over phase 4 for anything but a SWAP instruction
         l_phase_next.input_port <<= Select(
-            self.rst,
-                Select(
-                phase == 5,
-                (phase + Select((self.inst_field_opcode == INST_SWAP) & phase == 3, 1, 2))[2:0],
-                0
-            ),
+            phase == 5,
+            (phase + Select((self.inst_field_opcode == INST_SWAP) & phase == 3, 1, 2))[2:0],
             0
         )
 
