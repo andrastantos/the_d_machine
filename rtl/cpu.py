@@ -226,7 +226,7 @@ class DataPath(Module):
             self.bus_d_in
         )
 
-        alu_a_in = SelectOne(
+        alu_a_in <<= SelectOne(
             self.alu_a_select == AluASelect.pc, l_pc.output_port,
             self.alu_a_select == AluASelect.sp, l_sp.output_port,
             self.alu_a_select == AluASelect.r0, l_r0.output_port,
@@ -234,11 +234,14 @@ class DataPath(Module):
             self.alu_a_select == AluASelect.zero, 0,
             self.alu_a_select == AluASelect.int_stat, concat(self.intdis, self.interrupt)
         )
-        alu_b_in = SelectOne(
+        alu_b_in <<= SelectOne(
             self.alu_b_select == AluBSelect.immed, immed,
             self.alu_b_select == AluBSelect.zero, 0,
             self.alu_b_select == AluBSelect.l_bus_d, l_bus_d.output_port
         )
+
+        self.bus_d_out <<= l_bus_d.output_port
+        self.bus_a <<= l_bus_a.output_port
 
 ### TODO: there's a huge issue here!!! Any latch load signal with glitches is highly problematic!!!!
 class Sequencer(Module):

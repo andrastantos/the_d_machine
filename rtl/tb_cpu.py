@@ -12,27 +12,33 @@ class Memory(Module):
 
     content = {}
     def simulate(self):
-
-        yield (self.bus_cmd, self.bus_a, self.bus_d_wr)
-        if (self.bus_cmd == BusCmds.read):
-            if self.bus_a.sim_value is None:
-                print("Reading from NONE - ignored for now")
+        while(True):
+            yield (self.bus_cmd, self.bus_a, self.bus_d_wr)
+            if (self.bus_cmd == BusCmds.read):
+                if self.bus_a.sim_value is None:
+                    print("Reading from NONE - ignored for now")
+                    self.bus_d_rd <<= None
+                    return
+                addr = int(self.bus_a.sim_value)
+                data = self.content.get(addr, None)
+                if data is not None:
+                    print(f"Reading MEM[0x{addr:04x}] -> 0x{data:04x}")
+                else:
+                    print(f"Reading MEM[0x{addr:04x}] -> NONE")
+                self.bus_d_rd <<= data
+            elif (self.bus_cmd == BusCmds.write):
+                if self.bus_a.sim_value is None:
+                    print("Writing to NONE - ignored for now")
+                    return
+                addr = int(self.bus_a.sim_value)
+                data = self.bus_d_wr.sim_value
+                if data is not None:
+                    print(f"Writing MEM[0x{addr:04x}] = 0x{data:04x}")
+                else:
+                    print(f"Writing MEM[0x{addr:04x}] = NONE")
+                self.content[addr] = data
+            else:
                 self.bus_d_rd <<= None
-                return
-            addr = int(self.bus_a.sim_value)
-            data = self.content.get(addr, None)
-            print(f"Reading MEM[0x{addr:04x} -> 0x{data:04x}")
-            self.bus_d_rd <<= data
-        elif (self.bus_cmd == BusCmds.write):
-            if self.bus_a.sim_value is None:
-                print("Writing to NONE - ignored for now")
-                return
-            addr = int(self.bus_a.sim_value)
-            data = self.bus_d_wr.sim_value
-            print(f"Writing MEM[0x{addr:04x} = 0x{data:04x}")
-            self.content[addr] = data
-        else:
-            self.bus_d_rd <<= None
     def set(self, addr, data):
         self.content[addr] = data
     def get(self, addr):
