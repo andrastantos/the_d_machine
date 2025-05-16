@@ -32,7 +32,7 @@ class Memory(Module):
             print(f"Writing MEM[0x{addr:04x} = 0x{data:04x}")
             self.content[addr] = data
         else:
-            bus_d_rd <<= None
+            self.bus_d_rd <<= None
     def set(self, addr, data):
         self.content[addr] = data
     def get(self, addr):
@@ -75,6 +75,7 @@ class TB(Module):
             self.clk <<= ~self.clk
             yield 0
 
+        self.clk <<= 0
         self.rst <<= 1
         for i in range(15): yield from clk()
         self.rst <<= 0
@@ -84,7 +85,7 @@ def sim():
     def sim_top():
         return TB()
 
-    Build.simulation(sim_top, "execute_tb.vcd", add_unnamed_scopes=True)
+    Build.simulation(sim_top, "tb_cpu.vcd", add_unnamed_scopes=True)
 
 if __name__ == "__main__":
     sim()

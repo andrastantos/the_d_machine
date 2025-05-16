@@ -331,13 +331,16 @@ class Sequencer(Module):
             1
         )
 
-        self.bus_cmd <<= Select(phase,
-            BusCmds.read,
-            BusCmds.write,
-            BusCmds.read,
-            BusCmds.write,
-            BusCmds.idle,
-            Select(update_mem, BusCmds.idle, BusCmds.write),
+        self.bus_cmd <<= Select(self.rst,
+            Select(phase,
+                BusCmds.read,
+                BusCmds.write,
+                BusCmds.read,
+                BusCmds.write,
+                BusCmds.idle,
+                Select(update_mem, BusCmds.idle, BusCmds.write),
+            ),
+            BusCmds.idle
         )
 
         self.l_bus_a_ld <<= Select(phase,
@@ -373,6 +376,15 @@ class Sequencer(Module):
             0,
             1,
             1,
+            0,
+        )
+
+        self.l_inst_ld <<= Select(phase,
+            1,
+            0,
+            0,
+            0,
+            0,
             0,
         )
 
