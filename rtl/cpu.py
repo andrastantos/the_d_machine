@@ -105,24 +105,25 @@ class ALU(Module):
     s_out = Output(logic)
 
     def body(self):
-        a_in = self.a_in ^ {self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in}
-        b_in = self.b_in ^ {self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in}
+        a_in = self.a_in ^ concat(self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in)
+        b_in = self.b_in ^ concat(self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in)
         full_add = a_in + b_in + self.c_in
         result = SelectOne(
             self.cmd_in == AluCmds.alu_add, full_add[15:0],
-            self.cmd_in == AluCmds.alu_or, a_in | b_in,
-            self.cmd_in == AluCmds.alu_and, a_in & b_in,
+            self.cmd_in == AluCmds.alu_nor, a_in | b_in,
+            self.cmd_in == AluCmds.alu_nand, a_in & b_in,
             self.cmd_in == AluCmds.alu_xor, a_in ^ b_in,
-            self.cmd_in == AluCmds.alu_ror, {a_in[15], a_in[14:0]},
-            self.cmd_in == AluCmds.alu_rol, {a_in[14:0], a_in[15]},
+            self.cmd_in == AluCmds.alu_ror, concat(a_in[15], a_in[14:0]),
+            self.cmd_in == AluCmds.alu_rol, concat(a_in[14:0], a_in[15]),
         )
-        self.a_out = result
-        self.c_out = full_add[16]
-        self.z_out = result == 0
-        self.s_out = result[15]
+        self.o_out <<= result
+        self.c_out <<= full_add[16]
+        self.z_out <<= result == 0
+        self.s_out <<= result[15]
 
 class DataPath(Module):
-    rst = Input(logic)
+    clk = ClkPort()
+    rst = RstPort()
     interrupt = Input(logic)
 
     bus_d_out = Output(DataType)
@@ -153,7 +154,7 @@ class DataPath(Module):
     alu_z_out = Output(logic)
     alu_s_out = Output(logic)
 
-    inst_field_opcode = Output(Unsigned(5))
+    inst_field_opcode = Output(Unsigned(4))
     inst_field_d   = Output(logic)
     inst_field_opb = Output(Unsigned(3))
     inst_field_opa = Output(Unsigned(2))
@@ -173,17 +174,17 @@ class DataPath(Module):
         alu_b_in = Wire()
         alu_result = Wire()
 
-        immed = Unsigned(16)
+        immed = Wire(Unsigned(16))
         # Sign-extend the immediate field to 16 bits
-        immed <<= {
-            l_inst[5], l_inst[5], l_inst[5], l_inst[5],
-            l_inst[5], l_inst[5], l_inst[5], l_inst[5],
-            l_inst[5], l_inst[5], l_inst[5:0]
-        }
-        self.inst_field_opcode = l_inst[15:12]
-        self.inst_field_d = l_inst[11]
-        self.inst_field_opb = l_inst[10:8]
-        self.inst_field_opa = l_inst[7:6]
+        immed <<= concat(
+            l_inst.output_port[5], l_inst.output_port[5], l_inst.output_port[5], l_inst.output_port[5],
+            l_inst.output_port[5], l_inst.output_port[5], l_inst.output_port[5], l_inst.output_port[5],
+            l_inst.output_port[5], l_inst.output_port[5], l_inst.output_port[5:0]
+        )
+        self.inst_field_opcode <<= l_inst.output_port[15:12]
+        self.inst_field_d <<= l_inst.output_port[11]
+        self.inst_field_opb <<= l_inst.output_port[10:8]
+        self.inst_field_opa <<= l_inst.output_port[7:6]
 
         alu = ALU()
         alu_result <<= alu.o_out
@@ -229,7 +230,7 @@ class DataPath(Module):
             self.alu_a_select == AluASelect.r0, l_r0.output_port,
             self.alu_a_select == AluASelect.r1, l_r1.output_port,
             self.alu_a_select == AluASelect.zero, 0,
-            self.alu_a_select == AluASelect.int_stat, {self.intdis, self.interrupt}
+            self.alu_a_select == AluASelect.int_stat, concat(self.intdis, self.interrupt)
         )
         alu_b_in = SelectOne(
             self.alu_b_select == AluBSelect.immed, immed,
@@ -237,10 +238,10 @@ class DataPath(Module):
             self.alu_b_select == AluBSelect.l_bus_d, l_bus_d.output_port
         )
 
-
+### TODO: there's a huge issue here!!! Any latch load signal with glitches is highly problematic!!!!
 class Sequencer(Module):
-    clk = ClkInput()
-    rst = RstInput()
+    clk = ClkPort()
+    rst = RstPort()
 
     interrupt = Input(logic)
 
@@ -283,9 +284,25 @@ class Sequencer(Module):
         l_intdis_prev = HighLatch()
         l_intdis = HighLatch()
 
-        phase = Wire(Number(low=0,high=4))
+        #phase = Wire(Number(min_val=0,max_val=5))
+        phase = Wire(Unsigned(3))
+        l_phase = HighLatch()
+        l_phase_next = HighLatch()
+        l_phase.latch_port <<= ~self.clk
+        l_phase_next.latch_port <<= self.clk
+        l_phase.input_port <<= l_phase_next.output_port
+        phase <<= l_phase.output_port
 
-        phase <<= Select(self.rst, Select(phase == 4, phase + 1, 0), 0)
+        # We skip over phase 4 for anything but a SWAP instruction
+        l_phase_next.input_port <<= Select(
+            self.rst,
+                Select(
+                phase == 5,
+                (phase + Select((self.inst_field_opcode == INST_SWAP) & phase == 3, 1, 2))[2:0],
+                0
+            ),
+            0
+        )
 
         update_mem <<= Select(
             self.inst_field_opcode == INST_SWAP,
@@ -319,6 +336,7 @@ class Sequencer(Module):
             BusCmds.write,
             BusCmds.read,
             BusCmds.write,
+            BusCmds.idle,
             Select(update_mem, BusCmds.idle, BusCmds.write),
         )
 
@@ -326,6 +344,7 @@ class Sequencer(Module):
             1,
             0,
             1,
+            0,
             0,
             0,
         )
@@ -336,12 +355,14 @@ class Sequencer(Module):
             1,
             0,
             1,
+            1,
         )
 
         self.l_bus_d_select <<= Select(phase,
             LBusDSelect.bus_d, # Instruction fetch, capture it for write-back
             LBusDSelect.bus_d, # Doesn't matter, latch is disabled
             LBusDSelect.bus_d, # Data fetch, capture it for write-back
+            LBusDSelect.bus_d, # Doesn't matter, latch is disabled
             LBusDSelect.bus_d, # Doesn't matter, latch is disabled
             LBusDSelect.alu_result # Capture ALU result for result write-back
         )
@@ -351,6 +372,7 @@ class Sequencer(Module):
             0,
             0,
             1,
+            1,
             0,
         )
 
@@ -359,10 +381,12 @@ class Sequencer(Module):
             1,
             0,
             0,
+            0,
             update_reg & (self.inst_field_opa == OPA_PC),
         )
 
-        ld_target <<= Select(phase,
+        ld_target = Select(phase,
+            0,
             0,
             0,
             0,
@@ -380,6 +404,7 @@ class Sequencer(Module):
             AluCmds.alu_add,   # increment PC or do nothing (i.e. adding 0)
             AluCmds.alu_add,   # compute opb offset
             AluCmds.alu_add,   # compute opb offset
+            AluCmds.alu_add,   # skip-cycle for SWAP only
             SelectOne(
                 self.inst_field_opcode == INST_SWAP,   AluCmds.alu_add,
                 self.inst_field_opcode == INST_OR,     AluCmds.alu_nand,
@@ -403,6 +428,7 @@ class Sequencer(Module):
             0,   # increment PC or do nothing (i.e. adding 0)
             0,   # compute opb offset
             0,   # compute opb offset
+            0,   # skip-cycle for SWAP only
             SelectOne(
                 self.inst_field_opcode == INST_SWAP,   0,
                 self.inst_field_opcode == INST_OR,     1,
@@ -426,6 +452,7 @@ class Sequencer(Module):
             0,   # increment PC or do nothing (i.e. adding 0)
             0,   # compute opb offset
             0,   # compute opb offset
+            0,   # skip-cycle for SWAP only
             SelectOne(
                 self.inst_field_opcode == INST_SWAP,   0,
                 self.inst_field_opcode == INST_OR,     1,
@@ -449,6 +476,7 @@ class Sequencer(Module):
             update_reg & (self.inst_field_opa == OPA_PC),   # increment PC or do nothing (i.e. adding 0)
             0,   # compute opb offset
             0,   # compute opb offset
+            0,   # skip-cycle for SWAP only
             SelectOne(
                 self.inst_field_opcode == INST_SWAP,   0,
                 self.inst_field_opcode == INST_OR,     0,
@@ -522,23 +550,26 @@ class Sequencer(Module):
             opb_base,   # compute opb offset
             opb_base,   # compute opb offset
             opa_select, # execute instruction
+            opa_select, # execute instruction
             AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
         )
         self.alu_b_select <<= Select(phase,
-            AluASelect.zero,   # increment PC or do nothing (i.e. adding 0)
+            AluBSelect.zero,   # increment PC or do nothing (i.e. adding 0)
             AluBSelect.immed,   # compute opb offset
             AluBSelect.immed,   # compute opb offset
+            AluBSelect.zero,   # skip-cycle for SWAP only
             Select( # execute instruction
-                self.inst_Field_opb[2] == OPB_CLASS_IMM,
+                self.inst_field_opb[2] == OPB_CLASS_IMM,
                 AluBSelect.l_bus_d,
                 AluBSelect.l_bus_a,
-            )
-            AluASelect.zero,   # increment PC or do nothing (i.e. adding 0)
+            ),
+            AluBSelect.zero,   # increment PC or do nothing (i.e. adding 0)
         )
 
         l_inhibit.latch_port <<= Select(phase,
             0,
             1, # Clear inhibit here
+            0,
             0,
             1, # Set inhibit here, if needed
             0
@@ -559,17 +590,22 @@ class Sequencer(Module):
             1,
             0,
             0,
+            0,
             0
         )
+        int_dis_next = Wire(logic)
+
         l_intdis_prev.input_port <<= l_intdis.output_port
         l_intdis.latch_port <<= Select(phase,
             0,
             0,
             0,
             1,
+            1,
             0
         )
-        l_intdis.input_port <<= l_intdis_prev.output_port ^ (self.inst_field_opcode == INST_SWAP) & ~self.inst_field_d
+        int_dis_next <<= l_intdis_prev.output_port ^ (self.inst_field_opcode == INST_SWAP) & ~self.inst_field_d
+        l_intdis.input_port <<= int_dis_next
 
         """
         Swap is very difficult! We might need an extra latch to implement it.
@@ -592,3 +628,59 @@ class Sequencer(Module):
 
         ... I really have to think through if SWAP is all that necessary ...
         """
+
+class Cpu(Module):
+    clk = ClkPort()
+    rst = RstPort()
+
+    interrupt = Input(logic)
+
+    bus_cmd = Output(EnumNet(BusCmds))
+
+    bus_d_out = Output(DataType)
+    bus_d_in = Input(DataType)
+    bus_a = Output(DataType)
+
+    def body(self):
+        data_path = DataPath()
+        sequencer = Sequencer()
+
+        self.bus_d_out <<= data_path.bus_d_out
+        self.bus_a <<= data_path.bus_a
+        self.bus_cmd <<= sequencer.bus_cmd
+        data_path.bus_d_in <<= self.bus_d_in
+
+        sequencer.interrupt <<= self.interrupt
+
+        data_path.l_bus_a_ld <<= sequencer.l_bus_a_ld
+        data_path.l_bus_d_ld <<= sequencer.l_bus_d_ld
+        data_path.l_alu_result_ld <<= sequencer.l_alu_result_ld
+        data_path.l_pc_ld <<= sequencer.l_pc_ld
+        data_path.l_sp_ld <<= sequencer.l_sp_ld
+        data_path.l_r0_ld <<= sequencer.l_r0_ld
+        data_path.l_r1_ld <<= sequencer.l_r1_ld
+        data_path.l_inst_ld <<= sequencer.l_inst_ld
+
+        data_path.l_bus_d_select <<= sequencer.l_bus_d_select
+        data_path.alu_a_select <<= sequencer.alu_a_select
+        data_path.alu_b_select <<= sequencer.alu_b_select
+        data_path.alu_cmd <<= sequencer.alu_cmd
+        data_path.alu_inv_a_in <<= sequencer.alu_inv_a
+        data_path.alu_inv_b_in <<= sequencer.alu_inv_b
+
+        data_path.inhibit <<= sequencer.inhibit
+        data_path.intdis <<= sequencer.intdis
+
+        data_path.alu_c_in <<= sequencer.alu_c_in
+
+        sequencer.alu_c_out <<= data_path.alu_c_out
+        sequencer.alu_z_out <<= data_path.alu_z_out
+        sequencer.alu_s_out <<= data_path.alu_s_out
+
+        sequencer.inst_field_opcode <<= data_path.inst_field_opcode
+        sequencer.inst_field_d <<= data_path.inst_field_d
+        sequencer.inst_field_opb <<= data_path.inst_field_opb
+        sequencer.inst_field_opa <<= data_path.inst_field_opa
+
+
+
