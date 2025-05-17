@@ -18,7 +18,7 @@ class Memory(Module):
                 if self.bus_a.sim_value is None:
                     print("Reading from NONE - ignored for now")
                     self.bus_d_rd <<= None
-                    return
+                    continue
                 addr = int(self.bus_a.sim_value)
                 data = self.content.get(addr, None)
                 if data is not None:
@@ -29,7 +29,7 @@ class Memory(Module):
             elif (self.bus_cmd == BusCmds.write):
                 if self.bus_a.sim_value is None:
                     print("Writing to NONE - ignored for now")
-                    return
+                    continue
                 addr = int(self.bus_a.sim_value)
                 data = self.bus_d_wr.sim_value
                 if data is not None:
