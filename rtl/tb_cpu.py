@@ -73,9 +73,9 @@ class TB(Module):
 
     def simulate(self):
         self.mem.set(0, 0x1000) # Reset vector to 0x1000
-        self.mem.set(0x1000, (INST_MOV   << 12) | (DEST_REG << 11) | (OPB_IMMED        << 8) | (OPA_SP << 6) | (0 << 0))
-        self.mem.set(0x1001, (INST_MOV   << 12) | (DEST_REG << 11) | (OPB_IMMED        << 8) | (OPA_R0 << 6) | (0 << 0))
-        self.mem.set(0x1002, (INST_MOV   << 12) | (DEST_REG << 11) | (OPB_IMMED        << 8) | (OPA_R1 << 6) | (0 << 0))
+        self.mem.set(0x1000, (INST_MOV   << 12) | (DEST_REG << 11) | (OPB_IMMED        << 8) | (OPA_SP << 6) | (3 << 0))
+        self.mem.set(0x1001, (INST_MOV   << 12) | (DEST_REG << 11) | (OPB_IMMED        << 8) | (OPA_R0 << 6) | (4 << 0))
+        self.mem.set(0x1002, (INST_MOV   << 12) | (DEST_REG << 11) | (OPB_IMMED        << 8) | (OPA_R1 << 6) | (0x3f << 0))
         self.mem.set(0x1003, (INST_ADD   << 12) | (DEST_REG << 11) | (OPB_IMMED        << 8) | (OPA_SP << 6) | (1 << 0))
         self.mem.set(0x1004, (INST_MOV   << 12) | (DEST_REG << 11) | (OPB_MEM_IMMED_PC << 8) | (OPA_PC << 6) | (1 << 0))
         self.mem.set(0x1005, 0x1004) # Endless loop

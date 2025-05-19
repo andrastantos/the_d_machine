@@ -54,17 +54,17 @@ OPA_SP = 0b01
 OPA_R0 = 0b10
 OPA_R1 = 0b11
 
-OPB_IMMED_PC =     0b000
-OPB_IMMED_SP =     0b001
-OPB_IMMED_R0 =     0b010
-OPB_IMMED =        0b011
-OPB_MEM_IMMED_PC = 0b100
-OPB_MEM_IMMED_SP = 0b101
-OPB_MEM_IMMED_R0 = 0b110
-OPB_MEM_IMMED_R1 = 0b111
+OPB_IMMED_PC =     0b100
+OPB_IMMED_SP =     0b101
+OPB_IMMED_R0 =     0b110
+OPB_IMMED =        0b111
+OPB_MEM_IMMED_PC = 0b000
+OPB_MEM_IMMED_SP = 0b001
+OPB_MEM_IMMED_R0 = 0b010
+OPB_MEM_IMMED_R1 = 0b011
 
-OPB_CLASS_IMM = 0b0
-OPB_CLASS_MEM = 0b1
+OPB_CLASS_IMM = 0b1
+OPB_CLASS_MEM = 0b0
 
 # Binary ops
 INST_SWAP  = 0b0000
@@ -304,10 +304,11 @@ class Sequencer(Module):
         l_phase_next.reset_value_port <<= 2
         phase <<= l_phase.output_port
 
+        is_opb_mem_ref = self.inst_field_opb[2] != OPB_CLASS_IMM
         # We skip over phase 4 for anything but a SWAP instruction
         l_phase_next.input_port <<= Select(
             phase == 5,
-            (phase + Select((self.inst_field_opcode == INST_SWAP) & phase == 3, 1, 2))[2:0],
+            (phase + Select((self.inst_field_opcode == INST_SWAP) | (phase != 2), 2, 1))[2:0],
             0
         )
 
@@ -342,9 +343,9 @@ class Sequencer(Module):
             Select(phase,
                 BusCmds.read,
                 BusCmds.write,
-                BusCmds.read,
+                Select(is_opb_mem_ref, BusCmds.idle, BusCmds.read),
                 BusCmds.write,
-                BusCmds.idle,
+                Select(is_opb_mem_ref & (self.inst_field_opcode != INST_SWAP), BusCmds.idle, BusCmds.write),
                 Select(update_mem, BusCmds.idle, BusCmds.write),
             ),
             BusCmds.idle
@@ -554,7 +555,6 @@ class Sequencer(Module):
                         self.inst_field_opa == OPA_R0, AluASelect.r0,
                         self.inst_field_opa == OPA_R1, AluASelect.r1,
                     ),
-                    # memory source and destination
                     AluASelect.l_bus_d
                 ),
                 # ISTAT
@@ -584,9 +584,9 @@ class Sequencer(Module):
             Select(
                 self.inst_field_opcode == INST_SWAP,
                 Select( # execute instruction
-                    self.inst_field_opb[2] == OPB_CLASS_IMM,
-                    AluBSelect.l_bus_d,
+                    is_opb_mem_ref,
                     AluBSelect.l_bus_a,
+                    AluBSelect.l_bus_d,
                 ),
                 AluBSelect.zero # For SWAP in this cycle, we move PC into L_BUS_D
             ),
@@ -670,6 +670,8 @@ class Cpu(Module):
     bus_d_in = Input(DataType)
     bus_a = Output(DataType)
 
+    inst_load = Output(logic) # goes high for the cycle where the instruction is fetched. Similar to the M1 cycle of the Z80
+
     def body(self):
         data_path = DataPath()
         sequencer = Sequencer()
@@ -711,5 +713,6 @@ class Cpu(Module):
         sequencer.inst_field_opb <<= data_path.inst_field_opb
         sequencer.inst_field_opa <<= data_path.inst_field_opa
 
+        self.inst_load <<= sequencer.l_inst_ld
 
 

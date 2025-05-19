@@ -70,14 +70,14 @@ OPA codes (i.e. where does the first operand come from):
 - 2b11 - R1
 
 OPB input codes (i.e. where does the second operand come from):
-- 3b000 - IMMED+PC
-- 3b001 - IMMED+SP
-- 3b010 - IMMED+R0
-- 3b011 - IMMED
-- 3b100 - MEM[ IMMED+PC ]
-- 3b101 - MEM[ IMMED+SP ]
-- 3b110 - MEM[ IMMED+R0 ]
-- 3b111 - MEM[ IMMED+R1 ]
+- 3b000 - MEM[ IMMED+PC ]
+- 3b001 - MEM[ IMMED+SP ]
+- 3b010 - MEM[ IMMED+R0 ]
+- 3b011 - MEM[ IMMED+R1 ]
+- 3b100 - IMMED+PC
+- 3b101 - IMMED+SP
+- 3b110 - IMMED+R0
+- 3b111 - IMMED
 
 BINARY group
 ============
