@@ -93,7 +93,7 @@ B_OP codes:
 - 3b001 - OR
 - 3b010 - AND
 - 3b011 - XOR
-- 3b100 - MOV
+- 3b100 - ???
 - 3b101 - ADD
 - 3b110 - SUB
 - 3b111 - ISUB <-- this is inverse sub, i.e. B-A as opposed to A-B
@@ -123,7 +123,7 @@ UNARY group
 U_OP codes:
 - 2b00 - ROR
 - 2b01 - ROL
-- 2b10 - ?????
+- 2b10 - MOV
 - 2b11 - ISTAT <-- stores INT in bit0, INTDIS in bit1
 
 D codes:

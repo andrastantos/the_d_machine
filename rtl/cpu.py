@@ -72,13 +72,13 @@ INST_SWAP  = 0b0000
 INST_OR    = 0b0001
 INST_AND   = 0b0010
 INST_XOR   = 0b0011
-INST_MOV   = 0b0100
 INST_ADD   = 0b0101
 INST_SUB   = 0b0110
 INST_ISUB  = 0b0111
 # Unary ops
 INST_ROR   = 0b1100
 INST_ROL   = 0b1101
+INST_MOV   = 0b1110
 INST_ISTAT = 0b1111
 # Predicate ops (their inverse comes from the 'D' bit)
 INST_EQ   = 0b1000
@@ -436,12 +436,12 @@ class Sequencer(Module):
                 self.inst_field_opcode == INST_OR,     AluCmds.alu_nand,
                 self.inst_field_opcode == INST_AND,    AluCmds.alu_nor,
                 self.inst_field_opcode == INST_XOR,    AluCmds.alu_xor,
-                self.inst_field_opcode == INST_MOV,    AluCmds.alu_add,
                 self.inst_field_opcode == INST_ADD,    AluCmds.alu_add,
                 self.inst_field_opcode == INST_SUB,    AluCmds.alu_add,
                 self.inst_field_opcode == INST_ISUB,   AluCmds.alu_add,
                 self.inst_field_opcode == INST_ROR,    AluCmds.alu_ror,
                 self.inst_field_opcode == INST_ROL,    AluCmds.alu_rol,
+                self.inst_field_opcode == INST_MOV,    AluCmds.alu_add,
                 self.inst_field_opcode == INST_ISTAT,  AluCmds.alu_add,
                 self.inst_field_opcode == INST_EQ,     AluCmds.alu_add,
                 self.inst_field_opcode == INST_LTU,    AluCmds.alu_add,
@@ -460,12 +460,12 @@ class Sequencer(Module):
                 self.inst_field_opcode == INST_OR,     1,
                 self.inst_field_opcode == INST_AND,    1,
                 self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_MOV,    0,
                 self.inst_field_opcode == INST_ADD,    0,
                 self.inst_field_opcode == INST_SUB,    0,
                 self.inst_field_opcode == INST_ISUB,   1,
                 self.inst_field_opcode == INST_ROR,    0,
                 self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_MOV,    0,
                 self.inst_field_opcode == INST_ISTAT,  0,
                 self.inst_field_opcode == INST_EQ,     self.inst_field_d,
                 self.inst_field_opcode == INST_LTU,    self.inst_field_d,
@@ -484,12 +484,12 @@ class Sequencer(Module):
                 self.inst_field_opcode == INST_OR,     1,
                 self.inst_field_opcode == INST_AND,    1,
                 self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_MOV,    0,
                 self.inst_field_opcode == INST_ADD,    0,
                 self.inst_field_opcode == INST_SUB,    1,
                 self.inst_field_opcode == INST_ISUB,   0,
                 self.inst_field_opcode == INST_ROR,    0,
                 self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_MOV,    0,
                 self.inst_field_opcode == INST_ISTAT,  0,
                 self.inst_field_opcode == INST_EQ,     ~self.inst_field_d,
                 self.inst_field_opcode == INST_LTU,    ~self.inst_field_d,
@@ -508,12 +508,12 @@ class Sequencer(Module):
                 self.inst_field_opcode == INST_OR,     0,
                 self.inst_field_opcode == INST_AND,    0,
                 self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_MOV,    0,
                 self.inst_field_opcode == INST_ADD,    0,
                 self.inst_field_opcode == INST_SUB,    1,
                 self.inst_field_opcode == INST_ISUB,   1,
                 self.inst_field_opcode == INST_ROR,    0,
                 self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_MOV,    0,
                 self.inst_field_opcode == INST_ISTAT,  0,
                 self.inst_field_opcode == INST_EQ,     1,
                 self.inst_field_opcode == INST_LTU,    1,
@@ -544,33 +544,33 @@ class Sequencer(Module):
             AluASelect.zero
         )
         opa_select = Select(
-            self.inst_field_opcode[1:0] == INST_GROUP_UNARY,
+            self.inst_field_opcode[3:2] == INST_GROUP_UNARY,
             # Binary and predicate group
-            Select(
-                (self.inst_field_opcode == INST_MOV) & ~self.inst_field_d,
-                # Not move or move to memory
-                SelectOne(
-                    self.inst_field_opa == OPA_PC, AluASelect.pc,
-                    self.inst_field_opa == OPA_SP, AluASelect.sp,
-                    self.inst_field_opa == OPA_R0, AluASelect.r0,
-                    self.inst_field_opa == OPA_R1, AluASelect.r1,
-                ),
-                # Move to register
-                AluASelect.zero
+            SelectOne(
+                self.inst_field_opa == OPA_PC, AluASelect.pc,
+                self.inst_field_opa == OPA_SP, AluASelect.sp,
+                self.inst_field_opa == OPA_R0, AluASelect.r0,
+                self.inst_field_opa == OPA_R1, AluASelect.r1,
             ),
             # Unary group select operand based on 'D' bit
             Select(
                 self.inst_field_opcode == INST_ISTAT,
                 # Not ISTAT
-                Select(self.inst_field_d,
-                    # register source and destination
-                    SelectOne(
-                        self.inst_field_opa == OPA_PC, AluASelect.pc,
-                        self.inst_field_opa == OPA_SP, AluASelect.sp,
-                        self.inst_field_opa == OPA_R0, AluASelect.r0,
-                        self.inst_field_opa == OPA_R1, AluASelect.r1,
+                Select(
+                    (self.inst_field_opcode == INST_MOV) & ~self.inst_field_d,
+                    # Not move or move to memory
+                    Select(self.inst_field_d,
+                        # register source and destination
+                        SelectOne(
+                            self.inst_field_opa == OPA_PC, AluASelect.pc,
+                            self.inst_field_opa == OPA_SP, AluASelect.sp,
+                            self.inst_field_opa == OPA_R0, AluASelect.r0,
+                            self.inst_field_opa == OPA_R1, AluASelect.r1,
+                        ),
+                        AluASelect.l_bus_d
                     ),
-                    AluASelect.l_bus_d
+                    # Move to register
+                    AluASelect.zero
                 ),
                 # ISTAT
                 AluASelect.int_stat
