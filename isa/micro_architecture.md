@@ -101,7 +101,13 @@ That being said, there is are a couple of potential middle-grounds: a bit-serial
 Either way, the ISA and the timing description below will assume a bit-parallel implementation for now.
 
 Cycle 0:
+- Increment PC:
+  - set ALU_A to L_PC
+  - set ALU_B to 0
+  - set ALU_CMD to ADD
+    - set carry-in to 1 if PC is not the target register, otherwise set it to 0
 - open L_BUS_A and set its input to ALU_RESULT
+  NOTE: since in the previous cycle we've also done the same ALU operation, the fact that L_ALU_A is in pass-through mode is not an issue: all its inputs are already settled, so we shouldn't have a problem meeting setup times on the memory
 - set BUS_CMD to READ
   note: we don't alter ALU operation and don't update L_PC either in this cycle. This means that the ALU keeps outputting the next PC, so it's OK to keep L_BUS_A latch open for the whole cycle.
 - open L_BUS_D
@@ -125,7 +131,12 @@ Cycle 1:
 - close L_ALU_RESULT
 
 Cycle 2:
+- Calculate sum of index register and immediate:
+  - set ALU_B to the sign-extended version of the IMMED field of L_INST
+  - set ALU_A to the register selected by the OPB field of L_INST
+  - set ALU_CMD to ADD;C=0
 - open L_BUS_A and set its input to ALU_RESULT
+  NOTE: since in the previous cycle we've also done the same ALU operation, the fact that L_ALU_A is in pass-through mode is not an issue: all its inputs are already settled, so we shouldn't have a problem meeting setup times on the memory
 - set BUS_CMD to READ, if needed or NOP otherwise
   note: we won't alter ALU operation in this cycle, so the ALU keeps outputting the read address, which is to say that it's fine to keep L_BUS_A open for the whole cycle
 - open L_BUS_D and set its input to BUS_D
@@ -167,7 +178,7 @@ I think this wavedrom script captures what's going on relatively well:
 {signal: [
   {name: 'phase', wave:'4333338', data: [4,0,1,2,4,5,0]},
   {name: 'clk', wave: 'p......'},
-  {name: 'BUS_CMD', wave: '6555557', data: ['write','read', 'write', 'read', 'write', 'write', 'read']},
+  {name: 'BUS_CMD', wave: '6555557', data: ['write/idle','read', 'write', 'read/idle', 'write/idle', 'write/idle', 'read']},
   {name: 'L_BUS_A_ld',      wave: '01010.1'},
   {name: 'L_BUS_A', wave: '65.5..7', data: ['OP--', 'PC', 'opb_result', 'PC+1']},
   {name: 'L_BUS_D_ld',      wave: '1.0101.'},
