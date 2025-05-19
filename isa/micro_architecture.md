@@ -162,7 +162,7 @@ Here we set up pretty long logical chains:
 - Get through the output MUX
 All this in a single cycle; granted that cycle is now 500ns.
 
-I think this wavedrom scrip captures what's going on relatively well:
+I think this wavedrom script captures what's going on relatively well:
 
 {signal: [
   {name: 'phase', wave:'4333338', data: [4,0,1,2,3,4,0]},
