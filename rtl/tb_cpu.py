@@ -14,7 +14,7 @@ class Memory(Module):
     content = {}
     def simulate(self):
         while(True):
-            now = yield (self.bus_cmd, self.bus_a, self.bus_d_wr)
+            now = yield (self.bus_cmd, self.bus_a, self.bus_d_wr, self.clk)
             if (self.bus_cmd.sim_value is None):
                 continue
             if (self.bus_cmd == BusCmds.read):
@@ -29,6 +29,10 @@ class Memory(Module):
                 else:
                     print(f"{now}: Reading MEM[0x{addr:04x}] -> NONE")
                 self.bus_d_rd <<= data
+                # Read is destructive, make sure we set the data to all 0-s
+                if (self.clk == 0):
+                    print(f"{now}: Resetting MEM[0x{addr:04x}] -> 0")
+                    self.content[addr] = 0
             elif ((self.bus_cmd == BusCmds.write) & (self.clk == 0)):
                 if self.bus_a.sim_value is None:
                     print(f"{now}: Writing to NONE - ignored for now")
@@ -39,6 +43,9 @@ class Memory(Module):
                     print(f"{now}: Writing MEM[0x{addr:04x}] = 0x{data:04x}")
                 else:
                     print(f"{now}: Writing MEM[0x{addr:04x}] = NONE")
+                # Write can only flip bits from 0 to 1. So, we have to make sure that all writes happen to locations
+                # that have been reset to 0 by a read previously
+                assert self.content[addr] == 0
                 self.content[addr] = data
             else:
                 self.bus_d_rd <<= None

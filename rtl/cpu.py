@@ -346,7 +346,7 @@ class Sequencer(Module):
                 BusCmds.read,
                 BusCmds.write,
                 Select(is_opb_mem_ref, BusCmds.idle, BusCmds.read),
-                BusCmds.write,
+                BusCmds.idle,
                 Select(is_opb_mem_ref & (self.inst_field_opcode != INST_SWAP), BusCmds.idle, BusCmds.write),
                 Select(update_mem, BusCmds.idle, BusCmds.write),
             ),
