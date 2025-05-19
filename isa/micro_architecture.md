@@ -205,3 +205,119 @@ I think this wavedrom script captures what's going on relatively well:
 config: { hscale: 2 }
 }
 
+
+
+
+System design
+===============
+
+ROM
+---
+
+Not quite sure how, but a simple boot-loader will be needed that is swapped into the instruction space upon reset (based on some jumper or something). This ROM would only be consulted during the instruction fetch cycles (cycle 0), reads and writes would still go to core memory. This swapping will be controlled by a single bit that can be written (memory-mapped I/O) to disable the boot ROM and enable full access to memory. The fact that an instruction fetch is happening is communicated to the memory by the 'inst_load' signal.
+
+NOTE: loading arbitrary constants is problematic with this setup, though immediates of course can be used. I will need to experiment more to know if this is a serious limitation.
+
+An alternative implementation could be that the boot-swap bit inverts MSB-1 of the address bus, if MSB is 0. This is a bit more complicated, but maybe not all that much and keeps the ROM in the memory map all the time.
+
+I/O
+---
+
+peripherals will be mapped to the top of the address space (0xffff and such) because those addresses can be reached using the immediate field alone.
+
+In terms of actual peripherals, I'm thinking about the following:
+
+- A simple serial port, probably 9600 baud or something, bit-banged, with also bit-banged HW flow-control; essentially two input and two output bits.
+
+    Set flow-control:
+    1. load proper constant into R1
+    2. Store R1 into appropriate register to assert CTS
+    Start detection:
+    1. Read from port
+    2. Mask with constant
+    3. If 1 ...
+    4. go to 1
+    sync_detected:
+    5. Wait for middle of bit 0 (i.e. wait ~1.5 bit-times)
+    read_byte:
+    1. Load 8 into R0
+    2. Read from port to R1
+    3. Mask with constant
+    4. shift memory location (maybe SP based?)
+    5. or memory location with R1
+    6. wait long enough (i.e. ~1 bit-time)
+    7. decrement R0
+    8. If R0 is not zero ...
+    9. go to #2
+    wait for stop bit
+    1. Read from port to R1
+    2. Mask with constant
+    3. If 0 ...
+    4. goto 1
+    Set flow-control:
+    1. load proper constant into R1
+    2. Store R1 into appropriate register to de-assert CTS
+
+    Transmit would be even more straightforward. So, I really think a serial port could be bit-banged, even at 19200 baud. Or at 9600 baud if we can only hit a 1MHz CPU clock rate.
+
+- A tape drive - this one I hope could be a 4- or 8-track cassette tape with full electronic control. The signal would be MFM modulated, probably at 2400 or 4800 baud; each symbol would have 4/8 bits and be blocked into 256 word (i.e. 1024/512 symbols) blocks. A proper sync sequence at the beginning would establish synchronization and a large enough gap between blocks would be needed to allow for tape mechanism slop. A 16-bit check-sum in the end would allow for error-detection. All of that TBD and would depend on what I can get my hands on. This would provide for ~1-4kByte/sec transfer rates. A 32kByte core memory would be filled in about half a minute, or even faster. A 60minute tape would have somewhere on the order of 3-12MByte of capacity. It would be nice if we could bit-bang this as well, but the rules are more complicated:
+
+1 encodes as 10 if the line-state is 1, otherwise 01. In other words, a 1 inverts the line-state at the middle of the bit-time
+0 encodes as 11 if the line-state was 01 or 00, 00 otherwise. In other words it generates and edge at the bit-time boundary, if more than 3 consecutive values of the same line-state would be generated.
+
+Managing all this state for 4/8 parallel streams and do edge-detect (potentially independently) on all of them is going to be problematic.
+
+If however we assume that edge-detect can be done on the symbol level (which could be a reasonable assumption) one could do smart things. Also, let's not forget that we have (at 4800 baud and ~2MHZ CPU clock) roughly 80 instructions for every symbol, or 40 instructions between every possible edge. An edge-detect loop would look like this:
+
+pre-delay:
+1. load pre-delay value into R1
+2. decrement R1
+3. NOP
+4. if R1 != 0 ...
+5. goto 2.
+look for edge:
+1. increment R1
+2. Read input port into R0
+3. if same as previous state (which is in memory somewhere)...
+4. go to 1.
+update pre-delay:
+1. if previous delay value was greater than R1 (i.e. we needed to wait less) ...
+2. decrement pre-delay in memory
+3. if previous delay value was larger than R1 (i.e. we needed to wait more) ...
+4. increment pre-delay in memory
+5. store R1 into previous delay value
+
+So, we can detect edges in 4 instructions, i.e. with an uncertainty of ~5% of a bit-time, which is the shortest pulse on the tape. That should be plenty sufficient. We also do a pre-delay to only look for edges when they are roughly expected (say +/-15% of their expected location) and update it's value to allow for tape stretching and motor speed variations.
+
+Once we have an edge, we also should wait a little and re-read the port to make sure all bit-lanes have properly settled:
+1. Read input port into R0
+2. SWAP R0 and previous state
+3. R0 = XOR previous state
+4. Store R0 as the recovered symbol (wow, that was easy!!!)
+
+This is done for the center of the bit-times. For bit-time boundaries, the process is:
+
+1. Read input port into R0
+2. SWAP R0 and previous state
+
+This whole business easily fits within the times needed, so, again bit-banging should be more than sufficient.
+
+I/O port layout
+-----------------
+0xfffc: switches
+0xfffd: buttons
+0xfffe: blinken lights
+0xffff: bit0: boot-memory swap; reset to 0 by reset, set to 1 by SW, when boot is done
+        rest: 7-segment control?
+
+### SERIAL port
+0xfff8: bit0: RXT
+0xfff9: bit0: TXD
+0xfffa: bit0: RTS
+0xfffb: bit0: CTS
+
+### TAPE
+0xfff0: recording bits
+0xfff1: playback bits
+0xfff2: tape control (each bit for a different transport button)
+
