@@ -224,7 +224,7 @@ class DataPath(Module):
 
         l_inst.input_port <<= SelectFirst(
             self.inhibit == 1,                                (INST_OR   << 12) | (DEST_REG << 11) | (OPB_IMMED        << 8) | (OPA_PC << 6) | (0 << 0),
-            (self.intdis == 0) & (self.interrupt | self.rst), (INST_SWAP << 12) | (DEST_REG << 11) | (OPB_MEM_IMMED_PC << 8) | (OPA_PC << 6) | (0 << 0),
+            (self.intdis == 0) & (self.interrupt | self.rst), (INST_SWAP << 12) | (DEST_REG << 11) | (OPB_MEM_IMMED_PC << 8) | (OPA_PC << 6) | (self.interrupt << 0),
             default_port = self.bus_d_in
         )
 
