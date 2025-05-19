@@ -31,6 +31,7 @@ class AluCmds(Enum):
 class LBusDSelect(Enum):
     bus_d = 0
     alu_result = 1
+    l_alu_result = 2
 
 class AluASelect(Enum):
     pc = 0
@@ -212,7 +213,8 @@ class DataPath(Module):
         l_bus_a.input_port <<= alu_result
         l_bus_d.input_port <<= SelectOne(
             self.l_bus_d_select == LBusDSelect.bus_d, self.bus_d_in,
-            self.l_bus_d_select == LBusDSelect.alu_result, alu_result
+            self.l_bus_d_select == LBusDSelect.alu_result, alu_result,
+            self.l_bus_d_select == LBusDSelect.l_alu_result, l_alu_result.output_port
         )
         l_alu_result.input_port <<= alu_result
         l_pc.input_port <<= l_alu_result.output_port
@@ -365,7 +367,7 @@ class Sequencer(Module):
             0,
             1,
             0, # SWAP cycle: in here we put l_bus_d into l_alu_result
-            1,
+            (self.inst_field_opcode == INST_SWAP),
             (self.inst_field_opcode != INST_SWAP),
         )
 
@@ -375,7 +377,7 @@ class Sequencer(Module):
             LBusDSelect.bus_d, # Data fetch, capture it for write-back
             LBusDSelect.bus_d, # SWAP cycle: Doesn't matter, latch is disabled
             LBusDSelect.alu_result, # Capture ALU result
-            LBusDSelect.alu_result # Capture ALU result for result write-back
+            LBusDSelect.l_alu_result # Capture ALU result for result write-back
         )
 
         self.l_alu_result_ld <<= Select(phase,
@@ -543,10 +545,23 @@ class Sequencer(Module):
         )
         opa_select = Select(
             self.inst_field_opcode[1:0] == INST_GROUP_UNARY,
+            # Binary and predicate group
+            Select(
+                (self.inst_field_opcode == INST_MOV) & ~self.inst_field_d,
+                # Not move or move to memory
+                SelectOne(
+                    self.inst_field_opa == OPA_PC, AluASelect.pc,
+                    self.inst_field_opa == OPA_SP, AluASelect.sp,
+                    self.inst_field_opa == OPA_R0, AluASelect.r0,
+                    self.inst_field_opa == OPA_R1, AluASelect.r1,
+                ),
+                # Move to register
+                AluASelect.zero
+            ),
+            # Unary group select operand based on 'D' bit
             Select(
                 self.inst_field_opcode == INST_ISTAT,
                 # Not ISTAT
-                # Unary group select operand based on 'D' bit
                 Select(self.inst_field_d,
                     # register source and destination
                     SelectOne(
@@ -559,13 +574,6 @@ class Sequencer(Module):
                 ),
                 # ISTAT
                 AluASelect.int_stat
-            ),
-            # Others select based on OPA
-            SelectOne(
-                self.inst_field_opa == OPA_PC, AluASelect.pc,
-                self.inst_field_opa == OPA_SP, AluASelect.sp,
-                self.inst_field_opa == OPA_R0, AluASelect.r0,
-                self.inst_field_opa == OPA_R1, AluASelect.r1,
             ),
         )
         self.alu_a_select <<= Select(phase,
@@ -582,7 +590,7 @@ class Sequencer(Module):
             AluBSelect.immed,   # compute opb offset
             AluBSelect.zero,   # skip-cycle for SWAP only
             Select(
-                self.inst_field_opcode == INST_SWAP,
+                (self.inst_field_opcode == INST_SWAP) | ((self.inst_field_opcode == INST_MOV) & (self.inst_field_d)),
                 Select( # execute instruction
                     is_opb_mem_ref,
                     AluBSelect.l_bus_a,

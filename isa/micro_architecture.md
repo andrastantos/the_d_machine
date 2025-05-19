@@ -100,7 +100,7 @@ That being said, there is are a couple of potential middle-grounds: a bit-serial
 
 Either way, the ISA and the timing description below will assume a bit-parallel implementation for now.
 
-Cycle 1:
+Cycle 0:
 - open L_BUS_A and set its input to ALU_RESULT
 - set BUS_CMD to READ
   note: we don't alter ALU operation and don't update L_PC either in this cycle. This means that the ALU keeps outputting the next PC, so it's OK to keep L_BUS_A latch open for the whole cycle.
@@ -111,7 +111,7 @@ Cycle 1:
   - else mux BUS_D
 - open L_ALU_RESULT (this will load the current PC)
 
-Cycle 2:
+Cycle 1:
 - close L_BUS_A -> it will maintain the instruction address while the ALU is busy
 - open L_PC and set it's input to L_ALU_RESULT
 - close L_BUS_D -> now it retains BUS_D
@@ -124,7 +124,7 @@ Cycle 2:
   - set ALU_CMD to ADD;C=0
 - close L_ALU_RESULT
 
-Cycle 3:
+Cycle 2:
 - open L_BUS_A and set its input to ALU_RESULT
 - set BUS_CMD to READ, if needed or NOP otherwise
   note: we won't alter ALU operation in this cycle, so the ALU keeps outputting the read address, which is to say that it's fine to keep L_BUS_A open for the whole cycle
@@ -165,7 +165,7 @@ All this in a single cycle; granted that cycle is now 500ns.
 I think this wavedrom script captures what's going on relatively well:
 
 {signal: [
-  {name: 'phase', wave:'4333338', data: [4,0,1,2,3,4,0]},
+  {name: 'phase', wave:'4333338', data: [4,0,1,2,4,5,0]},
   {name: 'clk', wave: 'p......'},
   {name: 'BUS_CMD', wave: '6555557', data: ['write','read', 'write', 'read', 'write', 'write', 'read']},
   {name: 'L_BUS_A_ld',      wave: '01010.1'},
@@ -180,7 +180,8 @@ I think this wavedrom script captures what's going on relatively well:
   {name: 'ALU_A', wave: '6.5.55.', data: [ 'PC-1', 'reg[OPB]', 'reg[OPA]', 'PC']},
   {name: 'ALU_B', wave: '6.5.55.', data: ['0', 'IMM', 'data??', '0']},
   {name: 'ALU_CMD', wave: '6.5.55.', data: ['INC/NOP--', 'ADD', 'OPCODE', 'INC/NOP']},
-  {name: 'phase', wave:'4333338', data: [4,0,1,2,3,4,0]},
+  {name: 'ALU use', wave: '6.5.55.', data: ['update PC--', 'compute OPB', 'execute', 'update PC']},
+  {name: 'phase', wave:'4333338', data: [4,0,1,2,4,5,0]},
   {name: 'ALU_RESULT', wave: '5.5.57', data: ['PC', 'opb_result', 'op_result', 'PC+1'], phase: -1.5},
   {name: 'L_ALU_RESULT_ld', wave: '010.10.'},
   {name: 'L_ALU_RESULT', wave: '6x5.x5.', data: ['op_result--','PC', 'op_result']},
