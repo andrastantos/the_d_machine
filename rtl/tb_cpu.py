@@ -5,6 +5,7 @@ from silicon import *
 from cpu import *
 
 class Memory(Module):
+    clk = ClkPort()
     bus_d_rd = Output(DataType)
     bus_d_wr = Input(DataType)
     bus_a = Input(AddrType)
@@ -13,29 +14,31 @@ class Memory(Module):
     content = {}
     def simulate(self):
         while(True):
-            yield (self.bus_cmd, self.bus_a, self.bus_d_wr)
+            now = yield (self.bus_cmd, self.bus_a, self.bus_d_wr)
+            if (self.bus_cmd.sim_value is None):
+                continue
             if (self.bus_cmd == BusCmds.read):
                 if self.bus_a.sim_value is None:
-                    print("Reading from NONE - ignored for now")
+                    print(f"{now}: Reading from NONE - ignored for now")
                     self.bus_d_rd <<= None
                     continue
                 addr = int(self.bus_a.sim_value)
                 data = self.content.get(addr, None)
                 if data is not None:
-                    print(f"Reading MEM[0x{addr:04x}] -> 0x{data:04x}")
+                    print(f"{now}: Reading MEM[0x{addr:04x}] -> 0x{data:04x}")
                 else:
-                    print(f"Reading MEM[0x{addr:04x}] -> NONE")
+                    print(f"{now}: Reading MEM[0x{addr:04x}] -> NONE")
                 self.bus_d_rd <<= data
-            elif (self.bus_cmd == BusCmds.write):
+            elif ((self.bus_cmd == BusCmds.write) & (self.clk == 0)):
                 if self.bus_a.sim_value is None:
-                    print("Writing to NONE - ignored for now")
+                    print(f"{now}: Writing to NONE - ignored for now")
                     continue
                 addr = int(self.bus_a.sim_value)
                 data = self.bus_d_wr.sim_value
                 if data is not None:
-                    print(f"Writing MEM[0x{addr:04x}] = 0x{data:04x}")
+                    print(f"{now}: Writing MEM[0x{addr:04x}] = 0x{data:04x}")
                 else:
-                    print(f"Writing MEM[0x{addr:04x}] = NONE")
+                    print(f"{now}: Writing MEM[0x{addr:04x}] = NONE")
                 self.content[addr] = data
             else:
                 self.bus_d_rd <<= None
@@ -51,6 +54,7 @@ class TB(Module):
     bus_a = Output(AddrType)
     bus_cmd = Output(EnumNet(BusCmds))
     rst = RstPort(logic)
+    interrupt = Output(logic)
 
     def body(self):
         dut = Cpu()
@@ -58,6 +62,8 @@ class TB(Module):
         self.bus_a <<= dut.bus_a
         self.bus_d_wr <<= dut.bus_d_out
         dut.bus_d_in <<= self.bus_d_rd
+
+        dut.interrupt <<= self.interrupt
 
         self.mem = Memory()
         self.mem.bus_a <<= self.bus_a
@@ -83,6 +89,7 @@ class TB(Module):
 
         self.clk <<= 0
         self.rst <<= 1
+        self.interrupt <<= 0
         for i in range(15): yield from clk()
         self.rst <<= 0
         for i in range(50): yield from clk()

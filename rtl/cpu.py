@@ -40,7 +40,7 @@ class AluASelect(Enum):
     zero = 4
     int_stat = 5
     l_bus_d = 6
-    l_bus_a = 7
+    #l_bus_a = 7
 
 class AluBSelect(Enum):
     immed = 0
@@ -223,7 +223,7 @@ class DataPath(Module):
         l_inst.input_port <<= SelectFirst(
             self.inhibit == 1,                                (INST_OR   << 12) | (DEST_REG << 11) | (OPB_IMMED        << 8) | (OPA_PC << 6) | (0 << 0),
             (self.intdis == 0) & (self.interrupt | self.rst), (INST_SWAP << 12) | (DEST_REG << 11) | (OPB_MEM_IMMED_PC << 8) | (OPA_PC << 6) | (0 << 0),
-            self.bus_d_in
+            default_port = self.bus_d_in
         )
 
         alu_a_in <<= SelectOne(
@@ -232,12 +232,15 @@ class DataPath(Module):
             self.alu_a_select == AluASelect.r0, l_r0.output_port,
             self.alu_a_select == AluASelect.r1, l_r1.output_port,
             self.alu_a_select == AluASelect.zero, 0,
-            self.alu_a_select == AluASelect.int_stat, concat(self.intdis, self.interrupt)
+            self.alu_a_select == AluASelect.int_stat, concat(self.intdis, self.interrupt),
+            self.alu_a_select == AluASelect.l_bus_d, l_bus_d.output_port,
+            #self.alu_a_select == AluASelect.l_bus_a, l_bus_a.output_port
         )
         alu_b_in <<= SelectOne(
             self.alu_b_select == AluBSelect.immed, immed,
             self.alu_b_select == AluBSelect.zero, 0,
-            self.alu_b_select == AluBSelect.l_bus_d, l_bus_d.output_port
+            self.alu_b_select == AluBSelect.l_bus_d, l_bus_d.output_port,
+            self.alu_b_select == AluBSelect.l_bus_a, l_bus_a.output_port
         )
 
         self.bus_d_out <<= l_bus_d.output_port
@@ -288,6 +291,7 @@ class Sequencer(Module):
         l_inhibit = HighLatch()
         l_intdis_prev = HighLatch()
         l_intdis = HighLatch()
+        l_was_branch = HighLatch()
 
         #phase = Wire(Number(min_val=0,max_val=5))
         phase = Wire(Unsigned(3))
@@ -359,17 +363,17 @@ class Sequencer(Module):
             1,
             0,
             1,
-            0,
+            0, # SWAP cycle: in here we put l_bus_d into l_alu_result
             1,
-            1,
+            (self.inst_field_opcode != INST_SWAP),
         )
 
         self.l_bus_d_select <<= Select(phase,
             LBusDSelect.bus_d, # Instruction fetch, capture it for write-back
             LBusDSelect.bus_d, # Doesn't matter, latch is disabled
             LBusDSelect.bus_d, # Data fetch, capture it for write-back
-            LBusDSelect.bus_d, # Doesn't matter, latch is disabled
-            LBusDSelect.bus_d, # Doesn't matter, latch is disabled
+            LBusDSelect.bus_d, # SWAP cycle: Doesn't matter, latch is disabled
+            LBusDSelect.alu_result, # Capture ALU result
             LBusDSelect.alu_result # Capture ALU result for result write-back
         )
 
@@ -377,8 +381,8 @@ class Sequencer(Module):
             1,
             0,
             0,
-            1,
-            1,
+            1, # Capture result in l_alu_result for SWAP instructions
+            (self.inst_field_opcode != INST_SWAP), # Capture result in l_alu_result in non-SWAP instructions only
             0,
         )
 
@@ -391,13 +395,17 @@ class Sequencer(Module):
             0,
         )
 
+        is_branch = update_reg & (self.inst_field_opa == OPA_PC)
+        l_was_branch.input_port <<= is_branch
+        l_was_branch.latch_port <<= phase == 5
+
         self.l_pc_ld <<= Select(phase,
             0,
             1,
             0,
             0,
             0,
-            update_reg & (self.inst_field_opa == OPA_PC),
+            is_branch,
         )
 
         ld_target = Select(phase,
@@ -488,7 +496,7 @@ class Sequencer(Module):
             0,   # increment PC or do nothing (i.e. adding 0)
         )
         self.alu_c_in <<= Select(phase,
-            update_reg & (self.inst_field_opa == OPA_PC),   # increment PC or do nothing (i.e. adding 0)
+            ~l_was_branch.output_port,   # increment PC or do nothing (i.e. adding 0)
             0,   # compute opb offset
             0,   # compute opb offset
             0,   # skip-cycle for SWAP only
@@ -509,7 +517,7 @@ class Sequencer(Module):
                 self.inst_field_opcode == INST_LTS,    1,
                 self.inst_field_opcode == INST_LES,    1,
             ),
-            update_reg & (self.inst_field_opa == OPA_PC),   # increment PC or do nothing (i.e. adding 0)
+            ~is_branch,   # increment PC or do nothing (i.e. adding 0)
         )
         opb_base = Select(
             (self.inst_field_opcode == INST_SWAP) & (self.inst_field_d == 0),
@@ -564,7 +572,7 @@ class Sequencer(Module):
             AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
             opb_base,   # compute opb offset
             opb_base,   # compute opb offset
-            opa_select, # execute instruction
+            AluASelect.l_bus_d, # skip-cycle for SWAP only
             opa_select, # execute instruction
             AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
         )
@@ -573,10 +581,14 @@ class Sequencer(Module):
             AluBSelect.immed,   # compute opb offset
             AluBSelect.immed,   # compute opb offset
             AluBSelect.zero,   # skip-cycle for SWAP only
-            Select( # execute instruction
-                self.inst_field_opb[2] == OPB_CLASS_IMM,
-                AluBSelect.l_bus_d,
-                AluBSelect.l_bus_a,
+            Select(
+                self.inst_field_opcode == INST_SWAP,
+                Select( # execute instruction
+                    self.inst_field_opb[2] == OPB_CLASS_IMM,
+                    AluBSelect.l_bus_d,
+                    AluBSelect.l_bus_a,
+                ),
+                AluBSelect.zero # For SWAP in this cycle, we move PC into L_BUS_D
             ),
             AluBSelect.zero,   # increment PC or do nothing (i.e. adding 0)
         )
@@ -599,6 +611,7 @@ class Sequencer(Module):
         condition_match = raw_condition_match ^ self.inst_field_d
 
         l_inhibit.input_port <<= (phase == 3) & (self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE) & condition_match
+        self.inhibit <<= l_inhibit.output_port
 
         l_intdis_prev.latch_port <<= Select(phase,
             0,
@@ -619,8 +632,9 @@ class Sequencer(Module):
             1,
             0
         )
-        int_dis_next <<= l_intdis_prev.output_port ^ (self.inst_field_opcode == INST_SWAP) & ~self.inst_field_d
+        int_dis_next <<= (l_intdis_prev.output_port ^ (self.inst_field_opcode == INST_SWAP) & ~self.inst_field_d) | self.rst
         l_intdis.input_port <<= int_dis_next
+        self.intdis <<= l_intdis.output_port
 
         """
         Swap is very difficult! We might need an extra latch to implement it.
