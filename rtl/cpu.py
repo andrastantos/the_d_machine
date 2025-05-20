@@ -325,6 +325,12 @@ class Sequencer(Module):
             0
         )
 
+        l_skip_swap_phase_5 = HighLatch()
+        l_skip_swap_phase_5.input_port.set_net_type(logic)
+        l_skip_swap_phase_5.input_port <<= 0
+        l_skip_swap_phase_5.latch_port <<= Select(phase == 0, 0, 1)
+        l_skip_swap_phase_5.reset_value_port <<= 1
+
         update_mem <<= Select(
             self.inst_field_opcode == INST_SWAP,
             # Not a swap instruction
@@ -335,8 +341,8 @@ class Sequencer(Module):
                 # predicate instructions never write to memory
                 0
             ),
-            # swap always writes to memory
-            1
+            # swap always writes to memory, unless it's skipped of course
+            ~l_skip_swap_phase_5.output_port
         )
         update_reg <<= Select(
             self.inst_field_opcode == INST_SWAP,
