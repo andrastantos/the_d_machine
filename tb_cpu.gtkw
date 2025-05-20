@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Mon May 19 22:49:00 2025
+[*] Tue May 20 19:06:21 2025
 [*]
 [dumpfile] "/home/tantos/tcomp/tb_cpu.vcd"
-[dumpfile_mtime] "Mon May 19 22:46:26 2025"
-[dumpfile_size] 433692
-[savefile] "/home/tantos/tcomp/tp_cpu.gtkw"
-[timestart] 101
+[dumpfile_mtime] "Tue May 20 19:06:04 2025"
+[dumpfile_size] 436818
+[savefile] "/home/tantos/tcomp/tb_cpu.gtkw"
+[timestart] 0
 [size] 1920 1097
 [pos] -1 -1
-*-6.003341 444 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-6.003341 184 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TB.
 [treeopen] TB.dut.
 [treeopen] TB.dut.data_path.alu.
@@ -17,7 +17,7 @@
 [sst_width] 278
 [signals_width] 357
 [sst_expanded] 1
-[sst_vpaned_height] 362
+[sst_vpaned_height] 383
 @28
 TB.rst
 @22
@@ -94,7 +94,6 @@ TB.dut.sequencer.l_was_branch_output_port
 TB.dut.sequencer.is_opb_mem_ref
 TB.dut.data_path.l_bus_d_ld
 TB.dut.data_path.l_bus_d_select
-@29
 TB.dut.sequencer.l_skip_output_port
 [pattern_trace] 1
 [pattern_trace] 0
