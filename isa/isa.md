@@ -107,35 +107,33 @@ D codes:
 - 1b0 - reg is destination
 - 1b1 - memory is destination
 
-NOTE: due to the way the ALU operates, OR and AND returns negated results. Thus OR and AND will have to be followed by an XOR immediate with all IMMED bits set to 1 (which gets sign-extended, thus resulting in a 'NOT' operation). However, this only works if the target of the previous operation was a register. If the target was a memory location, things are significantly more complicated.
-
-TODO: since C and other high-level languages really like OR and AND, I should seriously consider adding the extra ~5-10 transistors to the ALU to implement them.
+Certain operations, such as NOT (XOR with -1) or NEG (0-A) can only be done with register destinations. To implement memory targets, the instruction would need to be surrounded by a pair of SWAPs to get the arguments in their right location.
 
 UNARY group
 ============
 
 ```
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-| 1 | 1 | U_OP  | D |    OPB    |  OPA  |         IMMED         |
+| 1 | 0 | U_OP  | D |    OPB    |  OPA  |         IMMED         |
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 ```
 
 U_OP codes:
-- 2b00 - ROR
-- 2b01 - ROL
-- 2b10 - MOV
-- 2b11 - ISTAT <-- stores INT in bit0, INTDIS in bit1
+- 2b00 - MOV
+- 2b01 - ISTAT <-- stores INT in bit0, INTDIS in bit1
+- 2b10 - ROR
+- 2b11 - ROL
 
 D codes:
-- 1b0 - reg is both source and destination
-- 1b1 - memory is both source and destination
+- 1b0 - reg destination; source as well for ROL/ROR
+- 1b1 - memory destination; source as well for ROL/ROR
 
 PREDICATE group
 ===============
 
 ```
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-| 1 | 0 |    P_OP   |    OPB    |  OPA  |         IMMED         |
+| 1 | 1 |    P_OP   |    OPB    |  OPA  |         IMMED         |
 +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 ```
 
