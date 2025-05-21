@@ -9,6 +9,12 @@
             "type": "debugpy",
             "request": "launch",
             "program": "rtl/tb_cpu.py",
+        },
+        {
+            "name": "ASM",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "rtl/asm.py",
         }
     ]
 }
