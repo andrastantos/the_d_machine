@@ -73,7 +73,7 @@ OPB input codes (i.e. where does the second operand come from):
 - 3b000 - MEM[ IMMED+PC ]
 - 3b001 - MEM[ IMMED+SP ]
 - 3b010 - MEM[ IMMED+R0 ]
-- 3b011 - MEM[ IMMED+R1 ]
+- 3b011 - MEM[ IMMED ]
 - 3b100 - IMMED+PC
 - 3b101 - IMMED+SP
 - 3b110 - IMMED+R0

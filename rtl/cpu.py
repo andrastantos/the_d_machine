@@ -482,7 +482,7 @@ class Sequencer(Module):
                     self.inst_field_opb == OPB_MEM_IMMED_PC,  AluASelect.pc,
                     self.inst_field_opb == OPB_MEM_IMMED_SP,  AluASelect.sp,
                     self.inst_field_opb == OPB_MEM_IMMED_R0,  AluASelect.r0,
-                    self.inst_field_opb == OPB_MEM_IMMED_R1,  AluASelect.r1,
+                    self.inst_field_opb == OPB_MEM_IMMED,     AluASelect.zero,
                 ),
                 # ISTAT instruction
                 AluASelect.int_stat
