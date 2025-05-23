@@ -1,7 +1,5 @@
 # A very simply assembler
 
-# SWAP $PC, [$SP+3]
-
 from constants import *
 from typing import *
 from abc import abstractmethod
@@ -90,7 +88,11 @@ class Expression(object):
             return self.resolved_value
         except AttributeError:
             symbol_table.resolve() # This will be fast if already resolved
-            self.resolved_value = eval(" ".join(self.token_list), symbol_table.table)
+            try:
+                expr = " ".join(self.token_list)
+                self.resolved_value = eval(expr, symbol_table.table)
+            except SyntaxError:
+                raise AsmError(f"Can't evaluate constant expression: '{expr}'. Did you use $r1 as the base register?")
             return self.resolved_value
 
 
@@ -245,6 +247,11 @@ def parse_dual_arg(inst_code: int, line: Sequence[str], *, is_swapi = False) -> 
         if line[cursor] == "[":
             d = 1
             opb, immed, cursor = parse_opb(line, cursor, allow_immed=False)
+            if line[cursor] != ",":
+                raise AsmError(f"there must be a comma after first operand")
+            cursor += 1
+            opa = opa_reg_names[line[cursor]]
+            cursor += 1
         elif line[cursor] in opa_reg_names:
                 d = 0
                 opa = opa_reg_names[line[cursor]]
@@ -556,9 +563,5 @@ if __name__ == "__main__":
     #parse("ROL [$sp]")
     #parse("ROL [$sp-2]")
     #parse("ROL [$sp+3]")
-    assemble(
-"""
-    .section TEXT 0
-    ROL [$sp]
-"""
-    )
+    #assemble(".section TEXT 0\n        ROL [$sp]")
+    assemble(".section TEXT 0x1000\n   mov [$r1-1], $sp  ; should write to address 2")
