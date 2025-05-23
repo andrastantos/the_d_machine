@@ -155,8 +155,10 @@ class DataPath(Module):
         l_r0.input_port <<= l_alu_result.output_port
         l_r1.input_port <<= l_alu_result.output_port
 
+        serve_interrupt = ((self.intdis == 0) & self.interrupt)
+
         l_inst.input_port <<= SelectFirst(
-            (self.intdis == 0) & (self.interrupt | self.rst), (INST_SWAP << 12) | (DEST_REG << 11) | (OPB_MEM_IMMED_PC << 8) | (OPA_PC << 6) | (self.interrupt << 0),
+            serve_interrupt | self.rst, (INST_SWAP << 12) | (DEST_REG << 11) | (OPB_MEM_IMMED_PC << 8) | (OPA_PC << 6) | ((~self.rst) << 0),
             default_port = self.bus_d_in
         )
 

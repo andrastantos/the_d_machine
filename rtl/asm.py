@@ -216,7 +216,8 @@ def parse_opb(line: Sequence[str], cursor: int, *, allow_immed: bool):
             else:
                 immed, cursor = parse_constant_expression(line, cursor, force_plus=True)
         else:
-            immed, cursor = parse_constant_expression(line, cursor, force_plus=True)
+            opb = OPB_IMMED
+            immed, cursor = parse_constant_expression(line, cursor, force_plus=False)
     else:
         raise AsmError(f"{line[cursor]} is invalid as a operand B")
 
@@ -524,7 +525,7 @@ class AsmContext(object):
         start_addr = min(section_texts)
         max_addr = max(base + len(text) for base, text in section_texts.items())
         ret_val = []
-        ret_val += (None,)*max_addr
+        ret_val += (None,)*(max_addr-start_addr)
         for base, text in section_texts.items():
             for ofs, word in enumerate(text):
                 addr = base + ofs - start_addr
