@@ -492,3 +492,6 @@ if __name__ == "__main__":
 """
     )
     sim.simulate(50)
+    if not sim.terminated:
+        print("    TIMEOUT IN SIMULATION")
+        sim.terminate()
