@@ -125,7 +125,7 @@ class PseudoOpWord(InstructionBase):
     def __init__(self, values: Sequence[Expression]):
         self.values = values
     def machine_code(self, symbol_table: SymbolTable) -> Sequence[int]:
-        int_vals = (val.value(symbol_table) for val in self.values)
+        int_vals = tuple(val.value(symbol_table) for val in self.values)
         for val in int_vals:
             if (val.bit_length() > 16):
                 raise AsmError(f"Value {val} doesn't fit in 16 bits")
@@ -368,14 +368,14 @@ class WordParser(object):
         for token in line[1:]:
             if token == ',':
                 if len(value) > 0:
-                    values.append(value)
+                    values.append(Expression(value))
                 else:
-                    values.append(("0",))
+                    values.append(Expression("0"))
                 value.clear()
             else:
                 value.append(token)
         if len(value) > 0:
-            values.append(value)
+            values.append(Expression(value))
         context.add_inst(PseudoOpWord(values))
 
 class StrParser(object):

@@ -61,6 +61,7 @@ class SimEventMemDump(object):
                 col_cnt += 1
             else:
                 if col_cnt == 16:
+                    dump_start += 16
                     dump += "\n" + prefix + _safe_format(dump_start) + ":"
                     col_cnt = 0
                 dump += f" {data:04x}" if data is not None else " xxxx"
@@ -517,7 +518,7 @@ if __name__ == "__main__":
             ; and memory writes with offsets to work at least $sp-relative and immediate
             ; we can also trust add and subtract to a certain degree
             ; From here on, we put counter in $r1 and we're going to decrement it every time we test something
-            ; This counter eventually should reach 0, at which point we declare success.
+            ; Eventually we declare success by terminating with code 0
             mov $r1, 31
             add $r1, 31
             if_eq $r0, $sp
@@ -534,9 +535,17 @@ if __name__ == "__main__":
             if_neq $sp, $r0
             mov [TERMINATE_PORT], $r1    ; This we should skip
             sub $r1, 1
+            ; Now we trust ADD,SUB,ISUB, ROL,MOV, at least on a basic level
+            mov $r0, 3
+            ror $r0
+            if_neq $r0, $r0 ; skip over a constant
+            .word 0b1000_0000_0000_0001
+            if_neq $r0, [$pc-1] ; reference the constant above
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            sub $r1, 1
 
             mov $r1, 0
-            mov [TERMINATE_PORT], $r1    ; This we should skip
+            mov [TERMINATE_PORT], $r1    ; WE DECLARE SUCCESS HERE!
             mov $pc, $pc
         """
     )
