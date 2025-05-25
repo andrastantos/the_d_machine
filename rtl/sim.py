@@ -367,7 +367,7 @@ class Processor(object):
                     else:
                         alu_result = alu_opa
                 elif inst_field_opcode == INST_ISTAT:
-                    alu_result = 0 if self.inten else 2
+                    alu_result = 2 if self.inten else 0
                 elif inst_field_opcode == INST_ROR:
                     if inst_field_d == 0:
                         alu_result = _ror(alu_opa)
@@ -535,14 +535,69 @@ if __name__ == "__main__":
             if_neq $sp, $r0
             mov [TERMINATE_PORT], $r1    ; This we should skip
             sub $r1, 1
-            ; Now we trust ADD,SUB,ISUB, ROL,MOV, at least on a basic level
             mov $r0, 3
             ror $r0
             if_neq $r0, $r0 ; skip over a constant
             .word 0b1000_0000_0000_0001
             if_neq $r0, [$pc-1] ; reference the constant above
             mov [TERMINATE_PORT], $r1    ; This we should skip too
+            ; Now we trust ADD,SUB,ISUB, ROL,ROR,MOV, at least on a basic level
             sub $r1, 1
+            mov $sp, 12
+            mov $r0, 26
+            xor $r0, $sp
+            if_neq $r0, (12 ^ 26)
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $r0, 26
+            and $r0, $sp
+            if_neq $r0, (12 & 26)
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $r0, 26
+            or $r0, $sp
+            if_neq $r0, (12 | 26)
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            sub $r1, 1
+            ; Now we trust AND,OR,XOR,ADD,SUB,ISUB, ROL,ROR,MOV, at least on a basic level
+            ; We will play around with ISTAT and SWAP (as well as SWAPI)
+            ; We don't actually have interrupts implemented, but we can test the interrupt enable behavior
+            istat $r0
+            if_neq $r0, 0
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $sp, 7
+            mov $r0, 0x10
+            mov [5], $r0
+            add $r0, 1
+            swap $sp, [5]
+            if_neq $sp, 0x10
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            istat $r0
+            if_neq $r0, 0
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $r0, 0x11
+            mov $sp, 5
+            swapi $r0, [$sp] 
+            if_neq $r0, 0x7
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $r0, [$sp]
+            if_neq $r0, 0x11
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            istat $r0
+            if_neq $r0, 2
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+
+            mov $r0, 7
+            sub $sp, 1
+            swapi $r0, [$sp+1]
+            if_neq $r0, 0x11
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $sp, [$sp+1]
+            if_neq $sp, 7
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            istat $r0
+            if_neq $r0, 0
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+
+            ; At this point we trust all instructions, except for a few predicates. Let's test those...
 
             mov $r1, 0
             mov [TERMINATE_PORT], $r1    ; WE DECLARE SUCCESS HERE!

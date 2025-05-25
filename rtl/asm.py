@@ -567,3 +567,6 @@ if __name__ == "__main__":
     #parse("ROL [$sp+3]")
     #assemble(".section TEXT 0\n        ROL [$sp]")
     assemble(".section TEXT 0x1000\n   mov [$r1-1], $sp  ; should write to address 2")
+
+
+# TODO: swap $r0, $r1 is not supported. I.e. execution is going to be bodged, so we should disallow assembling it.

@@ -38,7 +38,7 @@ def _format_opb(opb: int, immed: int) -> str:
     return opb_formats[opb].replace("{s}",sign).replace("{}", str(immed))
 
 inst_formats = {
-    INST_SWAP  : ("SWAP {opa}, {opb}", "SWAPI {opa}, {opb}"),
+    INST_SWAP  : ("SWAPI {opa}, {opb}", "SWAP {opa}, {opb}"),
     INST_OR    : ("OR {opa}, {opb}", "OR {opb}, {opa}"),
     INST_AND   : ("AND {opa}, {opb}", "AND {opb}, {opa}"),
     INST_XOR   : ("XOR {opa}, {opb}", "XOR {opb}, {opa}"),
