@@ -32,7 +32,7 @@ class AsmError(Exception):
 
 class SymbolTable(object):
     def __init__(self):
-        self.table = OrderedDict()
+        self.table: Dict[str, Union[int, Expression]] = OrderedDict()
         self.resolved = True
     def add(self, name: str, value: 'Expression'):
         if name in self.table:
@@ -49,21 +49,21 @@ class SymbolTable(object):
         # and repeat the process until we either can't make further progress or we don't have anything to do.
         # We are using pythons eval function to do the heavy-lifting for us.
         table_changed = True
-        resolved_symbols = {}
-        unresolved_symbols = {}
+        resolved_symbols: Dict[str, int] = {}
+        unresolved_symbols: Dict[str, Expression] = {}
         for sym_name, sym_value in self.table.items():
             if _is_int(sym_value):
-                resolved_symbols[sym_name] = sym_value
+                resolved_symbols[sym_name] = int(sym_value)
                 continue
             try:
-                resolved_symbols[sym_name] = int(" ".join(sym_value))
+                resolved_symbols[sym_name] = int(" ".join(sym_value.token_list))
             except ValueError:
                 unresolved_symbols[sym_name] = sym_value
         while table_changed:
             table_changed = False
             for sym_name, sym_value in unresolved_symbols.items():
                 try:
-                    resolved_value = eval(" ".join(sym_value), resolved_symbols)
+                    resolved_value = eval(" ".join(sym_value.token_list), resolved_symbols)
                     try:
                         int_value = int(resolved_value)
                     except ValueError:
@@ -161,6 +161,8 @@ def _is_int(s):
     try:
         int(s)
         return True
+    except TypeError:
+        return False
     except ValueError:
         return False
 
@@ -288,7 +290,7 @@ def parse_single_arg(inst_code: int, line: Sequence[str]) -> Instruction:
             opa = opa_reg_names[line[cursor]]
             cursor += 1
             opb = OPB_IMMED
-            immed = 0
+            immed = Expression("0")
     except IndexError:
         raise AsmError(f"Line is too short, can't understand it")
     if cursor != len(line):
@@ -296,17 +298,17 @@ def parse_single_arg(inst_code: int, line: Sequence[str]) -> Instruction:
     return Instruction(inst_code, d, opa, opb, immed)
 
 def parse_swapi(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line, False, is_swapi=True)
+    inst = parse_dual_arg(inst_code, line, is_swapi=True)
     inst.d = 0
     return inst
 
 def parse_swap(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line, False)
+    inst = parse_dual_arg(inst_code, line)
     inst.d = 1
     return inst
 
 def parse_sub(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line, False)
+    inst = parse_dual_arg(inst_code, line)
     if inst.d:
         # the operands are swapped, this is encoded as an isub
         inst.opcode = INST_ISUB
@@ -316,7 +318,7 @@ def parse_sub(inst_code: int, line: Sequence[str]) -> Instruction:
     return inst
 
 def parse_isub(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line, False)
+    inst = parse_dual_arg(inst_code, line)
     if inst.d:
         # the operands are swapped, this is encoded as an sub
         inst.opcode = INST_SUB
@@ -326,22 +328,22 @@ def parse_isub(inst_code: int, line: Sequence[str]) -> Instruction:
     return inst
 
 def parse_eq(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line, False)
+    inst = parse_dual_arg(inst_code, line)
     inst.d = 0
     return inst
 
 def parse_neq(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line, False)
+    inst = parse_dual_arg(inst_code, line)
     inst.d = 1
     return inst
 
 def parse_pos_pred(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line, False)
+    inst = parse_dual_arg(inst_code, line)
     # If the arguments are swapped, we swap the test condition instead, but that's what 'd' already contains
     return inst
 
 def parse_neg_pred(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line, False)
+    inst = parse_dual_arg(inst_code, line)
     # If the arguments are swapped, we swap the test condition instead
     inst.d = ~inst.d
     return inst
@@ -392,7 +394,7 @@ class DefParser(object):
         cursor += 1
         if line[cursor] != '=':
             raise AsmError(".def needs an equal sign after symbol name")
-        symbol_expression = Expression(line[cursor:])
+        symbol_expression = Expression(line[cursor+1:])
         context.symbol_table.add(symbol_name, symbol_expression)
 
 
@@ -406,7 +408,7 @@ class LabelParser(object):
         cursor += 1
         if line[cursor] != ':':
             raise AsmError("labels must be terminated by a colon")
-        symbol_expression = str(context.org)
+        symbol_expression = Expression(str(context.org))
         context.symbol_table.add(symbol_name, symbol_expression)
 
 class SectionParser(object):

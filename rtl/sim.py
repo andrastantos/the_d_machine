@@ -476,6 +476,7 @@ class System(object):
 if __name__ == "__main__":
     sim = System()
     sim.load(0, (0x1000,)) # reset vector
+    '''
     sim.load_asm(
 """
     ; Simple test for all instruction formats and addressing modes
@@ -491,7 +492,55 @@ if __name__ == "__main__":
     mov $pc, $pc
 """
     )
-    sim.simulate(50)
+    '''
+    sim.load_asm(
+        """
+            ; This is a basic confidence test
+            ; We start by not assuming anything works
+            ; and build our toolbox as we go.
+            ; During the test we save things into memory
+            ; and rely on post-execution memory content compare
+            ; to verify that things went well. At least for the very
+            ; beginning.
+            .section TEXT 0x1000
+            .def TERMINATE_PORT = -1
+            MOV $sp, 3
+            mov [1], $sp      ; we should expect memory location 1 to contain 3
+            mov $r0, 4
+            mov [$sp-1], $r0  ; we should expect memory location 2 to contain 4
+            mov $r1, 5
+            sub $sp, 1
+            mov [$sp+1], $r1  ; we should expect memory location 3 to contain 5
+            add $sp, 4
+            mov [$r0], $sp   ; we should expect memory location 4 to contain 6
+            ; At this point we can trust loading constants into registers
+            ; and memory writes with offsets to work at least $sp-relative and immediate
+            ; we can also trust add and subtract to a certain degree
+            ; From here on, we put counter in $r1 and we're going to decrement it every time we test something
+            ; This counter eventually should reach 0, at which point we declare success.
+            mov $r1, 31
+            add $r1, 31
+            if_eq $r0, $sp
+            mov [TERMINATE_PORT], $r1     ; This we should skip
+            if_neq $r0, 4
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            sub $r1, 1
+            ; Now we can trust equal and not-equal compares, so let's do some arithmetic!
+            mov $r0, 31
+            rol $r0
+            mov $sp, $r0
+            isub $sp, $r0     ; $sp should contain 31-62 = -31
+            isub $sp, 0
+            if_neq $sp, $r0
+            mov [TERMINATE_PORT], $r1    ; This we should skip
+            sub $r1, 1
+
+            mov $r1, 0
+            mov [TERMINATE_PORT], $r1    ; This we should skip
+            mov $pc, $pc
+        """
+    )
+    sim.simulate(500)
     if not sim.terminated:
         print("    TIMEOUT IN SIMULATION")
         sim.terminate()
