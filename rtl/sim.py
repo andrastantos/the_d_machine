@@ -527,9 +527,9 @@ if __name__ == "__main__":
             sub $r1, 1
             ; Now we can trust equal and not-equal compares, so let's do some arithmetic!
             mov $r0, 31
-            rol $r0
             mov $sp, $r0
-            isub $sp, $r0     ; $sp should contain 31-62 = -31
+            rol $r0
+            isub $r0, $sp     ; $r0 should contain 31-62 = -31
             isub $sp, 0
             if_neq $sp, $r0
             mov [TERMINATE_PORT], $r1    ; This we should skip

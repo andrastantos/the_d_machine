@@ -34,7 +34,7 @@ opb_formats = {
 }
 
 def _format_opb(opb: int, immed: int) -> str:
-    sign = "+" if immed > 0 else ""
+    sign = "+" if immed >= 0 else ""
     return opb_formats[opb].replace("{s}",sign).replace("{}", str(immed))
 
 inst_formats = {
