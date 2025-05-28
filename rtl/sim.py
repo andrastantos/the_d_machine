@@ -96,12 +96,16 @@ class Memory(object):
             del self.mem[addr]
         except KeyError:
             pass
+        try:
+            return ret_val & 0xffff
+        except TypeError:
+            assert ret_val is None
         return ret_val
     def write(self, addr: int, data: int) -> None:
         assert addr >= self.base_addr
         assert addr < self.base_addr + self.size
         assert addr not in self.mem
-        self.mem[addr] = data
+        self.mem[addr] = data & 0xffff if data is not None else None
 
     def terminate(self) -> Sequence[SimEventBase]:
         return (SimEventMemDump(self.mem), )
@@ -598,6 +602,31 @@ if __name__ == "__main__":
             mov [TERMINATE_PORT], $r1    ; This we should skip too
 
             ; At this point we trust all instructions, except for a few predicates. Let's test those...
+            mov $sp, 3
+            mov $r0, 5
+            if_ltu $r0, $sp
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $r0, -4
+            if_lts $sp, $r0
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $sp, -4
+            if_lts $sp, $r0
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $sp, 3
+            if_les $sp, $r0
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+
+            if_geu $sp, $r0
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $r0, -4
+            if_ges $r0, $sp
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $sp, -4
+            if_ges $r0, $sp
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
+            mov $sp, 3
+            if_gts $sp, $r0
+            mov [TERMINATE_PORT], $r1    ; This we should skip too
 
             mov $r1, 0
             mov [TERMINATE_PORT], $r1    ; WE DECLARE SUCCESS HERE!

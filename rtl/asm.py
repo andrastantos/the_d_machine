@@ -117,7 +117,7 @@ class Instruction(InstructionBase):
         if (immed > (IMMED_MASK >> 1)) or (immed < (-IMMED_MASK >> 1)):
             raise AsmError(f"Immediate value {immed} is out of range")
         inst_code = (self.opcode << OPCODE_OFS) | (self.d << D_OFS) | (self.opb << OPB_OFS) | (self.opa << OPA_OFS) | ((immed & IMMED_MASK) << IMMED_OFS)
-        return (inst_code, )
+        return (inst_code & 0xffff, )
     def get_size(self) -> int:
         return 1;
 
@@ -345,7 +345,7 @@ def parse_pos_pred(inst_code: int, line: Sequence[str]) -> Instruction:
 def parse_neg_pred(inst_code: int, line: Sequence[str]) -> Instruction:
     inst = parse_dual_arg(inst_code, line)
     # If the arguments are swapped, we swap the test condition instead
-    inst.d = ~inst.d
+    inst.d = 1-inst.d
     return inst
 
 
