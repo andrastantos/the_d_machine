@@ -110,6 +110,27 @@ class Memory(object):
     def terminate(self) -> Sequence[SimEventBase]:
         return (SimEventMemDump(self.mem), )
 
+    def compare(self, expected_content: Dict[int, Sequence[int]]) -> bool:
+        checked_addresses: Set[int] = set()
+        ret_val = True
+        for start, values in expected_content.items():
+            for ofs, value in enumerate(values):
+                addr = start+ofs
+                if addr not in self.mem:
+                    print(f"Expected content at address 0x{addr:04x} with value 0x{value:04x} is deleted from memory")
+                    ret_val = False
+                elif self.mem[addr] != value:
+                    print(f"Expected content at address 0x{addr:04x} with expected value 0x{value:04x} is different in memory with value: 0x{self.mem[addr]:04x}")
+                    ret_val = False
+                checked_addresses.add(addr)
+        for addr in self.mem.keys():
+            if addr not in checked_addresses:
+                print(f"Memory contains extraneous data at address 0x{addr:04x} with value: 0x{self.mem[addr]:04x}")
+                ret_val = False
+        return ret_val
+
+
+
 class Terminator(object):
     def __init__(self, system: 'System'):
         system.register_for_clock(self)
@@ -233,19 +254,19 @@ class Processor(object):
 
     def _set_pc(self, data: int) -> None:
         self.events.append(SimEventRegUpdate("$pc", self.pc, data))
-        self.pc = data
+        self.pc = data & 0xffff
 
     def _set_sp(self, data: int) -> None:
         self.events.append(SimEventRegUpdate("$sp", self.sp, data))
-        self.sp = data
+        self.sp = data & 0xffff
 
     def _set_r0(self, data: int) -> None:
         self.events.append(SimEventRegUpdate("$r0", self.r0, data))
-        self.r0 = data
+        self.r0 = data & 0xffff
 
     def _set_r1(self, data: int) -> None:
         self.events.append(SimEventRegUpdate("$r1", self.r1, data))
-        self.r1 = data
+        self.r1 = data & 0xffff
 
     def _set_reg(self, inst_field_opa: int, data: int) -> None:
         if inst_field_opa == OPA_PC:
@@ -530,6 +551,14 @@ if __name__ == "__main__":
             if_neq $r0, 4
             mov [TERMINATE_PORT], $r1    ; This we should skip too
             sub $r1, 1
+            if_eq $r0, 4
+            mov $pc, $pc+2                   ; This we should NOT skip
+            mov [TERMINATE_PORT], $r1
+            if_neq $r0, 3
+            mov $pc, $pc+2                   ; This we should NOT skip
+            mov [TERMINATE_PORT], $r1
+            sub $r1, 1
+
             ; Now we can trust equal and not-equal compares, so let's do some arithmetic!
             mov $r0, 31
             mov $sp, $r0
@@ -579,7 +608,7 @@ if __name__ == "__main__":
             mov [TERMINATE_PORT], $r1    ; This we should skip too
             mov $r0, 0x11
             mov $sp, 5
-            swapi $r0, [$sp] 
+            swapi $r0, [$sp]
             if_neq $r0, 0x7
             mov [TERMINATE_PORT], $r1    ; This we should skip too
             mov $r0, [$sp]
@@ -623,17 +652,69 @@ if __name__ == "__main__":
             mov [TERMINATE_PORT], $r1    ; This we should skip too
             mov $sp, -4
             if_ges $r0, $sp
+            mov $pc, $pc+2
             mov [TERMINATE_PORT], $r1    ; This we should skip too
             mov $sp, 3
-            if_gts $sp, $r0
+            if_gts $r0, $sp
             mov [TERMINATE_PORT], $r1    ; This we should skip too
+
+            ; Now let's test the inverse cases to make sure we indeed have conditionals
+            mov $sp, 3
+            mov $r0, 5
+            if_ltu $sp, $r0
+            mov $pc, $pc+2
+            mov [TERMINATE_PORT], $r1
+            mov $r0, -4
+            if_lts $r0, $sp
+            mov $pc, $pc+2
+            mov [TERMINATE_PORT], $r1
+            mov $sp, 3
+            if_les $r0, $sp
+            mov $pc, $pc+2
+            mov [TERMINATE_PORT], $r1
+
+            if_geu $r0, $sp
+            mov $pc, $pc+2
+            mov [TERMINATE_PORT], $r1
+            mov $r0, -4
+            if_ges $r0, $r0
+            mov $pc, $pc+2
+            mov [TERMINATE_PORT], $r1
+            mov $sp, 3
+            if_gts $sp, $r0
+            add $pc, 2
+            mov [TERMINATE_PORT], $r1
+
+            ; During these tests, we also had a bunch of PC manipulation instructions.
+            ; That is to say: we've tested the fact that PC should not get incremented
+            ; if it was the target of the operation. So, at this point, we can be pretty
+            ; confident in our ISA implementation. There still could be edge-cases of
+            ; course and this is not a full test, but should suffice as a basic confidence
+            ; test.
+            ; As an added insurance we're going to test the memory content for extraneous
+            ; writes or corruption in expected values. But that step is outside the CPU.
 
             mov $r1, 0
             mov [TERMINATE_PORT], $r1    ; WE DECLARE SUCCESS HERE!
             mov $pc, $pc
         """
     )
-    sim.simulate(500)
+    sim.simulate(5000)
     if not sim.terminated:
         print("    TIMEOUT IN SIMULATION")
         sim.terminate()
+    if sim.mem.compare(
+        {
+            0x0000: (0x1000, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007),
+            0x1000: (0x8743, 0x8b41, 0x8784, 0x89bf, 0x87c5, 0x6741, 0x89c1, 0x5744, 0x8a40, 0x87df, 0x57df, 0xc580, 0x8bff, 0xcf84, 0x8bff, 0x67c1),
+            0x1010: (0xc784, 0x8402, 0x8bff, 0xcf83, 0x8402, 0x8bff, 0x67c1, 0x879f, 0x8640, 0xb780, 0x7580, 0x7740, 0xce40, 0x8bff, 0x67c1, 0x8783),
+            0x1020: (0xa780, 0xce80, 0x8001, 0xc8bf, 0x8bff, 0x67c1, 0x874c, 0x879a, 0x3580, 0xcf96, 0x8bff, 0x879a, 0x2580, 0xcf88, 0x8bff, 0x879a),
+            0x1030: (0x1580, 0xcf9e, 0x8bff, 0x67c1, 0x9780, 0xcf80, 0x8bff, 0x8747, 0x8790, 0x8b85, 0x5781, 0x0b45, 0xcf50, 0x8bff, 0x9780, 0xcf80),
+            0x1040: (0x8bff, 0x8791, 0x8745, 0x0180, 0xcf87, 0x8bff, 0x8180, 0xcf91, 0x8bff, 0x9780, 0xcf82, 0x8bff, 0x8787, 0x6741, 0x0181, 0xcf91),
+            0x1050: (0x8bff, 0x8141, 0xcf47, 0x8bff, 0x9780, 0xcf80, 0x8bff, 0x8743, 0x8785, 0xd580, 0x8bff, 0x87bc, 0xe640, 0x8bff, 0x877c, 0xe640),
+            0x1060: (0x8bff, 0x8743, 0xf640, 0x8bff, 0xde40, 0x8bff, 0x87bc, 0xed80, 0x8bff, 0x877c, 0xed80, 0x8402, 0x8bff, 0x8743, 0xfd80, 0x8bff),
+            0x1070: (0x8743, 0x8785, 0xd640, 0x8402, 0x8bff, 0x87bc, 0xe580, 0x8402, 0x8bff, 0x8743, 0xf580, 0x8402, 0x8bff, 0xdd80, 0x8402, 0x8bff),
+            0x1080: (0x87bc, 0xee80, 0x8402, 0x8bff, 0x8743, 0xfe40, 0x5702, 0x8bff, 0x87c0, 0x8bff, 0x8400),
+        }
+    ):
+        print("Memory compare succeeded")
