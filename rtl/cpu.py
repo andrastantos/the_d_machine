@@ -111,15 +111,16 @@ class DataPath(Module):
         inst <<= l_inst.output_port
         immed = Wire(Unsigned(16))
         # Sign-extend the immediate field to 16 bits
+        immed_sign = inst[IMMED_OFS+IMMED_SIZE-1]
         immed <<= concat(
-            inst[5], inst[5], inst[5], inst[5],
-            inst[5], inst[5], inst[5], inst[5],
-            inst[5], inst[5], inst[5:0]
+            immed_sign, immed_sign, immed_sign, immed_sign,
+            immed_sign, immed_sign, immed_sign, immed_sign,
+            immed_sign, immed_sign, inst[IMMED_OFS+IMMED_SIZE-1:IMMED_OFS]
         )
-        self.inst_field_opcode <<= inst[15:12]
-        self.inst_field_d <<= inst[11]
-        self.inst_field_opb <<= inst[10:8]
-        self.inst_field_opa <<= inst[7:6]
+        self.inst_field_opcode <<= inst[OPCODE_OFS+OPCODE_SIZE-1:OPCODE_OFS]
+        self.inst_field_d <<= inst[D_OFS+D_SIZE-1:D_OFS]
+        self.inst_field_opb <<= inst[OPB_OFS+OPB_SIZE-1:OPB_OFS]
+        self.inst_field_opa <<= inst[OPA_OFS+OPA_SIZE-1:OPA_OFS]
 
         alu = ALU()
         alu_result <<= alu.o_out
@@ -159,7 +160,7 @@ class DataPath(Module):
         serve_interrupt = ((self.intdis == 0) & self.interrupt)
 
         l_inst.input_port <<= SelectFirst(
-            serve_interrupt | self.rst, (Select(self.rst, INST_SWAP, INST_MOV) << 12) | (DEST_REG << 11) | (OPB_MEM_IMMED << 8) | (OPA_PC << 6) | ((~self.rst) << 0),
+            serve_interrupt | self.rst, (Select(self.rst, INST_SWAP, INST_MOV) << OPCODE_OFS) | (DEST_REG << D_OFS) | (OPB_MEM_IMMED << OPB_OFS) | (OPA_PC << OPA_OFS) | ((~self.rst) << IMMED_OFS),
             default_port = self.bus_d_in
         )
 
