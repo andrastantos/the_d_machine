@@ -38,10 +38,10 @@ class ALU(Module):
         full_add = a_in + b_in + self.c_in
         result = SelectOne(
             self.cmd_in == AluCmds.alu_add, full_add[15:0],
-            self.cmd_in == AluCmds.alu_nor, a_in | b_in,
-            self.cmd_in == AluCmds.alu_nand, a_in & b_in,
+            self.cmd_in == AluCmds.alu_nor, (a_in | b_in) ^ 0xffff,
+            self.cmd_in == AluCmds.alu_nand, (a_in & b_in) ^ 0xffff,
             self.cmd_in == AluCmds.alu_xor, a_in ^ b_in,
-            self.cmd_in == AluCmds.alu_ror, concat(a_in[15], a_in[14:0]),
+            self.cmd_in == AluCmds.alu_ror, concat(a_in[0], a_in[15:1]),
             self.cmd_in == AluCmds.alu_rol, concat(a_in[14:0], a_in[15]),
         )
         self.o_out <<= result
@@ -466,26 +466,15 @@ class Sequencer(Module):
             ),
             ~is_branch,   # increment PC or do nothing (i.e. adding 0)
         )
-        opb_base = Select(
-            (self.inst_field_opcode == INST_SWAP) & (self.inst_field_d == 0),
-            # Not a SWAP with D=0
-            Select(self.inst_field_opcode == INST_ISTAT,
-                # not an ISTAT instruction
-                SelectOne(
-                    self.inst_field_opb == OPB_IMMED_PC,      AluASelect.pc,
-                    self.inst_field_opb == OPB_IMMED_SP,      AluASelect.sp,
-                    self.inst_field_opb == OPB_IMMED_R0,      AluASelect.r0,
-                    self.inst_field_opb == OPB_IMMED,         AluASelect.zero,
-                    self.inst_field_opb == OPB_MEM_IMMED_PC,  AluASelect.pc,
-                    self.inst_field_opb == OPB_MEM_IMMED_SP,  AluASelect.sp,
-                    self.inst_field_opb == OPB_MEM_IMMED_R0,  AluASelect.r0,
-                    self.inst_field_opb == OPB_MEM_IMMED,     AluASelect.zero,
-                ),
-                # ISTAT instruction
-                AluASelect.int_stat
-            ),
-            # SWAP with D=0
-            AluASelect.zero
+        opb_base = SelectOne(
+            self.inst_field_opb == OPB_IMMED_PC,      AluASelect.pc,
+            self.inst_field_opb == OPB_IMMED_SP,      AluASelect.sp,
+            self.inst_field_opb == OPB_IMMED_R0,      AluASelect.r0,
+            self.inst_field_opb == OPB_IMMED,         AluASelect.zero,
+            self.inst_field_opb == OPB_MEM_IMMED_PC,  AluASelect.pc,
+            self.inst_field_opb == OPB_MEM_IMMED_SP,  AluASelect.sp,
+            self.inst_field_opb == OPB_MEM_IMMED_R0,  AluASelect.r0,
+            self.inst_field_opb == OPB_MEM_IMMED,     AluASelect.zero,
         )
         opa_select = Select(
             self.inst_field_opcode[3:2] == INST_GROUP_UNARY,

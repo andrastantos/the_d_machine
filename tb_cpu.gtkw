@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Thu May 29 19:46:02 2025
+[*] Thu May 29 20:44:01 2025
 [*]
 [dumpfile] "/home/tantos/tcomp/tb_cpu.vcd"
-[dumpfile_mtime] "Thu May 29 19:44:21 2025"
-[dumpfile_size] 634859
+[dumpfile_mtime] "Thu May 29 20:43:37 2025"
+[dumpfile_size] 1281969
 [savefile] "/home/tantos/tcomp/tb_cpu.gtkw"
-[timestart] 0
+[timestart] 3424
 [size] 1868 1045
 [pos] -1 -1
-*-8.403341 4216 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-6.003341 3766 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TB.
 [treeopen] TB.dut.
 [treeopen] TB.dut.data_path.
@@ -51,9 +51,8 @@ TB.dut.data_path.l_inst.latch_port
 TB.dut.data_path.l_inst.reset_port
 @22
 TB.dut.data_path.bus_d_in[15:0]
-@29
-TB.dut.data_path.serve_interrupt
 @28
+TB.dut.data_path.serve_interrupt
 TB.dut.data_path.intdis
 @1000200
 -INST
@@ -64,6 +63,10 @@ TB.dut.data_path.alu_cmd
 @22
 TB.dut.data_path.alu_a_in[15:0]
 TB.dut.data_path.alu_b_in[15:0]
+@28
+TB.dut.data_path.alu_inv_a_in
+@29
+TB.dut.data_path.alu_inv_b_in
 @28
 TB.dut.data_path.alu_c_in
 TB.dut.data_path.alu_a_select

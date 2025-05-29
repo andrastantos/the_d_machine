@@ -4,6 +4,7 @@ from silicon import *
 
 from cpu import *
 from asm import *
+from disasm import *
 
 termination_code = None
 class Memory(GenericModule):
@@ -12,6 +13,7 @@ class Memory(GenericModule):
     bus_d_wr = Input(DataType)
     bus_a = Input(AddrType)
     bus_cmd = Input(EnumNet(BusCmds))
+    inst_load = Input(logic)
 
     def construct(self, size: int, base_addr: int = 0):
         self.mem = {}
@@ -37,6 +39,8 @@ class Memory(GenericModule):
                 self.bus_d_rd <<= data
                 # Read is destructive, make sure we set the data to all 0-s
                 if (self.clk == 0):
+                    if self.inst_load:
+                        print(f"{now}: FETCHING INSTRUCTION: '{disasm_inst(self.mem[addr])}'")
                     print(f"{now}: Resetting MEM[0x{addr:04x}] -> 0")
                     self.mem[addr] = 0
             elif ((self.bus_cmd == BusCmds.write) & (self.clk == 0)):
@@ -308,6 +312,7 @@ class TB(Module):
         self.mem.bus_a <<= self.bus_a
         self.mem.bus_d_wr <<= self.bus_d_wr
         self.mem.bus_cmd <<= self.bus_cmd
+        self.mem.inst_load <<= dut.inst_load
         self.bus_d_rd <<= self.mem.bus_d_rd
 
     def simulate(self):
