@@ -5,6 +5,7 @@ from silicon import *
 from cpu import *
 from asm import *
 
+termination_code = None
 class Memory(GenericModule):
     clk = ClkPort()
     bus_d_rd = Output(DataType)
@@ -17,7 +18,7 @@ class Memory(GenericModule):
         self.size = size
         self.base_addr = base_addr
 
-    def simulate(self):
+    def simulate(self, simulator: Simulator):
         while(True):
             now = yield (self.bus_cmd, self.bus_a, self.bus_d_wr, self.clk)
             if (self.bus_cmd.sim_value is None):
@@ -47,6 +48,12 @@ class Memory(GenericModule):
                 if data is not None:
                     data &= 0xffff
                     print(f"{now}: Writing MEM[0x{addr:04x}] = 0x{data:04x}")
+                    if addr & 0xffff == 0xffff:
+                        # This is the termination port
+                        print(f"{now}: TERMINATING WITH EXIT CODE: {data:04x}")
+                        assert data is not None
+                        global termination_code
+                        termination_code = data
                 else:
                     print(f"{now}: Writing MEM[0x{addr:04x}] = NONE")
                 # Write can only flip bits from 0 to 1. So, we have to make sure that all writes happen to locations
@@ -320,18 +327,26 @@ class TB(Module):
 
 
         def clk():
+            global termination_code
+            if termination_code is not None:
+                yield 0
             yield 5
             self.clk <<= ~self.clk & self.clk
             yield 5
             self.clk <<= ~self.clk
             yield 0
 
+        global termination_code
+        self.interrupt <<= 0
         self.clk <<= 0
         self.rst <<= 1
-        self.interrupt <<= 0
         for i in range(15): yield from clk()
         self.rst <<= 0
-        for i in range(5000): yield from clk()
+        for i in range(5000):
+            if termination_code is not None:
+                print(f"SIMULATION TERMINATED WITH EXIT CODE: 0x{termination_code:04x}")
+                break
+            yield from clk()
 
 def sim():
     def sim_top():

@@ -1,18 +1,18 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Tue May 20 19:06:21 2025
+[*] Thu May 29 19:46:02 2025
 [*]
 [dumpfile] "/home/tantos/tcomp/tb_cpu.vcd"
-[dumpfile_mtime] "Tue May 20 19:06:04 2025"
-[dumpfile_size] 436818
+[dumpfile_mtime] "Thu May 29 19:44:21 2025"
+[dumpfile_size] 634859
 [savefile] "/home/tantos/tcomp/tb_cpu.gtkw"
 [timestart] 0
-[size] 1920 1097
+[size] 1868 1045
 [pos] -1 -1
-*-6.003341 184 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-8.403341 4216 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TB.
 [treeopen] TB.dut.
-[treeopen] TB.dut.data_path.alu.
+[treeopen] TB.dut.data_path.
 [treeopen] TB.dut.sequencer.
 [sst_width] 278
 [signals_width] 357
@@ -40,12 +40,21 @@ TB.dut.data_path.inst[15:0]
 @24
 TB.dut.data_path.inst_field_opcode[3:0]
 @28
+TB.dut.sequencer.inst_field_d
 TB.dut.data_path.inst_field_opb[2:0]
 TB.dut.data_path.inst_field_opa[1:0]
 @22
 TB.dut.data_path.immed[15:0]
+TB.dut.data_path.l_inst.input_port[15:0]
 @28
-TB.dut.sequencer.inst_field_d
+TB.dut.data_path.l_inst.latch_port
+TB.dut.data_path.l_inst.reset_port
+@22
+TB.dut.data_path.bus_d_in[15:0]
+@29
+TB.dut.data_path.serve_interrupt
+@28
+TB.dut.data_path.intdis
 @1000200
 -INST
 @800200
@@ -90,6 +99,7 @@ TB.dut.data_path.l_r1_output_port[15:0]
 @1000200
 -REGISTERS
 @28
+TB.dut.sequencer.opa_select
 TB.dut.sequencer.l_was_branch_output_port
 TB.dut.sequencer.is_opb_mem_ref
 TB.dut.data_path.l_bus_d_ld

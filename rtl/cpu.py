@@ -141,7 +141,8 @@ class DataPath(Module):
         l_sp.latch_port <<= self.l_sp_ld
         l_r0.latch_port <<= self.l_r0_ld
         l_r1.latch_port <<= self.l_r1_ld
-        l_inst.latch_port <<= self.l_inst_ld
+        l_inst.latch_port <<= self.l_inst_ld | self.rst
+        l_inst.reset_port <<= 0
 
         l_bus_a.input_port <<= alu_result
         l_bus_d.input_port <<= SelectOne(
@@ -158,7 +159,7 @@ class DataPath(Module):
         serve_interrupt = ((self.intdis == 0) & self.interrupt)
 
         l_inst.input_port <<= SelectFirst(
-            serve_interrupt | self.rst, (INST_SWAP << 12) | (DEST_REG << 11) | (OPB_MEM_IMMED_PC << 8) | (OPA_PC << 6) | ((~self.rst) << 0),
+            serve_interrupt | self.rst, (Select(self.rst, INST_SWAP, INST_MOV) << 12) | (DEST_REG << 11) | (OPB_MEM_IMMED << 8) | (OPA_PC << 6) | ((~self.rst) << 0),
             default_port = self.bus_d_in
         )
 
@@ -249,24 +250,18 @@ class Sequencer(Module):
             0
         )
 
-        l_skip_swap_phase_5 = HighLatch()
-        l_skip_swap_phase_5.input_port.set_net_type(logic)
-        l_skip_swap_phase_5.input_port <<= 0
-        l_skip_swap_phase_5.latch_port <<= Select(phase == 0, 0, 1)
-        l_skip_swap_phase_5.reset_value_port <<= 1
-
         update_mem <<= Select(
             self.inst_field_opcode == INST_SWAP,
             # Not a swap instruction
             Select(
                 self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE,
                 # Not a predicate instruction --> field D determines if we write to memory
-                self.inst_field_d,
+                (is_opb_mem_ref & self.inst_field_d),
                 # predicate instructions never write to memory
                 0
             ),
-            # swap always writes to memory, unless it's skipped of course
-            ~l_skip_swap_phase_5.output_port
+            # swap always writes to memory
+            1
         )
         update_reg <<= Select(
             self.inst_field_opcode == INST_SWAP,
@@ -287,8 +282,8 @@ class Sequencer(Module):
                 BusCmds.read,
                 BusCmds.write,
                 Select(is_opb_mem_ref, BusCmds.idle, BusCmds.read),
-                BusCmds.idle,
-                Select(is_opb_mem_ref & (self.inst_field_opcode != INST_SWAP), BusCmds.idle, BusCmds.write),
+                BusCmds.idle, # SWAP-only cycle
+                Select(is_opb_mem_ref & ~update_mem, BusCmds.idle, BusCmds.write),
                 Select(update_mem, BusCmds.idle, BusCmds.write),
             ),
             BusCmds.idle
@@ -508,7 +503,7 @@ class Sequencer(Module):
                 Select(
                     (self.inst_field_opcode == INST_MOV) & ~self.inst_field_d,
                     # Not move or move to memory
-                    Select(self.inst_field_d,
+                    Select(self.inst_field_d ^ (self.inst_field_opcode == INST_MOV),
                         # register source and destination
                         SelectOne(
                             self.inst_field_opa == OPA_PC, AluASelect.pc,
@@ -637,6 +632,7 @@ class Cpu(Module):
         data_path.bus_d_in <<= self.bus_d_in
 
         sequencer.interrupt <<= self.interrupt
+        data_path.interrupt <<= self.interrupt
 
         data_path.l_bus_a_ld <<= sequencer.l_bus_a_ld
         data_path.l_bus_d_ld <<= sequencer.l_bus_d_ld
