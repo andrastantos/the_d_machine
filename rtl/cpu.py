@@ -17,6 +17,55 @@ AddrType = Unsigned(16)
 DataType = Unsigned(16)
 
 
+# ADD:   and_en_n=1 or_en_n=0 rol_en=0 ror_en=0 cout_0=0 cout_1=0
+# XNOR:  and_en_n=1 or_en_n=X rol_en=0 ror_en=0 cout_0=0 cout_1=1 c_in=1
+# XOR:   and_en_n=X or_en_n=0 rol_en=0 ror_en=0 cout_0=1 cout_1=0 c_in=0
+# NOR:   and_en_n=0 or_en_n=X rol_en=0 ror_en=0 cout_0=0 cout_1=1 c_in=1
+# NAND:  and_en_n=X or_en_n=1 rol_en=0 ror_en=0 cout_0=1 cout_1=0 c_in=0
+# MOV_A: and_en_n=1 or_en_n=0 rol_en=0 ror_en=0 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
+# MOV_B: and_en_n=1 or_en_n=0 rol_en=0 ror_en=0 cout_0=1 cout_1=0 c_in=0 a_in=0 b_in=X
+# ROL:   and_en_n=X or_en_n=1 rol_en=1 ror_en=0 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
+# ROR:   and_en_n=X or_en_n=1 rol_en=0 ror_en=1 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
+
+class AluBitSlice(Module):
+    a_prev = Input(logic)
+    a_next = Input(logic)
+    a_in = Input(logic)
+    b_in = Input(logic)
+    add_en_n = Input(logic)
+    or_en_n = Input(logic)
+    inv_a_in = Input(logic)
+    inv_b_in = Input(logic)
+    c_in = Input(logic)
+    rol_en = Input(logic)
+    ror_en = Input(logic)
+
+    cout_0 = Input(logic)
+    cout_1 = Input(logic)
+
+    o_out = Output(logic)
+    c_out = Output(logic)
+
+    def body(self):
+        # generating bit output
+        nand = not_gate(and_gate(self.a_in, self.b_in, self.c_in, self.add_en_n))
+        nor = not_gate(or_gate(self.a_in, self.b_in, self.c_in, self.or_en_n))
+        and1 = and_gate(self.a_in, self.b_in, nand)
+        and2 = and_gate(self.a_in, self.c_in, nand)
+        and3 = and_gate(self.b_in, self.c_in, nand)
+        rol_and = and_gate(self.rol_en, self.a_prev)
+        ror_and = and_gate(self.ror_en, self.a_next)
+        final_or = or_gate(nor, and1, and2, and3, rol_and, ror_and)
+        self.o_out <<= not_gate(final_or)
+
+        # generating carry
+        cand1 = and_gate(self.a_in, self.b_in, self.cout_0)
+        cand2 = and_gate(self.a_in, self.c_in, self.cout_0)
+        cand3 = and_gate(self.b_in, self.c_in, self.cout_0)
+        cor = or_gate(cand1, cand2, cand3, self.cout_1)
+        self.c_out = not_gate(not_gate(cor))
+
+
 
 class ALU(Module):
     a_in = Input(DataType)
