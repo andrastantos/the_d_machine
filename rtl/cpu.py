@@ -544,9 +544,9 @@ class Sequencer(Module):
         )
         raw_condition_match = SelectOne(
             self.inst_field_opcode == INST_EQ, (self.alu_z_out == 1),
-            self.inst_field_opcode == INST_LTU, (self.alu_c_out == 0),
-            self.inst_field_opcode == INST_LTS, (self.alu_s_out != self.alu_v_out),
-            self.inst_field_opcode == INST_LES, (self.alu_s_out != self.alu_v_out) | (self.alu_z_out == 1),
+            self.inst_field_opcode == INST_LTU, (self.alu_c_out == 1),
+            self.inst_field_opcode == INST_LTS, (self.alu_s_out ^ self.alu_v_out),
+            self.inst_field_opcode == INST_LES, (self.alu_s_out ^ self.alu_v_out) | (self.alu_z_out == 1),
         )
         condition_match = raw_condition_match ^ ~self.inst_field_d
 
@@ -646,6 +646,7 @@ class Cpu(Module):
         sequencer.alu_c_out <<= data_path.alu_c_out
         sequencer.alu_z_out <<= data_path.alu_z_out
         sequencer.alu_s_out <<= data_path.alu_s_out
+        sequencer.alu_v_out <<= data_path.alu_v_out
 
         sequencer.inst_field_opcode <<= data_path.inst_field_opcode
         sequencer.inst_field_d <<= data_path.inst_field_d
