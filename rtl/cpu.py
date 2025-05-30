@@ -32,7 +32,7 @@ class AluBitSlice(Module):
     a_next = Input(logic)
     a_in = Input(logic)
     b_in = Input(logic)
-    add_en_n = Input(logic)
+    and_en_n = Input(logic)
     or_en_n = Input(logic)
     inv_a_in = Input(logic)
     inv_b_in = Input(logic)
@@ -48,7 +48,7 @@ class AluBitSlice(Module):
 
     def body(self):
         # generating bit output
-        nand = not_gate(and_gate(self.a_in, self.b_in, self.c_in, self.add_en_n))
+        nand = not_gate(and_gate(self.a_in, self.b_in, self.c_in, self.and_en_n))
         nor = not_gate(or_gate(self.a_in, self.b_in, self.c_in, self.or_en_n))
         and1 = and_gate(self.a_in, self.b_in, nand)
         and2 = and_gate(self.a_in, self.c_in, nand)
@@ -63,7 +63,7 @@ class AluBitSlice(Module):
         cand2 = and_gate(self.a_in, self.c_in, self.cout_0)
         cand3 = and_gate(self.b_in, self.c_in, self.cout_0)
         cor = or_gate(cand1, cand2, cand3, self.cout_1)
-        self.c_out = not_gate(not_gate(cor))
+        self.c_out <<= not_gate(not_gate(cor))
 
 
 
@@ -82,25 +82,57 @@ class Alu(Module):
     v_out = Output(logic)
 
     def body(self):
-        a_in = self.a_in ^ concat(self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in, self.inv_a_in)
-        b_in = self.b_in ^ concat(self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in, self.inv_b_in)
-        full_add = a_in + b_in + self.c_in
-        result = SelectOne(
-            self.cmd_in == AluCmds.alu_add, full_add[15:0],
-            self.cmd_in == AluCmds.alu_nor, (a_in | b_in) ^ 0xffff,
-            self.cmd_in == AluCmds.alu_nand, (a_in & b_in) ^ 0xffff,
-            self.cmd_in == AluCmds.alu_xor, a_in ^ b_in,
-            self.cmd_in == AluCmds.alu_ror, concat(a_in[0], a_in[15:1]),
-            self.cmd_in == AluCmds.alu_rol, concat(a_in[14:0], a_in[15]),
-        )
-        self.o_out <<= result
-        self.c_out <<= full_add[16] ^ (self.inv_a_in | self.inv_b_in)
-        self.z_out <<= result == 0
-        self.s_out <<= result[15]
+        alu_array = []
+        carry_chain = Wire(DataType)
+        data_size = self.a_in.get_num_bits()
+        c_chain = self.c_in
+        for i in range(data_size):
+            bitslice = AluBitSlice()
+            # register a name for this slice by adding it as an attribute
+            #setattr(self, f"bitslice_{i}", bitslice)
+            scope_table = self._impl.netlist.symbol_table[self._impl._true_module]
+            scope_table.add_hard_symbol(bitslice, f"bitslice_{i}")
+            alu_array.append(bitslice)
+            bitslice.a_in <<= self.a_in[i]
+            bitslice.b_in <<= self.b_in[i]
+            #if i == 0:
+            #    bitslice.c_in <<= self.c_in
+            #else:
+            #    bitslice.c_in <<= carry_chain[i-1]
+            bitslice.c_in <<= c_chain
+            bitslice.a_prev <<= self.a_in[(i-1) % data_size]
+            bitslice.a_next <<= self.a_in[(i+1) % data_size]
+            bitslice.inv_a_in <<= self.inv_a_in
+            bitslice.inv_b_in <<= self.inv_b_in
+
+# ADD:   and_en_n=1 or_en_n=0 rol_en=0 ror_en=0 cout_0=0 cout_1=0
+# XOR:   and_en_n=X or_en_n=0 rol_en=0 ror_en=0 cout_0=1 cout_1=0 c_in=0
+# NOR:   and_en_n=0 or_en_n=X rol_en=0 ror_en=0 cout_0=0 cout_1=1 c_in=1
+# NAND:  and_en_n=X or_en_n=1 rol_en=0 ror_en=0 cout_0=1 cout_1=0 c_in=0
+# ROL:   and_en_n=X or_en_n=1 rol_en=1 ror_en=0 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
+# ROR:   and_en_n=X or_en_n=1 rol_en=0 ror_en=1 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
+
+            bitslice.and_en_n <<= (self.cmd_in != AluCmds.alu_nor)
+            bitslice.or_en_n <<= (self.cmd_in != AluCmds.alu_add) & (self.cmd_in != AluCmds.alu_xor)
+            bitslice.rol_en <<= (self.cmd_in == AluCmds.alu_rol)
+            bitslice.ror_en <<= (self.cmd_in == AluCmds.alu_ror)
+            bitslice.cout_0 <<= not_gate((self.cmd_in == AluCmds.alu_add) | (self.cmd_in == AluCmds.alu_nor))
+            bitslice.cout_1 <<= (self.cmd_in == AluCmds.alu_nor)
+
+            self.o_out[i] <<= bitslice.o_out
+            #carry_chain[i] <<= bitslice.c_out
+            c_chain = bitslice.c_out
+            carry_chain[i] <<= c_chain
+
+        del bitslice # clean up the namespace a little
+
+        self.c_out <<= c_chain #carry_chain[15] ^ (self.inv_a_in | self.inv_b_in)
+        self.z_out <<= self.o_out == 0
+        self.s_out <<= self.o_out[15]
         # overflow for now is only valid for a_minus_b (which is what all the predicates use)
         # See https://en.wikipedia.org/wiki/Overflow_flag for details
         minuend_msb = self.a_in[15] #Select(self.inv_b_in, self.b_in[15], self.a_in[15])
-        self.v_out <<= (self.a_in[15] != self.b_in[15]) & (minuend_msb != result[15])
+        self.v_out <<= (self.a_in[15] != self.b_in[15]) & (minuend_msb != self.o_out[15])
 
 
 class DataPath(Module):
