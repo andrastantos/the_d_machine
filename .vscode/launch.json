@@ -11,6 +11,12 @@
             "program": "rtl/tb_cpu.py",
         },
         {
+            "name": "TB_ALU",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "rtl/tb_alu.py",
+        },
+        {
             "name": "ASM",
             "type": "debugpy",
             "request": "launch",

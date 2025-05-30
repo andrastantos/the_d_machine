@@ -67,7 +67,7 @@ class AluBitSlice(Module):
 
 
 
-class ALU(Module):
+class Alu(Module):
     a_in = Input(DataType)
     b_in = Input(DataType)
     cmd_in = Input(EnumNet(AluCmds))
@@ -171,7 +171,7 @@ class DataPath(Module):
         self.inst_field_opb <<= inst[OPB_OFS+OPB_SIZE-1:OPB_OFS]
         self.inst_field_opa <<= inst[OPA_OFS+OPA_SIZE-1:OPA_OFS]
 
-        alu = ALU()
+        alu = Alu()
         alu_result <<= alu.o_out
         self.alu_c_out <<= alu.c_out
         self.alu_z_out <<= alu.z_out
