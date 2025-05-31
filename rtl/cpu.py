@@ -28,8 +28,8 @@ DataType = Unsigned(16)
 # ROR:   and_en_n=X or_en_n=1 rol_en=0 ror_en=1 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
 
 class AluBitSlice(Module):
-    a_prev = Input(logic)
-    a_next = Input(logic)
+    a_prev_n = Input(logic)
+    a_next_n = Input(logic)
     a_in = Input(logic)
     b_in = Input(logic)
     nand_en = Input(logic)
@@ -39,6 +39,7 @@ class AluBitSlice(Module):
     c_in = Input(logic)
     rol_en = Input(logic)
     ror_en = Input(logic)
+    and1_en = Input(logic)
 
     cout_0_n = Input(logic)
     cout_1 = Input(logic)
@@ -50,14 +51,14 @@ class AluBitSlice(Module):
         a = xor_gate(self.a_in, self.inv_a_in)
         b = xor_gate(self.b_in, self.inv_b_in)
         # generating bit output
-        nand = not_gate(and_gate(a, b, self.c_in, self.nand_en))
-        nor = not_gate(or_gate(a, b, self.c_in, self.nor_en_n))
-        and1 = and_gate(a, b, nand)
-        and2 = and_gate(a, self.c_in, nand)
-        and3 = and_gate(b, self.c_in, nand)
-        rol_and = and_gate(self.rol_en, self.a_prev)
-        ror_and = and_gate(self.ror_en, self.a_next)
-        final_or = or_gate(nor, and1, and2, and3, rol_and, ror_and)
+        onand = not_gate(and_gate(a, b, self.c_in, self.nand_en))
+        onor = not_gate(or_gate(a, b, self.c_in, self.nor_en_n))
+        and1 = and_gate(a, b, onand, self.and1_en)
+        and2 = and_gate(a, self.c_in, onand)
+        and3 = and_gate(b, self.c_in, onand)
+        rol_and = and_gate(self.rol_en, self.a_prev_n)
+        ror_and = and_gate(self.ror_en, self.a_next_n)
+        final_or = or_gate(onor, and1, and2, and3, rol_and, ror_and)
         self.o_out <<= not_gate(final_or)
 
         # generating carry
@@ -102,8 +103,8 @@ class Alu(Module):
             #else:
             #    bitslice.c_in <<= carry_chain[i-1]
             bitslice.c_in <<= c_chain
-            bitslice.a_prev <<= self.a_in[(i-1) % data_size]
-            bitslice.a_next <<= self.a_in[(i+1) % data_size]
+            bitslice.a_prev_n <<= not_gate(self.a_in[(i-1) % data_size])
+            bitslice.a_next_n <<= not_gate(self.a_in[(i+1) % data_size])
             bitslice.inv_a_in <<= self.inv_a_in
             bitslice.inv_b_in <<= self.inv_b_in
 
@@ -116,6 +117,7 @@ class Alu(Module):
 
             bitslice.nand_en <<= (self.cmd_in != AluCmds.alu_nor)
             bitslice.nor_en_n <<= (self.cmd_in != AluCmds.alu_add) & (self.cmd_in != AluCmds.alu_xor)
+            bitslice.and1_en <<= (self.cmd_in != AluCmds.alu_rol) & (self.cmd_in != AluCmds.alu_ror)
             bitslice.rol_en <<= (self.cmd_in == AluCmds.alu_rol)
             bitslice.ror_en <<= (self.cmd_in == AluCmds.alu_ror)
             bitslice.cout_0_n <<= (self.cmd_in == AluCmds.alu_add) | (self.cmd_in == AluCmds.alu_nor)
@@ -532,7 +534,7 @@ class Sequencer(Module):
             SelectOne(
                 self.inst_field_opcode == INST_SWAP,   0,
                 self.inst_field_opcode == INST_OR,     0,
-                self.inst_field_opcode == INST_AND,    0,
+                self.inst_field_opcode == INST_AND,    1,
                 self.inst_field_opcode == INST_XOR,    0,
                 self.inst_field_opcode == INST_ADD,    0,
                 self.inst_field_opcode == INST_SUB,    1,

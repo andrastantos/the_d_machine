@@ -96,7 +96,7 @@ class TB(Module):
             e_o = (a & b) & 0xffff
             self.a_in <<= a
             self.b_in <<= b
-            self.c_in <<= 0
+            self.c_in <<= 1
             self.cmd_in <<= AluCmds.alu_nor
             self.inv_a_in <<= 1
             self.inv_b_in <<= 1
