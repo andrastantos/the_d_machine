@@ -32,36 +32,38 @@ class AluBitSlice(Module):
     a_next = Input(logic)
     a_in = Input(logic)
     b_in = Input(logic)
-    and_en_n = Input(logic)
-    or_en_n = Input(logic)
+    nand_en = Input(logic)
+    nor_en_n = Input(logic)
     inv_a_in = Input(logic)
     inv_b_in = Input(logic)
     c_in = Input(logic)
     rol_en = Input(logic)
     ror_en = Input(logic)
 
-    cout_0 = Input(logic)
+    cout_0_n = Input(logic)
     cout_1 = Input(logic)
 
     o_out = Output(logic)
     c_out = Output(logic)
 
     def body(self):
+        a = xor_gate(self.a_in, self.inv_a_in)
+        b = xor_gate(self.b_in, self.inv_b_in)
         # generating bit output
-        nand = not_gate(and_gate(self.a_in, self.b_in, self.c_in, self.and_en_n))
-        nor = not_gate(or_gate(self.a_in, self.b_in, self.c_in, self.or_en_n))
-        and1 = and_gate(self.a_in, self.b_in, nand)
-        and2 = and_gate(self.a_in, self.c_in, nand)
-        and3 = and_gate(self.b_in, self.c_in, nand)
+        nand = not_gate(and_gate(a, b, self.c_in, self.nand_en))
+        nor = not_gate(or_gate(a, b, self.c_in, self.nor_en_n))
+        and1 = and_gate(a, b, nand)
+        and2 = and_gate(a, self.c_in, nand)
+        and3 = and_gate(b, self.c_in, nand)
         rol_and = and_gate(self.rol_en, self.a_prev)
         ror_and = and_gate(self.ror_en, self.a_next)
         final_or = or_gate(nor, and1, and2, and3, rol_and, ror_and)
         self.o_out <<= not_gate(final_or)
 
         # generating carry
-        cand1 = and_gate(self.a_in, self.b_in, self.cout_0)
-        cand2 = and_gate(self.a_in, self.c_in, self.cout_0)
-        cand3 = and_gate(self.b_in, self.c_in, self.cout_0)
+        cand1 = and_gate(a, b, self.cout_0_n)
+        cand2 = and_gate(a, self.c_in, self.cout_0_n)
+        cand3 = and_gate(b, self.c_in, self.cout_0_n)
         cor = or_gate(cand1, cand2, cand3, self.cout_1)
         self.c_out <<= not_gate(not_gate(cor))
 
@@ -112,11 +114,11 @@ class Alu(Module):
 # ROL:   and_en_n=X or_en_n=1 rol_en=1 ror_en=0 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
 # ROR:   and_en_n=X or_en_n=1 rol_en=0 ror_en=1 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
 
-            bitslice.and_en_n <<= (self.cmd_in != AluCmds.alu_nor)
-            bitslice.or_en_n <<= (self.cmd_in != AluCmds.alu_add) & (self.cmd_in != AluCmds.alu_xor)
+            bitslice.nand_en <<= (self.cmd_in != AluCmds.alu_nor)
+            bitslice.nor_en_n <<= (self.cmd_in != AluCmds.alu_add) & (self.cmd_in != AluCmds.alu_xor)
             bitslice.rol_en <<= (self.cmd_in == AluCmds.alu_rol)
             bitslice.ror_en <<= (self.cmd_in == AluCmds.alu_ror)
-            bitslice.cout_0 <<= not_gate((self.cmd_in == AluCmds.alu_add) | (self.cmd_in == AluCmds.alu_nor))
+            bitslice.cout_0_n <<= (self.cmd_in == AluCmds.alu_add) | (self.cmd_in == AluCmds.alu_nor)
             bitslice.cout_1 <<= (self.cmd_in == AluCmds.alu_nor)
 
             self.o_out[i] <<= bitslice.o_out
@@ -126,7 +128,7 @@ class Alu(Module):
 
         del bitslice # clean up the namespace a little
 
-        self.c_out <<= c_chain #carry_chain[15] ^ (self.inv_a_in | self.inv_b_in)
+        self.c_out <<= c_chain ^ (self.inv_a_in | self.inv_b_in)
         self.z_out <<= self.o_out == 0
         self.s_out <<= self.o_out[15]
         # overflow for now is only valid for a_minus_b (which is what all the predicates use)
