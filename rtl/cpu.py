@@ -35,7 +35,9 @@ class AluBitSlice(Module):
     nand_en = Input(logic)
     nor_en_n = Input(logic)
     inv_a_in = Input(logic)
+    inv_a_in_n = Input(logic)
     inv_b_in = Input(logic)
+    inv_b_in_n = Input(logic)
     c_in = Input(logic)
     rol_en = Input(logic)
     ror_en = Input(logic)
@@ -44,12 +46,16 @@ class AluBitSlice(Module):
     cout_0_n = Input(logic)
     cout_1 = Input(logic)
 
+    a_n_out = Output(logic)
     o_out = Output(logic)
     c_out = Output(logic)
 
     def body(self):
-        a = xor_gate(self.a_in, self.inv_a_in)
-        b = xor_gate(self.b_in, self.inv_b_in)
+        a_n = not_gate(self.a_in)
+        b_n = not_gate(self.b_in)
+        self.a_n_out <<= a_n
+        a = or_gate(and_gate(self.inv_a_in, a_n), and_gate(self.inv_a_in_n, self.a_in))
+        b = or_gate(and_gate(self.inv_b_in, b_n), and_gate(self.inv_b_in_n, self.b_in))
         # generating bit output
         onand = not_gate(and_gate(a, b, self.c_in, self.nand_en))
         onor = not_gate(or_gate(a, b, self.c_in, self.nor_en_n))
@@ -85,7 +91,7 @@ class Alu(Module):
     v_out = Output(logic)
 
     def body(self):
-        alu_array = []
+        alu_array: Sequence[AluBitSlice] = []
         carry_chain = Wire(DataType)
         data_size = self.a_in.get_num_bits()
         c_chain = self.c_in
@@ -103,10 +109,10 @@ class Alu(Module):
             #else:
             #    bitslice.c_in <<= carry_chain[i-1]
             bitslice.c_in <<= c_chain
-            bitslice.a_prev_n <<= not_gate(self.a_in[(i-1) % data_size])
-            bitslice.a_next_n <<= not_gate(self.a_in[(i+1) % data_size])
             bitslice.inv_a_in <<= self.inv_a_in
+            bitslice.inv_a_in_n <<= not_gate(self.inv_a_in)
             bitslice.inv_b_in <<= self.inv_b_in
+            bitslice.inv_b_in_n <<= not_gate(self.inv_b_in)
 
 # ADD:   and_en_n=1 or_en_n=0 rol_en=0 ror_en=0 cout_0=0 cout_1=0
 # XOR:   and_en_n=X or_en_n=0 rol_en=0 ror_en=0 cout_0=1 cout_1=0 c_in=0
@@ -127,6 +133,11 @@ class Alu(Module):
             #carry_chain[i] <<= bitslice.c_out
             c_chain = bitslice.c_out
             carry_chain[i] <<= c_chain
+
+        # Now that we have all the slices, we can hook up the ROL/ROR chains
+        for i, bitslice in enumerate(alu_array):
+            bitslice.a_prev_n <<= alu_array[(i-1) % data_size].a_n_out
+            bitslice.a_next_n <<= alu_array[(i+1) % data_size].a_n_out
 
         del bitslice # clean up the namespace a little
 
