@@ -95,6 +95,17 @@ class Alu(Module):
         carry_chain = Wire(DataType)
         data_size = self.a_in.get_num_bits()
         c_chain = self.c_in
+        inv_a_in_n = not_gate(self.inv_a_in)
+        inv_b_in_n = not_gate(self.inv_b_in)
+
+        bitslice_nand_en = (self.cmd_in != AluCmds.alu_nor)
+        bitslice_nor_en_n = (self.cmd_in != AluCmds.alu_add) & (self.cmd_in != AluCmds.alu_xor)
+        bitslice_and1_en = (self.cmd_in != AluCmds.alu_rol) & (self.cmd_in != AluCmds.alu_ror)
+        bitslice_rol_en = (self.cmd_in == AluCmds.alu_rol)
+        bitslice_ror_en = (self.cmd_in == AluCmds.alu_ror)
+        bitslice_cout_0_n = (self.cmd_in == AluCmds.alu_add) | (self.cmd_in == AluCmds.alu_nor)
+        bitslice_cout_1 = (self.cmd_in == AluCmds.alu_nor)
+
         for i in range(data_size):
             bitslice = AluBitSlice()
             # register a name for this slice by adding it as an attribute
@@ -110,9 +121,9 @@ class Alu(Module):
             #    bitslice.c_in <<= carry_chain[i-1]
             bitslice.c_in <<= c_chain
             bitslice.inv_a_in <<= self.inv_a_in
-            bitslice.inv_a_in_n <<= not_gate(self.inv_a_in)
+            bitslice.inv_a_in_n <<= inv_a_in_n
             bitslice.inv_b_in <<= self.inv_b_in
-            bitslice.inv_b_in_n <<= not_gate(self.inv_b_in)
+            bitslice.inv_b_in_n <<= inv_b_in_n
 
 # ADD:   and_en_n=1 or_en_n=0 rol_en=0 ror_en=0 cout_0=0 cout_1=0
 # XOR:   and_en_n=X or_en_n=0 rol_en=0 ror_en=0 cout_0=1 cout_1=0 c_in=0
@@ -121,13 +132,13 @@ class Alu(Module):
 # ROL:   and_en_n=X or_en_n=1 rol_en=1 ror_en=0 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
 # ROR:   and_en_n=X or_en_n=1 rol_en=0 ror_en=1 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
 
-            bitslice.nand_en <<= (self.cmd_in != AluCmds.alu_nor)
-            bitslice.nor_en_n <<= (self.cmd_in != AluCmds.alu_add) & (self.cmd_in != AluCmds.alu_xor)
-            bitslice.and1_en <<= (self.cmd_in != AluCmds.alu_rol) & (self.cmd_in != AluCmds.alu_ror)
-            bitslice.rol_en <<= (self.cmd_in == AluCmds.alu_rol)
-            bitslice.ror_en <<= (self.cmd_in == AluCmds.alu_ror)
-            bitslice.cout_0_n <<= (self.cmd_in == AluCmds.alu_add) | (self.cmd_in == AluCmds.alu_nor)
-            bitslice.cout_1 <<= (self.cmd_in == AluCmds.alu_nor)
+            bitslice.nand_en  <<= bitslice_nand_en
+            bitslice.nor_en_n <<= bitslice_nor_en_n
+            bitslice.and1_en  <<= bitslice_and1_en
+            bitslice.rol_en   <<= bitslice_rol_en
+            bitslice.ror_en   <<= bitslice_ror_en
+            bitslice.cout_0_n <<= bitslice_cout_0_n
+            bitslice.cout_1   <<= bitslice_cout_1
 
             self.o_out[i] <<= bitslice.o_out
             #carry_chain[i] <<= bitslice.c_out
