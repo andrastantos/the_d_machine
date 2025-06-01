@@ -339,6 +339,11 @@ class Sequencer(Module):
         l_intdis = HighLatch()
         l_was_branch = HighLatch()
 
+        inst_is_predicate = self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE
+        inst_is_swap = self.inst_field_opcode == INST_SWAP
+        inst_is_not_swap = ~inst_is_swap
+        inst_field_d_n = ~self.inst_field_d
+
         #phase = Wire(Number(min_val=0,max_val=5))
         phase = Wire(Unsigned(3))
         l_phase = HighLatch()
@@ -354,15 +359,15 @@ class Sequencer(Module):
         # We skip over phase 4 for anything but a SWAP instruction
         l_phase_next.input_port <<= Select(
             phase == 5,
-            (phase + Select((self.inst_field_opcode == INST_SWAP) | (phase != 2), 2, 1))[2:0],
+            (phase + Select(inst_is_swap | (phase != 2), 2, 1))[2:0],
             0
         )
 
         update_mem <<= Select(
-            self.inst_field_opcode == INST_SWAP,
+            inst_is_swap,
             # Not a swap instruction
             Select(
-                self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE,
+                inst_is_predicate,
                 # Not a predicate instruction --> field D determines if we write to memory
                 (is_opb_mem_ref & self.inst_field_d),
                 # predicate instructions never write to memory
@@ -372,12 +377,12 @@ class Sequencer(Module):
             1
         )
         update_reg <<= Select(
-            self.inst_field_opcode == INST_SWAP,
+            inst_is_swap,
             # Not a swap instruction
             Select(
-                self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE,
+                inst_is_predicate,
                 # Not a predicate instruction --> field D determines if we write to registers
-                ~self.inst_field_d,
+                inst_field_d_n,
                 # predicate instructions never write to registers
                 0
             ),
@@ -411,8 +416,8 @@ class Sequencer(Module):
             0,
             1,
             0, # SWAP cycle: in here we put l_bus_d into l_alu_result
-            (self.inst_field_opcode == INST_SWAP),
-            (self.inst_field_opcode != INST_SWAP),
+            inst_is_swap,
+            inst_is_not_swap,
         )
 
         self.l_bus_d_select <<= Select(phase,
@@ -429,7 +434,7 @@ class Sequencer(Module):
             0,
             0,
             1, # Capture result in l_alu_result for SWAP instructions
-            (self.inst_field_opcode != INST_SWAP), # Capture result in l_alu_result in non-SWAP instructions only
+            inst_is_not_swap, # Capture result in l_alu_result in non-SWAP instructions only
             0,
         )
 
@@ -598,7 +603,7 @@ class Sequencer(Module):
                 self.inst_field_opcode == INST_ISTAT,
                 # Not ISTAT
                 Select(
-                    (self.inst_field_opcode == INST_MOV) & ~self.inst_field_d,
+                    (self.inst_field_opcode == INST_MOV) & inst_field_d_n,
                     # Not move or move to memory
                     Select(self.inst_field_d ^ (self.inst_field_opcode == INST_MOV),
                         # register source and destination
@@ -631,7 +636,7 @@ class Sequencer(Module):
             AluBSelect.immed,   # compute opb offset
             AluBSelect.zero,   # skip-cycle for SWAP only
             Select(
-                (self.inst_field_opcode == INST_SWAP) | ((self.inst_field_opcode == INST_MOV) & (self.inst_field_d)),
+                inst_is_swap | ((self.inst_field_opcode == INST_MOV) & (self.inst_field_d)),
                 Select( # execute instruction
                     is_opb_mem_ref,
                     AluBSelect.l_bus_a,
@@ -658,7 +663,7 @@ class Sequencer(Module):
         )
         condition_match = raw_condition_match ^ ~self.inst_field_d
 
-        l_skip.input_port <<= (phase == 4) & (self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE) & condition_match
+        l_skip.input_port <<= (phase == 4) & inst_is_predicate & condition_match
 
         l_intdis_prev.latch_port <<= Select(phase,
             0,
@@ -679,7 +684,7 @@ class Sequencer(Module):
             1,
             0
         )
-        int_dis_next <<= (l_intdis_prev.output_port ^ (self.inst_field_opcode == INST_SWAP) & ~self.inst_field_d) | self.rst
+        int_dis_next <<= (l_intdis_prev.output_port ^ inst_is_swap & inst_field_d_n) | self.rst
         l_intdis.input_port <<= int_dis_next
         self.intdis <<= l_intdis.output_port
 
