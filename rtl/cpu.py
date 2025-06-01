@@ -13,8 +13,10 @@ the logic to transistors is a significant undertaking, right now this is NOT the
 that is the basis of the physical implementation.
 """
 
-AddrType = Unsigned(16)
-DataType = Unsigned(16)
+AddrWidth = 16
+DataWidth = 16
+AddrType = Unsigned(AddrWidth)
+DataType = Unsigned(DataWidth)
 
 
 # ADD:   and_en_n=1 or_en_n=0 rol_en=0 ror_en=0 cout_0=0 cout_1=0
@@ -179,7 +181,9 @@ class DataPath(Module):
     l_r1_ld = Input(logic)
     l_inst_ld = Input(logic)
 
-    l_bus_d_select = Input(EnumNet(LBusDSelect))
+    l_bus_d_load_bus_d = Input(logic)
+    l_bus_d_load_alu_result = Input(logic)
+    l_bus_d_load_l_alu_result = Input(logic)
     alu_a_select = Input(EnumNet(AluASelect))
     alu_b_select = Input(EnumNet(AluBSelect))
     alu_cmd = Input(EnumNet(AluCmds))
@@ -252,11 +256,14 @@ class DataPath(Module):
         l_inst.latch_port <<= self.l_inst_ld | self.rst
         l_inst.reset_port <<= 0
 
+        def repeat(signal, count):
+            return concat(*([signal]*count))
+
         l_bus_a.input_port <<= alu_result
-        l_bus_d.input_port <<= SelectOne(
-            self.l_bus_d_select == LBusDSelect.bus_d, self.bus_d_in,
-            self.l_bus_d_select == LBusDSelect.alu_result, alu_result,
-            self.l_bus_d_select == LBusDSelect.l_alu_result, l_alu_result.output_port
+        l_bus_d.input_port <<= or_gate(
+            and_gate(repeat(self.l_bus_d_load_bus_d, DataWidth), self.bus_d_in),
+            and_gate(repeat(self.l_bus_d_load_alu_result, DataWidth), alu_result),
+            and_gate(repeat(self.l_bus_d_load_l_alu_result, DataWidth), l_alu_result.output_port)
         )
         l_alu_result.input_port <<= alu_result
         l_pc.input_port <<= l_alu_result.output_port
@@ -265,11 +272,49 @@ class DataPath(Module):
         l_r1.input_port <<= l_alu_result.output_port
 
         serve_interrupt = ((self.intdis == 0) & self.interrupt)
+        serve_interrupt_n = not_gate(serve_interrupt)
+        
 
-        l_inst.input_port <<= SelectFirst(
-            serve_interrupt | self.rst, (Select(self.rst, INST_SWAP, INST_MOV) << OPCODE_OFS) | (DEST_REG << D_OFS) | (OPB_MEM_IMMED << OPB_OFS) | (OPA_PC << OPA_OFS) | ((~self.rst) << IMMED_OFS),
-            default_port = self.bus_d_in
-        )
+        # We're creating the input mux for the instruction latch. This is highly optimized because the only alternatives to bus_d
+        # are constants. So, we examine them bit-by-bit and generate the most optimal logic. We are also careful about priorities:
+        # if both reset and interrupt are asserted, reset takes priority.
+        assert (INST_SWAP ^ INST_MOV).bit_count() == 1, "INST_MOV and INST_SWAP must differ in one bit only. Review instruction codes!"
+        rst_inst = (INST_MOV  << OPCODE_OFS) | (DEST_REG << D_OFS) | (OPB_MEM_IMMED << OPB_OFS) | (OPA_PC << OPA_OFS) | (0 << IMMED_OFS)
+        int_inst = (INST_SWAP << OPCODE_OFS) | (DEST_REG << D_OFS) | (OPB_MEM_IMMED << OPB_OFS) | (OPA_PC << OPA_OFS) | (1 << IMMED_OFS)
+        int_or_reset = or_gate(serve_interrupt, self.rst)
+        rst_n = not_gate(self.rst)
+        int_or_reset_n = not_gate(int_or_reset)
+        l_inst_input = Wire(DataType)
+        # TODO: not sure what the iteration order is: is it MSB or LSB first? At any rate, since the instructions at the moment are symmetrical,
+        #       it doesn't matter.
+        for idx, (l_inst_bit, bus_d_in_bit) in enumerate(zip(l_inst_input, self.bus_d_in)):
+            rst_inst_bit = (rst_inst >> idx) & 1
+            int_inst_bit = (int_inst >> idx) & 1
+            if rst_inst_bit == int_inst_bit:
+                if rst_inst_bit == 0:
+                    # The alternate bit is 0, we can get away with an AND gate
+                    l_inst_bit <<= and_gate(int_or_reset_n, bus_d_in_bit)
+                else:
+                    # Alternate bit is 1, this is an OR gate
+                    l_inst_bit <<= or_gate(int_or_reset, bus_d_in_bit)
+            else:
+                # Reset and interrupts are different, we'll have to be more considerate
+                if int_inst_bit == 1:
+                    int_or_inst = or_gate(serve_interrupt, bus_d_in_bit)
+                else:
+                    int_or_inst = and_gate(serve_interrupt_n, bus_d_in_bit)
+                if rst_inst_bit == 1:
+                    l_inst_bit <<= or_gate(self.rst, int_or_inst)
+                else:
+                    l_inst_bit <<= and_gate(rst_n, int_or_inst)
+        del rst_inst_bit, int_inst_bit, l_inst_bit, bus_d_in_bit, int_or_inst
+        l_inst.input_port <<= l_inst_input
+
+        # This is the readable implementation:
+        #l_inst.input_port <<= SelectFirst(
+        #    serve_interrupt | self.rst, (Select(self.rst, INST_SWAP, INST_MOV) << OPCODE_OFS) | (DEST_REG << D_OFS) | (OPB_MEM_IMMED << OPB_OFS) | (OPA_PC << OPA_OFS) | ((~self.rst) << IMMED_OFS),
+        #    default_port = self.bus_d_in
+        #)
 
         alu_a_in <<= SelectOne(
             self.alu_a_select == AluASelect.pc, l_pc.output_port,
@@ -310,7 +355,9 @@ class Sequencer(Module):
     l_r1_ld =         Output(logic)
     l_inst_ld =       Output(logic)
 
-    l_bus_d_select = Output(EnumNet(LBusDSelect))
+    l_bus_d_load_bus_d =        Output(logic)
+    l_bus_d_load_alu_result =   Output(logic)
+    l_bus_d_load_l_alu_result = Output(logic)
     alu_a_select =   Output(EnumNet(AluASelect))
     alu_b_select =   Output(EnumNet(AluBSelect))
     alu_cmd =        Output(EnumNet(AluCmds))
@@ -408,13 +455,29 @@ class Sequencer(Module):
             inst_is_not_swap,
         )
 
-        self.l_bus_d_select <<= Select(phase,
-            LBusDSelect.bus_d, # Instruction fetch, capture it for write-back
-            LBusDSelect.bus_d, # Doesn't matter, latch is disabled
-            LBusDSelect.bus_d, # Data fetch, capture it for write-back
-            LBusDSelect.bus_d, # SWAP cycle: Doesn't matter, latch is disabled
-            LBusDSelect.alu_result, # Capture ALU result
-            LBusDSelect.l_alu_result # Capture ALU result for result write-back
+        self.l_bus_d_load_bus_d <<= Select(phase,
+            1, # Instruction fetch, capture it for write-back
+            0, # Doesn't matter, latch is disabled
+            1, # Data fetch, capture it for write-back
+            0, # SWAP cycle: Doesn't matter, latch is disabled
+            0, # Capture ALU result
+            0  # Capture ALU result for result write-back
+        )
+        self.l_bus_d_load_alu_result <<= Select(phase,
+            0, # Instruction fetch, capture it for write-back
+            0, # Doesn't matter, latch is disabled
+            0, # Data fetch, capture it for write-back
+            0, # SWAP cycle: Doesn't matter, latch is disabled
+            1, # Capture ALU result
+            0  # Capture ALU result for result write-back
+        )
+        self.l_bus_d_load_l_alu_result <<= Select(phase,
+            0, # Instruction fetch, capture it for write-back
+            0, # Doesn't matter, latch is disabled
+            0, # Data fetch, capture it for write-back
+            0, # SWAP cycle: Doesn't matter, latch is disabled
+            0, # Capture ALU result
+            1  # Capture ALU result for result write-back
         )
 
         self.l_alu_result_ld <<= Select(phase,
@@ -733,7 +796,9 @@ class Cpu(Module):
         data_path.l_r1_ld <<= sequencer.l_r1_ld
         data_path.l_inst_ld <<= sequencer.l_inst_ld
 
-        data_path.l_bus_d_select <<= sequencer.l_bus_d_select
+        data_path.l_bus_d_load_bus_d <<= sequencer.l_bus_d_load_bus_d
+        data_path.l_bus_d_load_alu_result <<= sequencer.l_bus_d_load_alu_result
+        data_path.l_bus_d_load_l_alu_result <<= sequencer.l_bus_d_load_l_alu_result
         data_path.alu_a_select <<= sequencer.alu_a_select
         data_path.alu_b_select <<= sequencer.alu_b_select
         data_path.alu_cmd <<= sequencer.alu_cmd
