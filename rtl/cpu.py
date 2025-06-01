@@ -340,8 +340,10 @@ class Sequencer(Module):
         l_was_branch = HighLatch()
 
         inst_is_predicate = self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE
+        inst_is_not_predicate = ~inst_is_predicate
         inst_is_swap = self.inst_field_opcode == INST_SWAP
         inst_is_not_swap = ~inst_is_swap
+        inst_is_mov = self.inst_field_opcode == INST_MOV
         inst_field_d_n = ~self.inst_field_d
 
         #phase = Wire(Number(min_val=0,max_val=5))
@@ -355,7 +357,7 @@ class Sequencer(Module):
         l_phase_next.reset_value_port <<= 2
         phase <<= l_phase.output_port
 
-        is_opb_mem_ref = self.inst_field_opb[2] != OPB_CLASS_IMM
+        opb_is_mem_ref = self.inst_field_opb[2] != OPB_CLASS_IMM
         # We skip over phase 4 for anything but a SWAP instruction
         l_phase_next.input_port <<= Select(
             phase == 5,
@@ -363,40 +365,26 @@ class Sequencer(Module):
             0
         )
 
-        update_mem <<= Select(
+        update_mem <<= or_gate(
+            # Swap always updates mem
             inst_is_swap,
-            # Not a swap instruction
-            Select(
-                inst_is_predicate,
-                # Not a predicate instruction --> field D determines if we write to memory
-                (is_opb_mem_ref & self.inst_field_d),
-                # predicate instructions never write to memory
-                0
-            ),
-            # swap always writes to memory
-            1
+            # Not a predicate instruction --> field D determines if we write to memory
+            and_gate(inst_is_not_predicate, opb_is_mem_ref, self.inst_field_d)
         )
-        update_reg <<= Select(
+        update_reg <<= or_gate(
+            # Swap always updates reg
             inst_is_swap,
-            # Not a swap instruction
-            Select(
-                inst_is_predicate,
-                # Not a predicate instruction --> field D determines if we write to registers
-                inst_field_d_n,
-                # predicate instructions never write to registers
-                0
-            ),
-            # swap always writes to registers
-            1
+            # Not a predicate instruction --> field D determines if we write to registers
+            and_gate(inst_is_not_predicate, inst_field_d_n)
         )
 
         self.bus_cmd <<= Select(self.rst,
             Select(phase,
                 BusCmds.read,
                 BusCmds.write,
-                Select(is_opb_mem_ref, BusCmds.idle, BusCmds.read),
+                Select(opb_is_mem_ref, BusCmds.idle, BusCmds.read),
                 BusCmds.idle, # SWAP-only cycle
-                Select(is_opb_mem_ref & ~update_mem, BusCmds.idle, BusCmds.write),
+                Select(opb_is_mem_ref & ~update_mem, BusCmds.idle, BusCmds.write),
                 Select(update_mem, BusCmds.idle, BusCmds.write),
             ),
             BusCmds.idle
@@ -603,9 +591,9 @@ class Sequencer(Module):
                 self.inst_field_opcode == INST_ISTAT,
                 # Not ISTAT
                 Select(
-                    (self.inst_field_opcode == INST_MOV) & inst_field_d_n,
+                    inst_is_mov & inst_field_d_n,
                     # Not move or move to memory
-                    Select(self.inst_field_d ^ (self.inst_field_opcode == INST_MOV),
+                    Select(self.inst_field_d ^ inst_is_mov,
                         # register source and destination
                         SelectOne(
                             self.inst_field_opa == OPA_PC, AluASelect.pc,
@@ -636,9 +624,9 @@ class Sequencer(Module):
             AluBSelect.immed,   # compute opb offset
             AluBSelect.zero,   # skip-cycle for SWAP only
             Select(
-                inst_is_swap | ((self.inst_field_opcode == INST_MOV) & (self.inst_field_d)),
+                inst_is_swap | (inst_is_mov & self.inst_field_d),
                 Select( # execute instruction
-                    is_opb_mem_ref,
+                    opb_is_mem_ref,
                     AluBSelect.l_bus_a,
                     AluBSelect.l_bus_d,
                 ),
