@@ -1,0 +1,63 @@
+[*]
+[*] GTKWave Analyzer v3.3.121 (w)1999-2024 BSI
+[*] Sat May 31 01:02:44 2025
+[*]
+[dumpfile] "/home/tantos/tcomp/tb_alu.vcd"
+[dumpfile_mtime] "Sat May 31 01:02:19 2025"
+[dumpfile_size] 212619
+[savefile] "/home/tantos/tcomp/tb_alu.gtkw"
+[timestart] 0
+[size] 1920 977
+[pos] -1 -1
+*-3.600000 60 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TB.
+[treeopen] TB.dut.
+[sst_width] 278
+[signals_width] 273
+[sst_expanded] 1
+[sst_vpaned_height] 322
+@22
+TB.dut.a_in[15:0]
+TB.dut.b_in[15:0]
+@28
+TB.cmd_in
+@22
+TB.o_out[15:0]
+@28
+TB.dut.bitslice_0.c_out
+TB.dut.bitslice_0.cout_1
+@c00200
+-bitslice_0
+@28
+TB.dut.bitslice_0.a_in
+TB.dut.bitslice_0.b_in
+TB.dut.bitslice_0.c_in
+TB.dut.bitslice_0.cand1
+TB.dut.bitslice_0.cand2
+TB.dut.bitslice_0.cand3
+TB.dut.bitslice_0.inv_a_in
+TB.dut.bitslice_0.inv_b_in
+TB.dut.bitslice_0.o_out
+TB.dut.bitslice_0.nor_1
+TB.dut.bitslice_0.nand_1
+TB.dut.bitslice_0.a
+TB.dut.bitslice_0.b
+@1401200
+-bitslice_0
+@800201
+-bitslice_15
+@29
+TB.dut.bitslice_15.a_in
+TB.dut.bitslice_15.b_in
+TB.dut.bitslice_15.o_out
+TB.dut.bitslice_15.a
+TB.dut.bitslice_15.b
+TB.dut.bitslice_15.c_in
+TB.dut.bitslice_15.nand_1
+TB.dut.bitslice_15.and1
+TB.dut.bitslice_15.and2
+TB.dut.bitslice_15.and3
+@1000201
+-bitslice_15
+[pattern_trace] 1
+[pattern_trace] 0
