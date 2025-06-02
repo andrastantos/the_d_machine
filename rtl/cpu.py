@@ -79,12 +79,17 @@ class AluBitSlice(Module):
 
 
 class Alu(Module):
-    a_in = Input(DataType)
-    b_in = Input(DataType)
-    cmd_in = Input(EnumNet(AluCmds))
-    inv_a_in = Input(logic)
-    inv_b_in = Input(logic)
-    c_in = Input(logic)
+    a_in      = Input(DataType)
+    b_in      = Input(DataType)
+    cmd_add   = Input(logic) # 1-hot encoded command code signals
+    cmd_nor   = Input(logic) # ...
+    cmd_nand  = Input(logic) # ...
+    cmd_xor   = Input(logic) # ...
+    cmd_ror   = Input(logic) # ...
+    cmd_rol   = Input(logic) # ...
+    inv_a_in  = Input(logic)
+    inv_b_in  = Input(logic)
+    c_in      = Input(logic)
 
     o_out = Output(DataType)
     c_out = Output(logic)
@@ -100,13 +105,13 @@ class Alu(Module):
         inv_a_in_n = not_gate(self.inv_a_in)
         inv_b_in_n = not_gate(self.inv_b_in)
 
-        bitslice_nand_en = (self.cmd_in != AluCmds.alu_nor)
-        bitslice_nor_en_n = (self.cmd_in != AluCmds.alu_add) & (self.cmd_in != AluCmds.alu_xor)
-        bitslice_and1_en = (self.cmd_in != AluCmds.alu_rol) & (self.cmd_in != AluCmds.alu_ror)
-        bitslice_rol_en = (self.cmd_in == AluCmds.alu_rol)
-        bitslice_ror_en = (self.cmd_in == AluCmds.alu_ror)
-        bitslice_cout_0_n = (self.cmd_in == AluCmds.alu_add) | (self.cmd_in == AluCmds.alu_nor)
-        bitslice_cout_1 = (self.cmd_in == AluCmds.alu_nor)
+        bitslice_nand_en = not_gate(self.cmd_nor)
+        bitslice_nor_en_n = and_gate(not_gate(self.cmd_add), not_gate(self.cmd_xor))
+        bitslice_and1_en = and_gate(not_gate(self.cmd_rol) & not_gate(self.cmd_ror))
+        bitslice_rol_en = self.cmd_rol
+        bitslice_ror_en = self.cmd_ror
+        bitslice_cout_0_n = or_gate(self.cmd_add, self.cmd_nor)
+        bitslice_cout_1 = self.cmd_nor
 
         for i in range(data_size):
             bitslice = AluBitSlice()
@@ -186,7 +191,14 @@ class DataPath(Module):
     l_bus_d_load_l_alu_result = Input(logic)
     alu_a_select = Input(EnumNet(AluASelect))
     alu_b_select = Input(EnumNet(AluBSelect))
-    alu_cmd = Input(EnumNet(AluCmds))
+
+    alu_cmd_add   = Input(logic) # 1-hot encoded command code signals
+    alu_cmd_nor   = Input(logic) # ...
+    alu_cmd_nand  = Input(logic) # ...
+    alu_cmd_xor   = Input(logic) # ...
+    alu_cmd_ror   = Input(logic) # ...
+    alu_cmd_rol   = Input(logic) # ...
+
     alu_inv_a_in = Input(logic)
     alu_inv_b_in = Input(logic)
 
@@ -241,7 +253,12 @@ class DataPath(Module):
         self.alu_v_out <<= alu.v_out
         alu.a_in <<= alu_a_in
         alu.b_in <<= alu_b_in
-        alu.cmd_in <<= self.alu_cmd
+        alu.cmd_add <<= self.alu_cmd_add
+        alu.cmd_nor <<= self.alu_cmd_nor
+        alu.cmd_nand <<= self.alu_cmd_nand
+        alu.cmd_xor <<= self.alu_cmd_xor
+        alu.cmd_ror <<= self.alu_cmd_ror
+        alu.cmd_rol <<= self.alu_cmd_rol
         alu.inv_a_in <<= self.alu_inv_a_in
         alu.inv_b_in <<= self.alu_inv_b_in
         alu.c_in <<= self.alu_c_in
@@ -273,7 +290,7 @@ class DataPath(Module):
 
         serve_interrupt = ((self.intdis == 0) & self.interrupt)
         serve_interrupt_n = not_gate(serve_interrupt)
-        
+
 
         # We're creating the input mux for the instruction latch. This is highly optimized because the only alternatives to bus_d
         # are constants. So, we examine them bit-by-bit and generate the most optimal logic. We are also careful about priorities:
@@ -360,7 +377,12 @@ class Sequencer(Module):
     l_bus_d_load_l_alu_result = Output(logic)
     alu_a_select =   Output(EnumNet(AluASelect))
     alu_b_select =   Output(EnumNet(AluBSelect))
-    alu_cmd =        Output(EnumNet(AluCmds))
+    alu_cmd_add  =   Output(logic) # 1-hot encoded command code signals
+    alu_cmd_nor  =   Output(logic) # ...
+    alu_cmd_nand =   Output(logic) # ...
+    alu_cmd_xor  =   Output(logic) # ...
+    alu_cmd_ror  =   Output(logic) # ...
+    alu_cmd_rol  =   Output(logic) # ...
     alu_inv_a =      Output(logic)
     alu_inv_b =      Output(logic)
 
@@ -526,32 +548,163 @@ class Sequencer(Module):
 
         # Let's figure out what the ALU should do and on what for each cycle
 
-        self.alu_cmd <<= Select(phase,
-            AluCmds.alu_add,   # increment PC or do nothing (i.e. adding 0)
-            AluCmds.alu_add,   # compute opb offset
-            AluCmds.alu_add,   # compute opb offset
-            AluCmds.alu_add,   # skip-cycle for SWAP only
+        self.alu_cmd_add   <<= Select(phase,
+            1,   # increment PC or do nothing (i.e. adding 0)
+            1,   # compute opb offset
+            1,   # compute opb offset
+            1,   # skip-cycle for SWAP only
             SelectOne(
-                self.inst_field_opcode == INST_SWAP,   AluCmds.alu_add,
-                self.inst_field_opcode == INST_OR,     AluCmds.alu_nand,
-                self.inst_field_opcode == INST_AND,    AluCmds.alu_nor,
-                self.inst_field_opcode == INST_XOR,    AluCmds.alu_xor,
-                self.inst_field_opcode == INST_ADD,    AluCmds.alu_add,
-                self.inst_field_opcode == INST_SUB,    AluCmds.alu_add,
-                self.inst_field_opcode == INST_ISUB,   AluCmds.alu_add,
+                self.inst_field_opcode == INST_SWAP,   1,
+                self.inst_field_opcode == INST_OR,     0,
+                self.inst_field_opcode == INST_AND,    0,
+                self.inst_field_opcode == INST_XOR,    0,
+                self.inst_field_opcode == INST_ADD,    1,
+                self.inst_field_opcode == INST_SUB,    1,
+                self.inst_field_opcode == INST_ISUB,   1,
 
-                self.inst_field_opcode == INST_ROR,    AluCmds.alu_ror,
-                self.inst_field_opcode == INST_ROL,    AluCmds.alu_rol,
-                self.inst_field_opcode == INST_MOV,    AluCmds.alu_add,
-                self.inst_field_opcode == INST_ISTAT,  AluCmds.alu_add,
+                self.inst_field_opcode == INST_ROR,    0,
+                self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_MOV,    1,
+                self.inst_field_opcode == INST_ISTAT,  1,
 
-                self.inst_field_opcode == INST_EQ,     AluCmds.alu_add,
-                self.inst_field_opcode == INST_LTU,    AluCmds.alu_add,
-                self.inst_field_opcode == INST_LTS,    AluCmds.alu_add,
-                self.inst_field_opcode == INST_LES,    AluCmds.alu_add,
+                self.inst_field_opcode == INST_EQ,     1,
+                self.inst_field_opcode == INST_LTU,    1,
+                self.inst_field_opcode == INST_LTS,    1,
+                self.inst_field_opcode == INST_LES,    1,
             ),
-            AluCmds.alu_add,   # increment PC or do nothing (i.e. adding 0)
+            1,   # increment PC or do nothing (i.e. adding 0)
         )
+        self.alu_cmd_nor   <<= Select(phase,
+            0,   # increment PC or do nothing (i.e. adding 0)
+            0,   # compute opb offset
+            0,   # compute opb offset
+            0,   # skip-cycle for SWAP only
+            SelectOne(
+                self.inst_field_opcode == INST_SWAP,   0,
+                self.inst_field_opcode == INST_OR,     0,
+                self.inst_field_opcode == INST_AND,    1,
+                self.inst_field_opcode == INST_XOR,    0,
+                self.inst_field_opcode == INST_ADD,    0,
+                self.inst_field_opcode == INST_SUB,    0,
+                self.inst_field_opcode == INST_ISUB,   0,
+
+                self.inst_field_opcode == INST_ROR,    0,
+                self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_MOV,    0,
+                self.inst_field_opcode == INST_ISTAT,  0,
+
+                self.inst_field_opcode == INST_EQ,     0,
+                self.inst_field_opcode == INST_LTU,    0,
+                self.inst_field_opcode == INST_LTS,    0,
+                self.inst_field_opcode == INST_LES,    0,
+            ),
+            0,   # increment PC or do nothing (i.e. adding 0)
+        )
+        self.alu_cmd_nand  <<= Select(phase,
+            0,   # increment PC or do nothing (i.e. adding 0)
+            0,   # compute opb offset
+            0,   # compute opb offset
+            0,   # skip-cycle for SWAP only
+            SelectOne(
+                self.inst_field_opcode == INST_SWAP,   0,
+                self.inst_field_opcode == INST_OR,     1,
+                self.inst_field_opcode == INST_AND,    0,
+                self.inst_field_opcode == INST_XOR,    0,
+                self.inst_field_opcode == INST_ADD,    0,
+                self.inst_field_opcode == INST_SUB,    0,
+                self.inst_field_opcode == INST_ISUB,   0,
+
+                self.inst_field_opcode == INST_ROR,    0,
+                self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_MOV,    0,
+                self.inst_field_opcode == INST_ISTAT,  0,
+
+                self.inst_field_opcode == INST_EQ,     0,
+                self.inst_field_opcode == INST_LTU,    0,
+                self.inst_field_opcode == INST_LTS,    0,
+                self.inst_field_opcode == INST_LES,    0,
+            ),
+            0,   # increment PC or do nothing (i.e. adding 0)
+        )
+        self.alu_cmd_xor   <<= Select(phase,
+            0,   # increment PC or do nothing (i.e. adding 0)
+            0,   # compute opb offset
+            0,   # compute opb offset
+            0,   # skip-cycle for SWAP only
+            SelectOne(
+                self.inst_field_opcode == INST_SWAP,   0,
+                self.inst_field_opcode == INST_OR,     0,
+                self.inst_field_opcode == INST_AND,    0,
+                self.inst_field_opcode == INST_XOR,    1,
+                self.inst_field_opcode == INST_ADD,    0,
+                self.inst_field_opcode == INST_SUB,    0,
+                self.inst_field_opcode == INST_ISUB,   0,
+
+                self.inst_field_opcode == INST_ROR,    0,
+                self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_MOV,    0,
+                self.inst_field_opcode == INST_ISTAT,  0,
+
+                self.inst_field_opcode == INST_EQ,     0,
+                self.inst_field_opcode == INST_LTU,    0,
+                self.inst_field_opcode == INST_LTS,    0,
+                self.inst_field_opcode == INST_LES,    0,
+            ),
+            0,   # increment PC or do nothing (i.e. adding 0)
+        )
+        self.alu_cmd_ror   <<= Select(phase,
+            0,   # increment PC or do nothing (i.e. adding 0)
+            0,   # compute opb offset
+            0,   # compute opb offset
+            0,   # skip-cycle for SWAP only
+            SelectOne(
+                self.inst_field_opcode == INST_SWAP,   0,
+                self.inst_field_opcode == INST_OR,     0,
+                self.inst_field_opcode == INST_AND,    0,
+                self.inst_field_opcode == INST_XOR,    0,
+                self.inst_field_opcode == INST_ADD,    0,
+                self.inst_field_opcode == INST_SUB,    0,
+                self.inst_field_opcode == INST_ISUB,   0,
+
+                self.inst_field_opcode == INST_ROR,    1,
+                self.inst_field_opcode == INST_ROL,    0,
+                self.inst_field_opcode == INST_MOV,    0,
+                self.inst_field_opcode == INST_ISTAT,  0,
+
+                self.inst_field_opcode == INST_EQ,     0,
+                self.inst_field_opcode == INST_LTU,    0,
+                self.inst_field_opcode == INST_LTS,    0,
+                self.inst_field_opcode == INST_LES,    0,
+            ),
+            0,   # increment PC or do nothing (i.e. adding 0)
+        )
+        self.alu_cmd_rol   <<= Select(phase,
+            0,   # increment PC or do nothing (i.e. adding 0)
+            0,   # compute opb offset
+            0,   # compute opb offset
+            0,   # skip-cycle for SWAP only
+            SelectOne(
+                self.inst_field_opcode == INST_SWAP,   0,
+                self.inst_field_opcode == INST_OR,     0,
+                self.inst_field_opcode == INST_AND,    0,
+                self.inst_field_opcode == INST_XOR,    0,
+                self.inst_field_opcode == INST_ADD,    0,
+                self.inst_field_opcode == INST_SUB,    0,
+                self.inst_field_opcode == INST_ISUB,   0,
+
+                self.inst_field_opcode == INST_ROR,    0,
+                self.inst_field_opcode == INST_ROL,    1,
+                self.inst_field_opcode == INST_MOV,    0,
+                self.inst_field_opcode == INST_ISTAT,  0,
+
+                self.inst_field_opcode == INST_EQ,     0,
+                self.inst_field_opcode == INST_LTU,    0,
+                self.inst_field_opcode == INST_LTS,    0,
+                self.inst_field_opcode == INST_LES,    0,
+            ),
+            0,   # increment PC or do nothing (i.e. adding 0)
+        )
+
         self.alu_inv_a <<= Select(phase,
             0,   # increment PC or do nothing (i.e. adding 0)
             0,   # compute opb offset
@@ -739,27 +892,6 @@ class Sequencer(Module):
         l_intdis.input_port <<= int_dis_next
         self.intdis <<= l_intdis.output_port
 
-        """
-        Swap is very difficult! We might need an extra latch to implement it.
-        Either that, or a whole bus to get any register into L_BUS_D in phase 3, which might be slightly less expensive.
-        The ALU is occupied in PHASE 1 and 2 with offset computation (and it needs to do it twice because L_BUS_A is a latch
-        that can only capture the data in phase 3 (so it needs to be ready by the beginning of phase 3) and needs to remain
-        stable throughout phase 3)
-        The ALU is also occupied in PHASE 3 with the actual operation (in case of a swap, it doesn't do much, just passes the data through)
-        The ALU updates the PC in PHASE 0, so that's not available, but maybe in PHASE 4, it can be used?
-
-        So, really the only thing we can do is
-        -----------------------------------------
-        phase 3: ALU passes register data **directly to BUS_D**, so the write outputs that, instead of L_BUS_D
-        phase 4: ALU passes L_BUS_D **directly** into the destination register (actually it can pass through L_ALU_RESULT, if needed)
-
-        This is ugly to say the least, but the only true other option is to add an extra 16-bit latch somewhere. For
-        instance, have an L_BUS_D2 register, which captures L_BUS_D so it can be overwritten through the ALU in phase 3 while
-        loaded into L_ALU_RESULT in the same phase (such that it's available in phase 4 for write-back). This BTW also adds an extra mux
-        as L_ALU_RESULT now have two sources.
-
-        ... I really have to think through if SWAP is all that necessary ...
-        """
 
 class Cpu(Module):
     clk = ClkPort()
@@ -801,7 +933,14 @@ class Cpu(Module):
         data_path.l_bus_d_load_l_alu_result <<= sequencer.l_bus_d_load_l_alu_result
         data_path.alu_a_select <<= sequencer.alu_a_select
         data_path.alu_b_select <<= sequencer.alu_b_select
-        data_path.alu_cmd <<= sequencer.alu_cmd
+
+        data_path.alu_cmd_add   <<= sequencer.alu_cmd_add
+        data_path.alu_cmd_nor   <<= sequencer.alu_cmd_nor
+        data_path.alu_cmd_nand  <<= sequencer.alu_cmd_nand
+        data_path.alu_cmd_xor   <<= sequencer.alu_cmd_xor
+        data_path.alu_cmd_ror   <<= sequencer.alu_cmd_ror
+        data_path.alu_cmd_rol   <<= sequencer.alu_cmd_rol
+
         data_path.alu_inv_a_in <<= sequencer.alu_inv_a
         data_path.alu_inv_b_in <<= sequencer.alu_inv_b
 
