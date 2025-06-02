@@ -555,162 +555,18 @@ class Sequencer(Module):
 
         # Let's figure out what the ALU should do and on what for each cycle
 
-        self.alu_cmd_add   <<= Select(phase,
-            1,   # increment PC or do nothing (i.e. adding 0)
-            1,   # compute opb offset
-            1,   # compute opb offset
-            1,   # skip-cycle for SWAP only
-            SelectOne(
-                self.inst_field_opcode == INST_SWAP,   1,
-                self.inst_field_opcode == INST_OR,     0,
-                self.inst_field_opcode == INST_AND,    0,
-                self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_ADD,    1,
-                self.inst_field_opcode == INST_SUB,    1,
-                self.inst_field_opcode == INST_ISUB,   1,
-
-                self.inst_field_opcode == INST_ROR,    0,
-                self.inst_field_opcode == INST_ROL,    0,
-                self.inst_field_opcode == INST_MOV,    1,
-                self.inst_field_opcode == INST_ISTAT,  1,
-
-                self.inst_field_opcode == INST_EQ,     1,
-                self.inst_field_opcode == INST_LTU,    1,
-                self.inst_field_opcode == INST_LTS,    1,
-                self.inst_field_opcode == INST_LES,    1,
-            ),
-            1,   # increment PC or do nothing (i.e. adding 0)
-        )
-        self.alu_cmd_nor   <<= Select(phase,
-            0,   # increment PC or do nothing (i.e. adding 0)
-            0,   # compute opb offset
-            0,   # compute opb offset
-            0,   # skip-cycle for SWAP only
-            SelectOne(
-                self.inst_field_opcode == INST_SWAP,   0,
-                self.inst_field_opcode == INST_OR,     0,
-                self.inst_field_opcode == INST_AND,    1,
-                self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_ADD,    0,
-                self.inst_field_opcode == INST_SUB,    0,
-                self.inst_field_opcode == INST_ISUB,   0,
-
-                self.inst_field_opcode == INST_ROR,    0,
-                self.inst_field_opcode == INST_ROL,    0,
-                self.inst_field_opcode == INST_MOV,    0,
-                self.inst_field_opcode == INST_ISTAT,  0,
-
-                self.inst_field_opcode == INST_EQ,     0,
-                self.inst_field_opcode == INST_LTU,    0,
-                self.inst_field_opcode == INST_LTS,    0,
-                self.inst_field_opcode == INST_LES,    0,
-            ),
-            0,   # increment PC or do nothing (i.e. adding 0)
-        )
-        self.alu_cmd_nand  <<= Select(phase,
-            0,   # increment PC or do nothing (i.e. adding 0)
-            0,   # compute opb offset
-            0,   # compute opb offset
-            0,   # skip-cycle for SWAP only
-            SelectOne(
-                self.inst_field_opcode == INST_SWAP,   0,
-                self.inst_field_opcode == INST_OR,     1,
-                self.inst_field_opcode == INST_AND,    0,
-                self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_ADD,    0,
-                self.inst_field_opcode == INST_SUB,    0,
-                self.inst_field_opcode == INST_ISUB,   0,
-
-                self.inst_field_opcode == INST_ROR,    0,
-                self.inst_field_opcode == INST_ROL,    0,
-                self.inst_field_opcode == INST_MOV,    0,
-                self.inst_field_opcode == INST_ISTAT,  0,
-
-                self.inst_field_opcode == INST_EQ,     0,
-                self.inst_field_opcode == INST_LTU,    0,
-                self.inst_field_opcode == INST_LTS,    0,
-                self.inst_field_opcode == INST_LES,    0,
-            ),
-            0,   # increment PC or do nothing (i.e. adding 0)
-        )
-        self.alu_cmd_xor   <<= Select(phase,
-            0,   # increment PC or do nothing (i.e. adding 0)
-            0,   # compute opb offset
-            0,   # compute opb offset
-            0,   # skip-cycle for SWAP only
-            SelectOne(
-                self.inst_field_opcode == INST_SWAP,   0,
-                self.inst_field_opcode == INST_OR,     0,
-                self.inst_field_opcode == INST_AND,    0,
-                self.inst_field_opcode == INST_XOR,    1,
-                self.inst_field_opcode == INST_ADD,    0,
-                self.inst_field_opcode == INST_SUB,    0,
-                self.inst_field_opcode == INST_ISUB,   0,
-
-                self.inst_field_opcode == INST_ROR,    0,
-                self.inst_field_opcode == INST_ROL,    0,
-                self.inst_field_opcode == INST_MOV,    0,
-                self.inst_field_opcode == INST_ISTAT,  0,
-
-                self.inst_field_opcode == INST_EQ,     0,
-                self.inst_field_opcode == INST_LTU,    0,
-                self.inst_field_opcode == INST_LTS,    0,
-                self.inst_field_opcode == INST_LES,    0,
-            ),
-            0,   # increment PC or do nothing (i.e. adding 0)
-        )
-        self.alu_cmd_ror   <<= Select(phase,
-            0,   # increment PC or do nothing (i.e. adding 0)
-            0,   # compute opb offset
-            0,   # compute opb offset
-            0,   # skip-cycle for SWAP only
-            SelectOne(
-                self.inst_field_opcode == INST_SWAP,   0,
-                self.inst_field_opcode == INST_OR,     0,
-                self.inst_field_opcode == INST_AND,    0,
-                self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_ADD,    0,
-                self.inst_field_opcode == INST_SUB,    0,
-                self.inst_field_opcode == INST_ISUB,   0,
-
-                self.inst_field_opcode == INST_ROR,    1,
-                self.inst_field_opcode == INST_ROL,    0,
-                self.inst_field_opcode == INST_MOV,    0,
-                self.inst_field_opcode == INST_ISTAT,  0,
-
-                self.inst_field_opcode == INST_EQ,     0,
-                self.inst_field_opcode == INST_LTU,    0,
-                self.inst_field_opcode == INST_LTS,    0,
-                self.inst_field_opcode == INST_LES,    0,
-            ),
-            0,   # increment PC or do nothing (i.e. adding 0)
-        )
-        self.alu_cmd_rol   <<= Select(phase,
-            0,   # increment PC or do nothing (i.e. adding 0)
-            0,   # compute opb offset
-            0,   # compute opb offset
-            0,   # skip-cycle for SWAP only
-            SelectOne(
-                self.inst_field_opcode == INST_SWAP,   0,
-                self.inst_field_opcode == INST_OR,     0,
-                self.inst_field_opcode == INST_AND,    0,
-                self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_ADD,    0,
-                self.inst_field_opcode == INST_SUB,    0,
-                self.inst_field_opcode == INST_ISUB,   0,
-
-                self.inst_field_opcode == INST_ROR,    0,
-                self.inst_field_opcode == INST_ROL,    1,
-                self.inst_field_opcode == INST_MOV,    0,
-                self.inst_field_opcode == INST_ISTAT,  0,
-
-                self.inst_field_opcode == INST_EQ,     0,
-                self.inst_field_opcode == INST_LTU,    0,
-                self.inst_field_opcode == INST_LTS,    0,
-                self.inst_field_opcode == INST_LES,    0,
-            ),
-            0,   # increment PC or do nothing (i.e. adding 0)
-        )
+        self.alu_cmd_nor   <<= and_gate(phase4, self.inst_field_opcode == INST_AND)
+        self.alu_cmd_nand  <<= and_gate(phase4, self.inst_field_opcode == INST_OR)
+        self.alu_cmd_xor   <<= and_gate(phase4, self.inst_field_opcode == INST_XOR)
+        self.alu_cmd_ror   <<= and_gate(phase4, self.inst_field_opcode == INST_ROR)
+        self.alu_cmd_rol   <<= and_gate(phase4, self.inst_field_opcode == INST_ROL)
+        self.alu_cmd_add   <<= not_gate(or_gate(
+            self.alu_cmd_nor,
+            self.alu_cmd_nand,
+            self.alu_cmd_xor,
+            self.alu_cmd_ror,
+            self.alu_cmd_rol,
+        ))
 
         self.alu_inv_a <<= Select(phase,
             0,   # increment PC or do nothing (i.e. adding 0)
