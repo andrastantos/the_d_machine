@@ -288,14 +288,14 @@ class DataPath(Module):
         l_r0.input_port <<= l_alu_result.output_port
         l_r1.input_port <<= l_alu_result.output_port
 
-        serve_interrupt = ((self.intdis == 0) & self.interrupt)
+        serve_interrupt = and_gate(not_gate(self.intdis), self.interrupt)
         serve_interrupt_n = not_gate(serve_interrupt)
 
 
         # We're creating the input mux for the instruction latch. This is highly optimized because the only alternatives to bus_d
         # are constants. So, we examine them bit-by-bit and generate the most optimal logic. We are also careful about priorities:
         # if both reset and interrupt are asserted, reset takes priority.
-        assert (INST_SWAP ^ INST_MOV).bit_count() == 1, "INST_MOV and INST_SWAP must differ in one bit only. Review instruction codes!"
+        assert (INST_SWAP ^ INST_MOV).bit_count() == 1, "INST_MOV and INST_SWAP should differ in one bit only. Review instruction codes!"
         rst_inst = (INST_MOV  << OPCODE_OFS) | (DEST_REG << D_OFS) | (OPB_MEM_IMMED << OPB_OFS) | (OPA_PC << OPA_OFS) | (0 << IMMED_OFS)
         int_inst = (INST_SWAP << OPCODE_OFS) | (DEST_REG << D_OFS) | (OPB_MEM_IMMED << OPB_OFS) | (OPA_PC << OPA_OFS) | (1 << IMMED_OFS)
         int_or_reset = or_gate(serve_interrupt, self.rst)
@@ -433,6 +433,13 @@ class Sequencer(Module):
             (phase + Select(inst_is_swap | (phase != 2), 2, 1))[2:0],
             0
         )
+        phase0 = phase == 0
+        phase1 = phase == 1
+        phase2 = phase == 2
+        phase3 = phase == 3
+        phase4 = phase == 4
+        phase5 = phase == 5
+
 
         update_mem <<= or_gate(
             # Swap always updates mem
@@ -522,7 +529,7 @@ class Sequencer(Module):
 
         is_branch = update_reg & (self.inst_field_opa == OPA_PC)
         l_was_branch.input_port <<= is_branch
-        l_was_branch.latch_port <<= phase == 5
+        l_was_branch.latch_port <<= phase5
 
         self.l_pc_ld <<= Select(phase,
             0,
