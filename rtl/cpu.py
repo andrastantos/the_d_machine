@@ -553,13 +553,28 @@ class Sequencer(Module):
         self.l_r0_ld <<= ld_target & (self.inst_field_opa == OPA_R0)
         self.l_r1_ld <<= ld_target & (self.inst_field_opa == OPA_R1)
 
-        # Let's figure out what the ALU should do and on what for each cycle
+        inst_is_INST_SWAP  = self.inst_field_opcode == INST_SWAP
+        inst_is_INST_OR    = self.inst_field_opcode == INST_OR
+        inst_is_INST_AND   = self.inst_field_opcode == INST_AND
+        inst_is_INST_XOR   = self.inst_field_opcode == INST_XOR
+        inst_is_INST_ADD   = self.inst_field_opcode == INST_ADD
+        inst_is_INST_SUB   = self.inst_field_opcode == INST_SUB
+        inst_is_INST_ISUB  = self.inst_field_opcode == INST_ISUB
+        inst_is_INST_ROR   = self.inst_field_opcode == INST_ROR
+        inst_is_INST_ROL   = self.inst_field_opcode == INST_ROL
+        inst_is_INST_MOV   = self.inst_field_opcode == INST_MOV
+        inst_is_INST_ISTAT = self.inst_field_opcode == INST_ISTAT
+        inst_is_INST_EQ    = self.inst_field_opcode == INST_EQ
+        inst_is_INST_LTU   = self.inst_field_opcode == INST_LTU
+        inst_is_INST_LTS   = self.inst_field_opcode == INST_LTS
+        inst_is_INST_LES   = self.inst_field_opcode == INST_LES
 
-        self.alu_cmd_nor   <<= and_gate(phase4, self.inst_field_opcode == INST_AND)
-        self.alu_cmd_nand  <<= and_gate(phase4, self.inst_field_opcode == INST_OR)
-        self.alu_cmd_xor   <<= and_gate(phase4, self.inst_field_opcode == INST_XOR)
-        self.alu_cmd_ror   <<= and_gate(phase4, self.inst_field_opcode == INST_ROR)
-        self.alu_cmd_rol   <<= and_gate(phase4, self.inst_field_opcode == INST_ROL)
+        # Let's figure out what the ALU should do and on what for each cycle
+        self.alu_cmd_nor   <<= and_gate(phase4, inst_is_INST_AND)
+        self.alu_cmd_nand  <<= and_gate(phase4, inst_is_INST_OR)
+        self.alu_cmd_xor   <<= and_gate(phase4, inst_is_INST_XOR)
+        self.alu_cmd_ror   <<= and_gate(phase4, inst_is_INST_ROR)
+        self.alu_cmd_rol   <<= and_gate(phase4, inst_is_INST_ROL)
         self.alu_cmd_add   <<= not_gate(or_gate(
             self.alu_cmd_nor,
             self.alu_cmd_nand,
@@ -568,84 +583,28 @@ class Sequencer(Module):
             self.alu_cmd_rol,
         ))
 
-        self.alu_inv_a <<= Select(phase,
-            0,   # increment PC or do nothing (i.e. adding 0)
-            0,   # compute opb offset
-            0,   # compute opb offset
-            0,   # skip-cycle for SWAP only
-            SelectOne(
-                self.inst_field_opcode == INST_SWAP,   0,
-                self.inst_field_opcode == INST_OR,     1,
-                self.inst_field_opcode == INST_AND,    1,
-                self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_ADD,    0,
-                self.inst_field_opcode == INST_SUB,    0,
-                self.inst_field_opcode == INST_ISUB,   1,
-
-                self.inst_field_opcode == INST_ROR,    0,
-                self.inst_field_opcode == INST_ROL,    0,
-                self.inst_field_opcode == INST_MOV,    0,
-                self.inst_field_opcode == INST_ISTAT,  0,
-
-                self.inst_field_opcode == INST_EQ,     0,
-                self.inst_field_opcode == INST_LTU,    0,
-                self.inst_field_opcode == INST_LTS,    0,
-                self.inst_field_opcode == INST_LES,    0,
-            ),
-            0,   # increment PC or do nothing (i.e. adding 0)
+        self.alu_inv_a <<= and_gate(phase4, or_gate(
+            inst_is_INST_OR,
+            inst_is_INST_AND,
+            inst_is_INST_ISUB,
+        ))
+        self.alu_inv_b <<= and_gate(phase4, or_gate(
+            inst_is_INST_OR,
+            inst_is_INST_AND,
+            inst_is_INST_SUB,
+            inst_is_predicate
+        ))
+        self.alu_c_in <<= or_gate(
+            and_gate(phase0, ~l_was_branch.output_port),
+            and_gate(phase4, or_gate(
+                inst_is_INST_AND,
+                inst_is_INST_SUB,
+                inst_is_INST_ISUB,
+                inst_is_predicate
+            )),
+            and_gate(phase5, ~is_branch)
         )
-        self.alu_inv_b <<= Select(phase,
-            0,   # increment PC or do nothing (i.e. adding 0)
-            0,   # compute opb offset
-            0,   # compute opb offset
-            0,   # skip-cycle for SWAP only
-            SelectOne(
-                self.inst_field_opcode == INST_SWAP,   0,
-                self.inst_field_opcode == INST_OR,     1,
-                self.inst_field_opcode == INST_AND,    1,
-                self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_ADD,    0,
-                self.inst_field_opcode == INST_SUB,    1,
-                self.inst_field_opcode == INST_ISUB,   0,
 
-                self.inst_field_opcode == INST_ROR,    0,
-                self.inst_field_opcode == INST_ROL,    0,
-                self.inst_field_opcode == INST_MOV,    0,
-                self.inst_field_opcode == INST_ISTAT,  0,
-
-                self.inst_field_opcode == INST_EQ,     1,
-                self.inst_field_opcode == INST_LTU,    1,
-                self.inst_field_opcode == INST_LTS,    1,
-                self.inst_field_opcode == INST_LES,    1,
-            ),
-            0,   # increment PC or do nothing (i.e. adding 0)
-        )
-        self.alu_c_in <<= Select(phase,
-            ~l_was_branch.output_port,   # increment PC or do nothing (i.e. adding 0)
-            0,   # compute opb offset
-            0,   # compute opb offset
-            0,   # skip-cycle for SWAP only
-            SelectOne(
-                self.inst_field_opcode == INST_SWAP,   0,
-                self.inst_field_opcode == INST_OR,     0,
-                self.inst_field_opcode == INST_AND,    1,
-                self.inst_field_opcode == INST_XOR,    0,
-                self.inst_field_opcode == INST_ADD,    0,
-                self.inst_field_opcode == INST_SUB,    1,
-                self.inst_field_opcode == INST_ISUB,   1,
-
-                self.inst_field_opcode == INST_ROR,    0,
-                self.inst_field_opcode == INST_ROL,    0,
-                self.inst_field_opcode == INST_MOV,    0,
-                self.inst_field_opcode == INST_ISTAT,  0,
-
-                self.inst_field_opcode == INST_EQ,     1,
-                self.inst_field_opcode == INST_LTU,    1,
-                self.inst_field_opcode == INST_LTS,    1,
-                self.inst_field_opcode == INST_LES,    1,
-            ),
-            ~is_branch,   # increment PC or do nothing (i.e. adding 0)
-        )
         opb_base = SelectOne(
             self.inst_field_opb == OPB_IMMED_PC,      AluASelect.pc,
             self.inst_field_opb == OPB_IMMED_SP,      AluASelect.sp,
