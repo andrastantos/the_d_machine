@@ -575,37 +575,15 @@ class Sequencer(Module):
             0,
         )
 
-        self.l_inst_ld <<= Select(phase,
-            1,
-            0,
-            0,
-            0,
-            0,
-            0,
-        )
+        self.l_inst_ld <<= phase0
 
         is_branch = update_reg & (self.inst_field_opa == OPA_PC)
         l_was_branch.input_port <<= is_branch
         l_was_branch.latch_port <<= phase5
 
-        self.l_pc_ld <<= Select(phase,
-            0,
-            1,
-            0,
-            0,
-            0,
-            is_branch,
-        )
+        self.l_pc_ld <<= or_gate(phase2, and_gate(phase5, is_branch))
 
-        ld_target = Select(phase,
-            0,
-            0,
-            0,
-            0,
-            0,
-            update_reg
-        )
-
+        ld_target = and_gate(phase5, update_reg)
         self.l_sp_ld <<= ld_target & (self.inst_field_opa == OPA_SP)
         self.l_r0_ld <<= ld_target & (self.inst_field_opa == OPA_R0)
         self.l_r1_ld <<= ld_target & (self.inst_field_opa == OPA_R1)
@@ -722,22 +700,9 @@ class Sequencer(Module):
         alu_b_is_ref_for_exec = not_gate(alu_b_is_zero_for_exec)
         alu_b_is_mem_ref_for_exec = and_gate(alu_b_is_ref_for_exec, opb_is_mem_ref)
         alu_b_is_imm_ref_for_exec = and_gate(alu_b_is_ref_for_exec, opb_is_imm_ref)
-        self.alu_b_select_immed <<= Select(phase,
-            0,
-            1,
-            1,
-            0,
-            0,
-            0,
-        )
-        self.alu_b_select_one <<= Select(phase,
-            l_skip.output_port,
-            0,
-            0,
-            0,
-            0,
-            l_skip.output_port,
-        )
+
+        self.alu_b_select_immed <<= or_gate(phase1, phase2)
+        self.alu_b_select_one <<= and_gate(l_skip.output_port, or_gate(phase0, phase5))
         self.alu_b_select_l_bus_d <<= and_gate(phase4, alu_b_is_mem_ref_for_exec)
         self.alu_b_select_l_bus_a <<= and_gate(phase4, alu_b_is_imm_ref_for_exec)
 
@@ -752,25 +717,11 @@ class Sequencer(Module):
         l_skip.latch_port <<= or_gate(phase1, phase4) # clear in phase 1, set, if needed in phase4
         l_skip.input_port <<= phase4 & inst_is_predicate & condition_match
 
-        l_intdis_prev.latch_port <<= Select(phase,
-            0,
-            1,
-            0,
-            0,
-            0,
-            0
-        )
+        l_intdis_prev.latch_port <<= phase1
         int_dis_next = Wire(logic)
 
         l_intdis_prev.input_port <<= l_intdis.output_port
-        l_intdis.latch_port <<= Select(phase,
-            0,
-            0,
-            0,
-            1,
-            1,
-            0
-        )
+        l_intdis.latch_port <<= or_gate(phase3, phase4)
         int_dis_next <<= (l_intdis_prev.output_port ^ inst_is_INST_SWAP & inst_field_d_n) | self.rst
         l_intdis.input_port <<= int_dis_next
         self.intdis <<= l_intdis.output_port
