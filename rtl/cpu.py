@@ -29,6 +29,9 @@ DataType = Unsigned(DataWidth)
 # ROL:   and_en_n=X or_en_n=1 rol_en=1 ror_en=0 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
 # ROR:   and_en_n=X or_en_n=1 rol_en=0 ror_en=1 cout_0=1 cout_1=0 c_in=0 a_in=X b_in=0
 
+def repeat(signal, count):
+    return concat(*([signal]*count))
+
 class AluBitSlice(Module):
     a_prev_n = Input(logic)
     a_next_n = Input(logic)
@@ -285,9 +288,6 @@ class DataPath(Module):
         l_inst.latch_port <<= self.l_inst_ld | self.rst
         l_inst.reset_port <<= 0
 
-        def repeat(signal, count):
-            return concat(*([signal]*count))
-
         l_bus_a.input_port <<= alu_result
         l_bus_d.input_port <<= or_gate(
             and_gate(repeat(self.l_bus_d_load_bus_d, DataWidth), self.bus_d_in),
@@ -435,9 +435,27 @@ class Sequencer(Module):
 
         inst_is_predicate = self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE
         inst_is_not_predicate = ~inst_is_predicate
-        inst_is_swap = self.inst_field_opcode == INST_SWAP
-        inst_is_not_swap = ~inst_is_swap
-        inst_is_mov = self.inst_field_opcode == INST_MOV
+        inst_is_unary = self.inst_field_opcode[3:2] == INST_GROUP_UNARY
+        inst_is_not_unary = ~inst_is_unary
+
+        inst_is_INST_SWAP  = self.inst_field_opcode == INST_SWAP
+        inst_is_not_INST_SWAP = ~inst_is_INST_SWAP
+        inst_is_INST_OR    = self.inst_field_opcode == INST_OR
+        inst_is_INST_AND   = self.inst_field_opcode == INST_AND
+        inst_is_INST_XOR   = self.inst_field_opcode == INST_XOR
+        inst_is_INST_ADD   = self.inst_field_opcode == INST_ADD
+        inst_is_INST_SUB   = self.inst_field_opcode == INST_SUB
+        inst_is_INST_ISUB  = self.inst_field_opcode == INST_ISUB
+        inst_is_INST_ROR   = self.inst_field_opcode == INST_ROR
+        inst_is_INST_ROL   = self.inst_field_opcode == INST_ROL
+        inst_is_INST_MOV   = self.inst_field_opcode == INST_MOV
+        inst_is_not_INST_MOV   = ~inst_is_INST_MOV
+        inst_is_INST_ISTAT = self.inst_field_opcode == INST_ISTAT
+        inst_is_INST_EQ    = self.inst_field_opcode == INST_EQ
+        inst_is_INST_LTU   = self.inst_field_opcode == INST_LTU
+        inst_is_INST_LTS   = self.inst_field_opcode == INST_LTS
+        inst_is_INST_LES   = self.inst_field_opcode == INST_LES
+
         inst_field_d_n = ~self.inst_field_d
 
         #phase = Wire(Number(min_val=0,max_val=5))
@@ -455,7 +473,7 @@ class Sequencer(Module):
         # We skip over phase 4 for anything but a SWAP instruction
         l_phase_next.input_port <<= Select(
             phase == 5,
-            (phase + Select(inst_is_swap | (phase != 2), 2, 1))[2:0],
+            (phase + Select(inst_is_INST_SWAP | (phase != 2), 2, 1))[2:0],
             0
         )
         phase0 = phase == 0
@@ -468,13 +486,13 @@ class Sequencer(Module):
 
         update_mem <<= or_gate(
             # Swap always updates mem
-            inst_is_swap,
+            inst_is_INST_SWAP,
             # Not a predicate instruction --> field D determines if we write to memory
             and_gate(inst_is_not_predicate, opb_is_mem_ref, self.inst_field_d)
         )
         update_reg <<= or_gate(
             # Swap always updates reg
-            inst_is_swap,
+            inst_is_INST_SWAP,
             # Not a predicate instruction --> field D determines if we write to registers
             and_gate(inst_is_not_predicate, inst_field_d_n)
         )
@@ -485,7 +503,7 @@ class Sequencer(Module):
                 1,
                 0,
                 0, # SWAP-only cycle
-                and_gate(opb_is_mem_ref, ~update_mem),
+                and_gate(opb_is_mem_ref, not_gate(update_mem)),
                 update_mem,
             ),
             0
@@ -517,8 +535,8 @@ class Sequencer(Module):
             0,
             1,
             0, # SWAP cycle: in here we put l_bus_d into l_alu_result
-            inst_is_swap,
-            inst_is_not_swap,
+            inst_is_INST_SWAP,
+            inst_is_not_INST_SWAP,
         )
 
         self.l_bus_d_load_bus_d <<= Select(phase,
@@ -551,7 +569,7 @@ class Sequencer(Module):
             0,
             0,
             1, # Capture result in l_alu_result for SWAP instructions
-            inst_is_not_swap, # Capture result in l_alu_result in non-SWAP instructions only
+            inst_is_not_INST_SWAP, # Capture result in l_alu_result in non-SWAP instructions only
             0,
         )
 
@@ -590,22 +608,6 @@ class Sequencer(Module):
         self.l_r0_ld <<= ld_target & (self.inst_field_opa == OPA_R0)
         self.l_r1_ld <<= ld_target & (self.inst_field_opa == OPA_R1)
 
-        inst_is_INST_SWAP  = self.inst_field_opcode == INST_SWAP
-        inst_is_INST_OR    = self.inst_field_opcode == INST_OR
-        inst_is_INST_AND   = self.inst_field_opcode == INST_AND
-        inst_is_INST_XOR   = self.inst_field_opcode == INST_XOR
-        inst_is_INST_ADD   = self.inst_field_opcode == INST_ADD
-        inst_is_INST_SUB   = self.inst_field_opcode == INST_SUB
-        inst_is_INST_ISUB  = self.inst_field_opcode == INST_ISUB
-        inst_is_INST_ROR   = self.inst_field_opcode == INST_ROR
-        inst_is_INST_ROL   = self.inst_field_opcode == INST_ROL
-        inst_is_INST_MOV   = self.inst_field_opcode == INST_MOV
-        inst_is_INST_ISTAT = self.inst_field_opcode == INST_ISTAT
-        inst_is_INST_EQ    = self.inst_field_opcode == INST_EQ
-        inst_is_INST_LTU   = self.inst_field_opcode == INST_LTU
-        inst_is_INST_LTS   = self.inst_field_opcode == INST_LTS
-        inst_is_INST_LES   = self.inst_field_opcode == INST_LES
-
         # Let's figure out what the ALU should do and on what for each cycle
         self.alu_cmd_nor   <<= and_gate(phase4, inst_is_INST_AND)
         self.alu_cmd_nand  <<= and_gate(phase4, inst_is_INST_OR)
@@ -642,40 +644,48 @@ class Sequencer(Module):
             and_gate(phase5, ~is_branch)
         )
 
+        inst_field_opb_base = self.inst_field_opb[OPB_BASE_SIZE+OPB_BASE_OFS-1:OPB_BASE_OFS]
         opb_base = SelectOne(
-            self.inst_field_opb == OPB_IMMED_PC,      AluASelect.pc,
-            self.inst_field_opb == OPB_IMMED_SP,      AluASelect.sp,
-            self.inst_field_opb == OPB_IMMED_R0,      AluASelect.r0,
-            self.inst_field_opb == OPB_IMMED,         AluASelect.zero,
-            self.inst_field_opb == OPB_MEM_IMMED_PC,  AluASelect.pc,
-            self.inst_field_opb == OPB_MEM_IMMED_SP,  AluASelect.sp,
-            self.inst_field_opb == OPB_MEM_IMMED_R0,  AluASelect.r0,
-            self.inst_field_opb == OPB_MEM_IMMED,     AluASelect.zero,
+            inst_field_opb_base == (OPB_IMMED_PC & OPB_BASE_MASK),      AluASelect.pc,
+            inst_field_opb_base == (OPB_IMMED_SP & OPB_BASE_MASK),      AluASelect.sp,
+            inst_field_opb_base == (OPB_IMMED_R0 & OPB_BASE_MASK),      AluASelect.r0,
+            inst_field_opb_base == (OPB_IMMED    & OPB_BASE_MASK),      AluASelect.zero,
+        )
+        opa_reg = SelectOne(
+            self.inst_field_opa == OPA_PC, AluASelect.pc,
+            self.inst_field_opa == OPA_SP, AluASelect.sp,
+            self.inst_field_opa == OPA_R0, AluASelect.r0,
+            self.inst_field_opa == OPA_R1, AluASelect.r1,
+        )
+        move_to_reg = and_gate(inst_is_INST_MOV, inst_field_d_n)
+        move_to_reg_n = not_gate(move_to_reg)
+        dst_is_memory = and_gate(move_to_reg_n, self.inst_field_d, inst_is_not_INST_MOV)
+        dst_is_memory_n = not_gate(dst_is_memory)
+        opa_select_b = or_gate(
+            and_gate(repeat(inst_is_not_unary, 3), opa_reg),
+            and_gate(repeat(inst_is_unary, 3), 
+                or_gate(
+                    and_gate(repeat(inst_is_INST_ISTAT, 3), AluASelect.int_stat),
+                    and_gate(repeat(move_to_reg,3), AluASelect.zero),
+                    and_gate(repeat(dst_is_memory,3), AluASelect.l_bus_d),
+                    and_gate(repeat(dst_is_memory_n,3), opa_reg)
+                )
+            )
         )
         opa_select = Select(
-            self.inst_field_opcode[3:2] == INST_GROUP_UNARY,
+            inst_is_unary,
             # Binary and predicate group
-            SelectOne(
-                self.inst_field_opa == OPA_PC, AluASelect.pc,
-                self.inst_field_opa == OPA_SP, AluASelect.sp,
-                self.inst_field_opa == OPA_R0, AluASelect.r0,
-                self.inst_field_opa == OPA_R1, AluASelect.r1,
-            ),
+            opa_reg,
             # Unary group select operand based on 'D' bit
             Select(
-                self.inst_field_opcode == INST_ISTAT,
+                inst_is_INST_ISTAT,
                 # Not ISTAT
                 Select(
-                    inst_is_mov & inst_field_d_n,
+                    inst_is_INST_MOV & inst_field_d_n,
                     # Not move or move to memory
-                    Select(self.inst_field_d ^ inst_is_mov,
+                    Select(and_gate(self.inst_field_d, inst_is_not_INST_MOV),
                         # register source and destination
-                        SelectOne(
-                            self.inst_field_opa == OPA_PC, AluASelect.pc,
-                            self.inst_field_opa == OPA_SP, AluASelect.sp,
-                            self.inst_field_opa == OPA_R0, AluASelect.r0,
-                            self.inst_field_opa == OPA_R1, AluASelect.r1,
-                        ),
+                        opa_reg,
                         AluASelect.l_bus_d
                     ),
                     # Move to register
@@ -710,7 +720,7 @@ class Sequencer(Module):
             AluBSelect.immed,   # compute opb offset
             AluBSelect.zero,   # skip-cycle for SWAP only
             Select(
-                inst_is_swap | (inst_is_mov & self.inst_field_d),
+                inst_is_INST_SWAP | (inst_is_INST_MOV & self.inst_field_d),
                 Select( # execute instruction
                     opb_is_mem_ref,
                     AluBSelect.l_bus_a,
@@ -764,7 +774,7 @@ class Sequencer(Module):
             1,
             0
         )
-        int_dis_next <<= (l_intdis_prev.output_port ^ inst_is_swap & inst_field_d_n) | self.rst
+        int_dis_next <<= (l_intdis_prev.output_port ^ inst_is_INST_SWAP & inst_field_d_n) | self.rst
         l_intdis.input_port <<= int_dis_next
         self.intdis <<= l_intdis.output_port
 
