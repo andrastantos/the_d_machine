@@ -9,7 +9,12 @@ from cpu import *
 class TB(Module):
     a_in = Output(DataType)
     b_in = Output(DataType)
-    cmd_in = Output(EnumNet(AluCmds))
+    cmd_add = Output(logic)
+    cmd_nor = Output(logic)
+    cmd_nand = Output(logic)
+    cmd_xor = Output(logic)
+    cmd_ror = Output(logic)
+    cmd_rol = Output(logic)
     inv_a_in = Output(logic)
     inv_b_in = Output(logic)
     c_in = Output(logic)
@@ -26,7 +31,12 @@ class TB(Module):
         dut.a_in <<= self.a_in
         dut.b_in <<= self.b_in
         dut.c_in <<= self.c_in
-        dut.cmd_in <<= self.cmd_in
+        dut.cmd_add  <<= self.cmd_add
+        dut.cmd_nor  <<= self.cmd_nor
+        dut.cmd_nand <<= self.cmd_nand
+        dut.cmd_xor  <<= self.cmd_xor
+        dut.cmd_ror  <<= self.cmd_ror
+        dut.cmd_rol  <<= self.cmd_rol
         dut.inv_a_in <<= self.inv_a_in
         dut.inv_b_in <<= self.inv_b_in
 
@@ -46,7 +56,12 @@ class TB(Module):
             self.a_in <<= a
             self.b_in <<= b
             self.c_in <<= 0
-            self.cmd_in <<= AluCmds.alu_add
+            self.cmd_add  <<= 1
+            self.cmd_nor  <<= 0
+            self.cmd_nand <<= 0
+            self.cmd_xor  <<= 0
+            self.cmd_ror  <<= 0
+            self.cmd_rol  <<= 0
             self.inv_a_in <<= 0
             self.inv_b_in <<= 0
             yield 4
@@ -64,7 +79,12 @@ class TB(Module):
             self.a_in <<= a
             self.b_in <<= b
             self.c_in <<= 1
-            self.cmd_in <<= AluCmds.alu_add
+            self.cmd_add  <<= 1
+            self.cmd_nor  <<= 0
+            self.cmd_nand <<= 0
+            self.cmd_xor  <<= 0
+            self.cmd_ror  <<= 0
+            self.cmd_rol  <<= 0
             self.inv_a_in <<= 0
             self.inv_b_in <<= 1
             yield 4
@@ -82,7 +102,12 @@ class TB(Module):
             self.a_in <<= a
             self.b_in <<= b
             self.c_in <<= 1
-            self.cmd_in <<= AluCmds.alu_add
+            self.cmd_add  <<= 1
+            self.cmd_nor  <<= 0
+            self.cmd_nand <<= 0
+            self.cmd_xor  <<= 0
+            self.cmd_ror  <<= 0
+            self.cmd_rol  <<= 0
             self.inv_a_in <<= 1
             self.inv_b_in <<= 0
             yield 4
@@ -97,7 +122,12 @@ class TB(Module):
             self.a_in <<= a
             self.b_in <<= b
             self.c_in <<= 1
-            self.cmd_in <<= AluCmds.alu_nor
+            self.cmd_add  <<= 0
+            self.cmd_nor  <<= 1
+            self.cmd_nand <<= 0
+            self.cmd_xor  <<= 0
+            self.cmd_ror  <<= 0
+            self.cmd_rol  <<= 0
             self.inv_a_in <<= 1
             self.inv_b_in <<= 1
             yield 4
@@ -110,7 +140,12 @@ class TB(Module):
             self.a_in <<= a
             self.b_in <<= b
             self.c_in <<= 0
-            self.cmd_in <<= AluCmds.alu_nand
+            self.cmd_add  <<= 0
+            self.cmd_nor  <<= 0
+            self.cmd_nand <<= 1
+            self.cmd_xor  <<= 0
+            self.cmd_ror  <<= 0
+            self.cmd_rol  <<= 0
             self.inv_a_in <<= 1
             self.inv_b_in <<= 1
             yield 4
@@ -123,7 +158,12 @@ class TB(Module):
             self.a_in <<= a
             self.b_in <<= b
             self.c_in <<= 0
-            self.cmd_in <<= AluCmds.alu_xor
+            self.cmd_add  <<= 0
+            self.cmd_nor  <<= 0
+            self.cmd_nand <<= 0
+            self.cmd_xor  <<= 1
+            self.cmd_ror  <<= 0
+            self.cmd_rol  <<= 0
             self.inv_a_in <<= 1
             self.inv_b_in <<= 1
             yield 4
@@ -135,7 +175,12 @@ class TB(Module):
             self.a_in <<= a
             self.b_in <<= None
             self.c_in <<= 0
-            self.cmd_in <<= AluCmds.alu_rol
+            self.cmd_add  <<= 0
+            self.cmd_nor  <<= 0
+            self.cmd_nand <<= 0
+            self.cmd_xor  <<= 0
+            self.cmd_ror  <<= 0
+            self.cmd_rol  <<= 1
             self.inv_a_in <<= 0
             self.inv_b_in <<= 0
             yield 4
@@ -147,7 +192,12 @@ class TB(Module):
             self.a_in <<= a
             self.b_in <<= None
             self.c_in <<= 0
-            self.cmd_in <<= AluCmds.alu_ror
+            self.cmd_add  <<= 0
+            self.cmd_nor  <<= 0
+            self.cmd_nand <<= 0
+            self.cmd_xor  <<= 0
+            self.cmd_ror  <<= 1
+            self.cmd_rol  <<= 0
             self.inv_a_in <<= 0
             self.inv_b_in <<= 0
             yield 4
@@ -218,7 +268,13 @@ class TB(Module):
         for i in range(1000):
             yield from test_ror(randrange(0x0000,0xffff))
 
-        self.cmd_in <<= None # Force one more event into the simulator so that it finishes populating the VCD
+        # Force one more event into the simulator so that it finishes populating the VCD
+        self.cmd_add  <<= 0
+        self.cmd_nor  <<= 0
+        self.cmd_nand <<= 0
+        self.cmd_xor  <<= 0
+        self.cmd_ror  <<= 0
+        self.cmd_rol  <<= 0
         print(f"SIMULATION TERMINATED SUCCESSFULLY")
 
 def sim():
