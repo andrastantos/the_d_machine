@@ -28,13 +28,6 @@ class AluASelect(Enum):
     l_bus_d = 6
     #l_bus_a = 7
 
-class AluBSelect(Enum):
-    immed = 0
-    zero = 1
-    l_bus_d = 2
-    l_bus_a = 3
-    one = 4
-
 # Values for instruction fields
 OPA_PC = 0b00
 OPA_SP = 0b01

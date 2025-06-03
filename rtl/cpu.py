@@ -201,8 +201,9 @@ class DataPath(Module):
     alu_a_select_int_stat = Input(logic)
     alu_a_select_l_bus_d = Input(logic)
 
+    # ALU B input is zero if none of these signals are asserted.
+    # So there's not 'alu_b_select_zero' signal.
     alu_b_select_immed = Input(logic)
-    alu_b_select_zero = Input(logic)
     alu_b_select_one = Input(logic)
     alu_b_select_l_bus_d = Input(logic)
     alu_b_select_l_bus_a = Input(logic)
@@ -356,7 +357,6 @@ class DataPath(Module):
         )
         alu_b_in <<= or_gate(
             and_gate(repeat(self.alu_b_select_immed, DataWidth), immed),
-            and_gate(repeat(self.alu_b_select_zero, DataWidth), 0),
             and_gate(repeat(self.alu_b_select_one, DataWidth), 1),
             and_gate(repeat(self.alu_b_select_l_bus_d, DataWidth), l_bus_d.output_port),
             and_gate(repeat(self.alu_b_select_l_bus_a, DataWidth), l_bus_a.output_port),
@@ -397,7 +397,6 @@ class Sequencer(Module):
     alu_a_select_l_bus_d  = Output(logic)
 
     alu_b_select_immed   = Output(logic)
-    alu_b_select_zero    = Output(logic)
     alu_b_select_one     = Output(logic)
     alu_b_select_l_bus_d = Output(logic)
     alu_b_select_l_bus_a = Output(logic)
@@ -434,12 +433,11 @@ class Sequencer(Module):
         l_was_branch = HighLatch()
 
         inst_is_predicate = self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE
-        inst_is_not_predicate = ~inst_is_predicate
+        inst_is_not_predicate = not_gate(inst_is_predicate)
         inst_is_unary = self.inst_field_opcode[3:2] == INST_GROUP_UNARY
-        inst_is_not_unary = ~inst_is_unary
+        inst_is_not_unary = not_gate(inst_is_unary)
 
         inst_is_INST_SWAP  = self.inst_field_opcode == INST_SWAP
-        inst_is_not_INST_SWAP = ~inst_is_INST_SWAP
         inst_is_INST_OR    = self.inst_field_opcode == INST_OR
         inst_is_INST_AND   = self.inst_field_opcode == INST_AND
         inst_is_INST_XOR   = self.inst_field_opcode == INST_XOR
@@ -449,15 +447,17 @@ class Sequencer(Module):
         inst_is_INST_ROR   = self.inst_field_opcode == INST_ROR
         inst_is_INST_ROL   = self.inst_field_opcode == INST_ROL
         inst_is_INST_MOV   = self.inst_field_opcode == INST_MOV
-        inst_is_not_INST_MOV   = ~inst_is_INST_MOV
         inst_is_INST_ISTAT = self.inst_field_opcode == INST_ISTAT
-        inst_is_not_INST_ISTAT = ~inst_is_INST_ISTAT
         inst_is_INST_EQ    = self.inst_field_opcode == INST_EQ
         inst_is_INST_LTU   = self.inst_field_opcode == INST_LTU
         inst_is_INST_LTS   = self.inst_field_opcode == INST_LTS
         inst_is_INST_LES   = self.inst_field_opcode == INST_LES
 
-        inst_field_d_n = ~self.inst_field_d
+        inst_is_not_INST_SWAP = not_gate(inst_is_INST_SWAP)
+        inst_is_not_INST_MOV   = not_gate(inst_is_INST_MOV)
+        inst_is_not_INST_ISTAT = not_gate(inst_is_INST_ISTAT)
+
+        inst_field_d_n = not_gate(self.inst_field_d)
 
         #phase = Wire(Number(min_val=0,max_val=5))
         phase = Wire(Unsigned(3))
@@ -471,6 +471,7 @@ class Sequencer(Module):
         phase <<= l_phase.output_port
 
         opb_is_mem_ref = self.inst_field_opb[2] != OPB_CLASS_IMM
+        opb_is_imm_ref = not_gate(opb_is_mem_ref)
         # We skip over phase 4 for anything but a SWAP instruction
         l_phase_next.input_port <<= Select(
             phase == 5,
@@ -717,37 +718,29 @@ class Sequencer(Module):
         self.alu_a_select_l_bus_d  <<= alu_a_select == AluASelect.l_bus_d
 
 
-        alu_b_select = Select(phase,
-            Select(l_skip.output_port, AluBSelect.zero, AluBSelect.one), # increment PC by 1 or 2 or do nothing (i.e. adding 0)
-            AluBSelect.immed,   # compute opb offset
-            AluBSelect.immed,   # compute opb offset
-            AluBSelect.zero,   # skip-cycle for SWAP only
-            Select(
-                inst_is_INST_SWAP | (inst_is_INST_MOV & self.inst_field_d),
-                Select( # execute instruction
-                    opb_is_mem_ref,
-                    AluBSelect.l_bus_a,
-                    AluBSelect.l_bus_d,
-                ),
-                AluBSelect.zero # For SWAP in this cycle, we move PC into L_BUS_D
-            ),
-            Select(l_skip.output_port, AluBSelect.zero, AluBSelect.one) # increment PC by 1 or 2 or do nothing (i.e. adding 0)
+        alu_b_is_zero_for_exec = or_gate(inst_is_INST_SWAP, and_gate(inst_is_INST_MOV, self.inst_field_d))
+        alu_b_is_ref_for_exec = not_gate(alu_b_is_zero_for_exec)
+        alu_b_is_mem_ref_for_exec = and_gate(alu_b_is_ref_for_exec, opb_is_mem_ref)
+        alu_b_is_imm_ref_for_exec = and_gate(alu_b_is_ref_for_exec, opb_is_imm_ref)
+        self.alu_b_select_immed <<= Select(phase,
+            0,
+            1,
+            1,
+            0,
+            0,
+            0,
         )
-        self.alu_b_select_immed <<= alu_b_select == AluBSelect.immed
-        self.alu_b_select_zero <<= alu_b_select == AluBSelect.zero
-        self.alu_b_select_one <<= alu_b_select == AluBSelect.one
-        self.alu_b_select_l_bus_d <<= alu_b_select == AluBSelect.l_bus_d
-        self.alu_b_select_l_bus_a <<= alu_b_select == AluBSelect.l_bus_a
-
-
-        l_skip.latch_port <<= Select(phase,
-            0,
-            1, # Clear skip here
+        self.alu_b_select_one <<= Select(phase,
+            l_skip.output_port,
             0,
             0,
-            1, # Set skip here, if needed
-            0
+            0,
+            0,
+            l_skip.output_port,
         )
+        self.alu_b_select_l_bus_d <<= and_gate(phase4, alu_b_is_mem_ref_for_exec)
+        self.alu_b_select_l_bus_a <<= and_gate(phase4, alu_b_is_imm_ref_for_exec)
+
         raw_condition_match = SelectOne(
             self.inst_field_opcode == INST_EQ, (self.alu_z_out == 1),
             self.inst_field_opcode == INST_LTU, (self.alu_c_out == 1),
@@ -756,7 +749,8 @@ class Sequencer(Module):
         )
         condition_match = raw_condition_match ^ ~self.inst_field_d
 
-        l_skip.input_port <<= (phase == 4) & inst_is_predicate & condition_match
+        l_skip.latch_port <<= or_gate(phase1, phase4) # clear in phase 1, set, if needed in phase4
+        l_skip.input_port <<= phase4 & inst_is_predicate & condition_match
 
         l_intdis_prev.latch_port <<= Select(phase,
             0,
@@ -832,7 +826,6 @@ class Cpu(Module):
         data_path.alu_a_select_l_bus_d <<= sequencer.alu_a_select_l_bus_d
 
         data_path.alu_b_select_immed <<= sequencer.alu_b_select_immed
-        data_path.alu_b_select_zero <<= sequencer.alu_b_select_zero
         data_path.alu_b_select_one <<= sequencer.alu_b_select_one
         data_path.alu_b_select_l_bus_d <<= sequencer.alu_b_select_l_bus_d
         data_path.alu_b_select_l_bus_a <<= sequencer.alu_b_select_l_bus_a
