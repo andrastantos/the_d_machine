@@ -451,6 +451,7 @@ class Sequencer(Module):
         inst_is_INST_MOV   = self.inst_field_opcode == INST_MOV
         inst_is_not_INST_MOV   = ~inst_is_INST_MOV
         inst_is_INST_ISTAT = self.inst_field_opcode == INST_ISTAT
+        inst_is_not_INST_ISTAT = ~inst_is_INST_ISTAT
         inst_is_INST_EQ    = self.inst_field_opcode == INST_EQ
         inst_is_INST_LTU   = self.inst_field_opcode == INST_LTU
         inst_is_INST_LTS   = self.inst_field_opcode == INST_LTS
@@ -657,44 +658,46 @@ class Sequencer(Module):
             self.inst_field_opa == OPA_R0, AluASelect.r0,
             self.inst_field_opa == OPA_R1, AluASelect.r1,
         )
-        move_to_reg = and_gate(inst_is_INST_MOV, inst_field_d_n)
-        move_to_reg_n = not_gate(move_to_reg)
+        move_to_reg =   and_gate(inst_is_INST_MOV, inst_field_d_n)
+        move_to_reg_n = and_gate(not_gate(move_to_reg), inst_is_not_INST_ISTAT)
         dst_is_memory = and_gate(move_to_reg_n, self.inst_field_d, inst_is_not_INST_MOV)
-        dst_is_memory_n = not_gate(dst_is_memory)
-        opa_select_b = or_gate(
+        dst_is_reg =    and_gate(move_to_reg_n, or_gate(inst_field_d_n, inst_is_INST_MOV))
+        opa_select = EnumNet(AluASelect)(or_gate(
             and_gate(repeat(inst_is_not_unary, 3), opa_reg),
-            and_gate(repeat(inst_is_unary, 3), 
+            and_gate(repeat(inst_is_unary, 3),
                 or_gate(
                     and_gate(repeat(inst_is_INST_ISTAT, 3), AluASelect.int_stat),
                     and_gate(repeat(move_to_reg,3), AluASelect.zero),
                     and_gate(repeat(dst_is_memory,3), AluASelect.l_bus_d),
-                    and_gate(repeat(dst_is_memory_n,3), opa_reg)
+                    and_gate(repeat(dst_is_reg,3), opa_reg)
                 )
             )
-        )
-        opa_select = Select(
-            inst_is_unary,
-            # Binary and predicate group
-            opa_reg,
-            # Unary group select operand based on 'D' bit
-            Select(
-                inst_is_INST_ISTAT,
-                # Not ISTAT
-                Select(
-                    inst_is_INST_MOV & inst_field_d_n,
-                    # Not move or move to memory
-                    Select(and_gate(self.inst_field_d, inst_is_not_INST_MOV),
-                        # register source and destination
-                        opa_reg,
-                        AluASelect.l_bus_d
-                    ),
-                    # Move to register
-                    AluASelect.zero
-                ),
-                # ISTAT
-                AluASelect.int_stat
-            ),
-        )
+        ))
+
+        # Old implementation kept for documentation purposes
+        #opa_select = Select(
+        #    inst_is_unary,
+        #    # Binary and predicate group
+        #    opa_reg,
+        #    # Unary group select operand based on 'D' bit
+        #    Select(
+        #        inst_is_INST_ISTAT,
+        #        # Not ISTAT
+        #        Select(
+        #            inst_is_INST_MOV & inst_field_d_n,
+        #            # Not move or move to memory
+        #            Select(and_gate(self.inst_field_d, inst_is_not_INST_MOV),
+        #                # register source and destination
+        #                opa_reg,
+        #                AluASelect.l_bus_d
+        #            ),
+        #            # Move to register
+        #            AluASelect.zero
+        #        ),
+        #        # ISTAT
+        #        AluASelect.int_stat
+        #    ),
+        #)
 
         alu_a_select = Select(phase,
             AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
