@@ -12,7 +12,8 @@ class Memory(GenericModule):
     bus_d_rd = Output(DataType)
     bus_d_wr = Input(DataType)
     bus_a = Input(AddrType)
-    bus_cmd = Input(EnumNet(BusCmds))
+    bus_wr = Input(logic)
+    bus_rd = Input(logic)
     inst_load = Input(logic)
 
     def construct(self, size: int, base_addr: int = 0):
@@ -22,10 +23,11 @@ class Memory(GenericModule):
 
     def simulate(self, simulator: Simulator):
         while(True):
-            now = yield (self.bus_cmd, self.bus_a, self.bus_d_wr, self.clk)
-            if (self.bus_cmd.sim_value is None):
+            now = yield (self.bus_wr, self.bus_rd, self.bus_a, self.bus_d_wr, self.clk)
+            if self.bus_wr.sim_value is None or self.bus_rd.sim_value is None:
                 continue
-            if (self.bus_cmd == BusCmds.read):
+            if (self.bus_rd):
+                assert self.bus_wr.sim_value == 0
                 if self.bus_a.sim_value is None:
                     print(f"{now}: Reading from NONE - ignored for now")
                     self.bus_d_rd <<= None
@@ -43,7 +45,8 @@ class Memory(GenericModule):
                         print(f"{now}: FETCHING INSTRUCTION: '{disasm_inst(self.mem[addr])}'")
                     print(f"{now}: Resetting MEM[0x{addr:04x}] -> 0")
                     self.mem[addr] = 0
-            elif ((self.bus_cmd == BusCmds.write) & (self.clk == 0)):
+            elif (self.bus_wr & (self.clk == 0)):
+                assert self.bus_rd.sim_value == 0
                 if self.bus_a.sim_value is None:
                     print(f"{now}: Writing to NONE - ignored for now")
                     continue
@@ -295,13 +298,15 @@ class TB(Module):
     bus_d_rd = Output(DataType)
     bus_d_wr = Output(DataType)
     bus_a = Output(AddrType)
-    bus_cmd = Output(EnumNet(BusCmds))
+    bus_wr = Output(logic)
+    bus_rd = Output(logic)
     rst = RstPort(logic)
     interrupt = Output(logic)
 
     def body(self):
         dut = Cpu()
-        self.bus_cmd <<= dut.bus_cmd
+        self.bus_wr <<= dut.bus_wr
+        self.bus_rd <<= dut.bus_rd
         self.bus_a <<= dut.bus_a
         self.bus_d_wr <<= dut.bus_d_out
         dut.bus_d_in <<= self.bus_d_rd
@@ -311,7 +316,8 @@ class TB(Module):
         self.mem = Memory(16*1024)
         self.mem.bus_a <<= self.bus_a
         self.mem.bus_d_wr <<= self.bus_d_wr
-        self.mem.bus_cmd <<= self.bus_cmd
+        self.mem.bus_wr <<= self.bus_wr
+        self.mem.bus_rd <<= self.bus_rd
         self.mem.inst_load <<= dut.inst_load
         self.bus_d_rd <<= self.mem.bus_d_rd
 

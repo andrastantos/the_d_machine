@@ -189,8 +189,20 @@ class DataPath(Module):
     l_bus_d_load_bus_d = Input(logic)
     l_bus_d_load_alu_result = Input(logic)
     l_bus_d_load_l_alu_result = Input(logic)
-    alu_a_select = Input(EnumNet(AluASelect))
-    alu_b_select = Input(EnumNet(AluBSelect))
+
+    alu_a_select_pc = Input(logic)
+    alu_a_select_sp = Input(logic)
+    alu_a_select_r0 = Input(logic)
+    alu_a_select_r1 = Input(logic)
+    alu_a_select_zero = Input(logic)
+    alu_a_select_int_stat = Input(logic)
+    alu_a_select_l_bus_d = Input(logic)
+
+    alu_b_select_immed = Input(logic)
+    alu_b_select_zero = Input(logic)
+    alu_b_select_one = Input(logic)
+    alu_b_select_l_bus_d = Input(logic)
+    alu_b_select_l_bus_a = Input(logic)
 
     alu_cmd_add   = Input(logic) # 1-hot encoded command code signals
     alu_cmd_nor   = Input(logic) # ...
@@ -333,22 +345,21 @@ class DataPath(Module):
         #    default_port = self.bus_d_in
         #)
 
-        alu_a_in <<= SelectOne(
-            self.alu_a_select == AluASelect.pc, l_pc.output_port,
-            self.alu_a_select == AluASelect.sp, l_sp.output_port,
-            self.alu_a_select == AluASelect.r0, l_r0.output_port,
-            self.alu_a_select == AluASelect.r1, l_r1.output_port,
-            self.alu_a_select == AluASelect.zero, 0,
-            self.alu_a_select == AluASelect.int_stat, concat(self.intdis, self.interrupt),
-            self.alu_a_select == AluASelect.l_bus_d, l_bus_d.output_port,
-            #self.alu_a_select == AluASelect.l_bus_a, l_bus_a.output_port
+        alu_a_in <<= or_gate(
+            and_gate(repeat(self.alu_a_select_pc, DataWidth), l_pc.output_port),
+            and_gate(repeat(self.alu_a_select_sp, DataWidth), l_sp.output_port),
+            and_gate(repeat(self.alu_a_select_r0, DataWidth), l_r0.output_port),
+            and_gate(repeat(self.alu_a_select_r1, DataWidth), l_r1.output_port),
+            and_gate(repeat(self.alu_a_select_zero, DataWidth), 0),
+            and_gate(repeat(self.alu_a_select_int_stat, DataWidth), concat(self.intdis, self.interrupt)),
+            and_gate(repeat(self.alu_a_select_l_bus_d, DataWidth), l_bus_d.output_port),
         )
-        alu_b_in <<= SelectOne(
-            self.alu_b_select == AluBSelect.immed, immed,
-            self.alu_b_select == AluBSelect.zero, 0,
-            self.alu_b_select == AluBSelect.one, 1,
-            self.alu_b_select == AluBSelect.l_bus_d, l_bus_d.output_port,
-            self.alu_b_select == AluBSelect.l_bus_a, l_bus_a.output_port
+        alu_b_in <<= or_gate(
+            and_gate(repeat(self.alu_b_select_immed, DataWidth), immed),
+            and_gate(repeat(self.alu_b_select_zero, DataWidth), 0),
+            and_gate(repeat(self.alu_b_select_one, DataWidth), 1),
+            and_gate(repeat(self.alu_b_select_l_bus_d, DataWidth), l_bus_d.output_port),
+            and_gate(repeat(self.alu_b_select_l_bus_a, DataWidth), l_bus_a.output_port),
         )
 
         self.bus_d_out <<= l_bus_d.output_port
@@ -361,7 +372,8 @@ class Sequencer(Module):
 
     interrupt = Input(logic)
 
-    bus_cmd = Output(EnumNet(BusCmds))
+    bus_wr = Output(logic)
+    bus_rd = Output(logic)
 
     l_bus_a_ld =      Output(logic)
     l_bus_d_ld =      Output(logic)
@@ -375,8 +387,21 @@ class Sequencer(Module):
     l_bus_d_load_bus_d =        Output(logic)
     l_bus_d_load_alu_result =   Output(logic)
     l_bus_d_load_l_alu_result = Output(logic)
-    alu_a_select =   Output(EnumNet(AluASelect))
-    alu_b_select =   Output(EnumNet(AluBSelect))
+
+    alu_a_select_pc       = Output(logic)
+    alu_a_select_sp       = Output(logic)
+    alu_a_select_r0       = Output(logic)
+    alu_a_select_r1       = Output(logic)
+    alu_a_select_zero     = Output(logic)
+    alu_a_select_int_stat = Output(logic)
+    alu_a_select_l_bus_d  = Output(logic)
+
+    alu_b_select_immed   = Output(logic)
+    alu_b_select_zero    = Output(logic)
+    alu_b_select_one     = Output(logic)
+    alu_b_select_l_bus_d = Output(logic)
+    alu_b_select_l_bus_a = Output(logic)
+
     alu_cmd_add  =   Output(logic) # 1-hot encoded command code signals
     alu_cmd_nor  =   Output(logic) # ...
     alu_cmd_nand =   Output(logic) # ...
@@ -454,16 +479,28 @@ class Sequencer(Module):
             and_gate(inst_is_not_predicate, inst_field_d_n)
         )
 
-        self.bus_cmd <<= Select(self.rst,
+        self.bus_wr <<= Select(self.rst,
             Select(phase,
-                BusCmds.read,
-                BusCmds.write,
-                Select(opb_is_mem_ref, BusCmds.idle, BusCmds.read),
-                BusCmds.idle, # SWAP-only cycle
-                Select(opb_is_mem_ref & ~update_mem, BusCmds.idle, BusCmds.write),
-                Select(update_mem, BusCmds.idle, BusCmds.write),
+                0,
+                1,
+                0,
+                0, # SWAP-only cycle
+                and_gate(opb_is_mem_ref, ~update_mem),
+                update_mem,
             ),
-            BusCmds.idle
+            0
+        )
+
+        self.bus_rd <<= Select(self.rst,
+            Select(phase,
+                1,
+                0,
+                opb_is_mem_ref,
+                0, # SWAP-only cycle
+                0,
+                0,
+            ),
+            0
         )
 
         self.l_bus_a_ld <<= Select(phase,
@@ -648,7 +685,8 @@ class Sequencer(Module):
                 AluASelect.int_stat
             ),
         )
-        self.alu_a_select <<= Select(phase,
+
+        alu_a_select = Select(phase,
             AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
             opb_base,   # compute opb offset
             opb_base,   # compute opb offset
@@ -656,7 +694,17 @@ class Sequencer(Module):
             opa_select, # execute instruction
             AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
         )
-        self.alu_b_select <<= Select(phase,
+
+        self.alu_a_select_pc       <<= alu_a_select == AluASelect.pc
+        self.alu_a_select_sp       <<= alu_a_select == AluASelect.sp
+        self.alu_a_select_r0       <<= alu_a_select == AluASelect.r0
+        self.alu_a_select_r1       <<= alu_a_select == AluASelect.r1
+        self.alu_a_select_zero     <<= alu_a_select == AluASelect.zero
+        self.alu_a_select_int_stat <<= alu_a_select == AluASelect.int_stat
+        self.alu_a_select_l_bus_d  <<= alu_a_select == AluASelect.l_bus_d
+
+
+        alu_b_select = Select(phase,
             Select(l_skip.output_port, AluBSelect.zero, AluBSelect.one), # increment PC by 1 or 2 or do nothing (i.e. adding 0)
             AluBSelect.immed,   # compute opb offset
             AluBSelect.immed,   # compute opb offset
@@ -672,6 +720,12 @@ class Sequencer(Module):
             ),
             Select(l_skip.output_port, AluBSelect.zero, AluBSelect.one) # increment PC by 1 or 2 or do nothing (i.e. adding 0)
         )
+        self.alu_b_select_immed <<= alu_b_select == AluBSelect.immed
+        self.alu_b_select_zero <<= alu_b_select == AluBSelect.zero
+        self.alu_b_select_one <<= alu_b_select == AluBSelect.one
+        self.alu_b_select_l_bus_d <<= alu_b_select == AluBSelect.l_bus_d
+        self.alu_b_select_l_bus_a <<= alu_b_select == AluBSelect.l_bus_a
+
 
         l_skip.latch_port <<= Select(phase,
             0,
@@ -721,7 +775,8 @@ class Cpu(Module):
 
     interrupt = Input(logic)
 
-    bus_cmd = Output(EnumNet(BusCmds))
+    bus_wr = Output(logic)
+    bus_rd = Output(logic)
 
     bus_d_out = Output(DataType)
     bus_d_in = Input(DataType)
@@ -735,7 +790,8 @@ class Cpu(Module):
 
         self.bus_d_out <<= data_path.bus_d_out
         self.bus_a <<= data_path.bus_a
-        self.bus_cmd <<= sequencer.bus_cmd
+        self.bus_wr <<= sequencer.bus_wr
+        self.bus_rd <<= sequencer.bus_rd
         data_path.bus_d_in <<= self.bus_d_in
 
         sequencer.interrupt <<= self.interrupt
@@ -753,8 +809,20 @@ class Cpu(Module):
         data_path.l_bus_d_load_bus_d <<= sequencer.l_bus_d_load_bus_d
         data_path.l_bus_d_load_alu_result <<= sequencer.l_bus_d_load_alu_result
         data_path.l_bus_d_load_l_alu_result <<= sequencer.l_bus_d_load_l_alu_result
-        data_path.alu_a_select <<= sequencer.alu_a_select
-        data_path.alu_b_select <<= sequencer.alu_b_select
+
+        data_path.alu_a_select_pc <<= sequencer.alu_a_select_pc
+        data_path.alu_a_select_sp <<= sequencer.alu_a_select_sp
+        data_path.alu_a_select_r0 <<= sequencer.alu_a_select_r0
+        data_path.alu_a_select_r1 <<= sequencer.alu_a_select_r1
+        data_path.alu_a_select_zero <<= sequencer.alu_a_select_zero
+        data_path.alu_a_select_int_stat <<= sequencer.alu_a_select_int_stat
+        data_path.alu_a_select_l_bus_d <<= sequencer.alu_a_select_l_bus_d
+
+        data_path.alu_b_select_immed <<= sequencer.alu_b_select_immed
+        data_path.alu_b_select_zero <<= sequencer.alu_b_select_zero
+        data_path.alu_b_select_one <<= sequencer.alu_b_select_one
+        data_path.alu_b_select_l_bus_d <<= sequencer.alu_b_select_l_bus_d
+        data_path.alu_b_select_l_bus_a <<= sequencer.alu_b_select_l_bus_a
 
         data_path.alu_cmd_add   <<= sequencer.alu_cmd_add
         data_path.alu_cmd_nor   <<= sequencer.alu_cmd_nor
