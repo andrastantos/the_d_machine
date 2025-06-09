@@ -577,6 +577,9 @@ class Sequencer(Module):
 
         self.l_inst_ld <<= phase0
 
+        # THIS IS NOT GOOD!!!!!
+        # BUG BUG BUG !!!!!!
+        # This implementation skips the interrupted instruction upon return from interrupt.
         is_branch = update_reg & (self.inst_field_opa == OPA_PC) & (inst_is_not_INST_SWAP | self.inst_field_d)
         l_was_branch.input_port <<= is_branch
         l_was_branch.latch_port <<= phase5
@@ -807,4 +810,70 @@ class Cpu(Module):
 
         self.inst_load <<= sequencer.l_inst_ld
 
+# We don't want to hack in a whole new back-end in Silicon to enable Spice generation.
+# For one, the actual code-gen is rather process-specific and second, this is not a very expandable way of dealing with things
+# So what we're doing is to 'extend' the Modules in Silicon by injecting new members into them.
+# Modules don't have a terribly wild inhertience structure (as opposed to nets which inherit from their nettype dynamically)
+# so a simple lookup should suffice
 
+def default_injector(module: Module):
+    def transistor_count(self: Module):
+        return 0
+
+    module.get_transistor_count = transistor_count
+
+def generic_latch_injector(module: Module):
+    def transistor_count(self: GenericLatch):
+        bit_count = self.input_port.get_num_bits()
+        # For now, we'll simply assume
+        # - two NOR gates (3 transistors per) to make the bit-cell
+        # - a data inverter (2 transistors) to create d_n from d
+        # - two NAND gates (3 transistors per) to create the latch-enable logic
+        # I don't think the reset port matters in this particular design so that's going to be ignored for now
+        return bit_count * (3+3+2+3+3)
+    
+    module.get_transistor_count = transistor_count
+
+def bail(module):
+    raise SyntaxErrorException(f"Module: {module} is not in injector table")
+
+module_injectors = {
+    Cpu: None,
+    DataPath: None,
+    Sequencer: None,
+    GenericLatch: generic_latch_injector,
+    Concatenator: None,
+    "Slice": None,
+    Module: bail
+}
+
+if __name__ == '__main__':
+    with Netlist().elaborate() as netlist:
+        Cpu()
+    print("Done with elaboration")
+    import inspect
+    for module in netlist.modules:
+        print(f"Module: {module}")
+        bases = inspect.getmro(type(module))
+        found = False
+        for base in bases:
+            # We try both the type and it's name
+            # In some instances (converters, slicers, etc.) the types are numerous
+            # or embedded inside net types, so listing them by type would be troublesome
+            try:
+                injector = module_injectors[base]
+            except KeyError:
+                try:
+                    injector = module_injectors[str(base)]
+                except KeyError:
+                    continue
+                continue
+            if injector is not None:
+                injector(module)
+            else:
+                default_injector(module)
+            found = True
+            break
+        assert found
+        continue
+        

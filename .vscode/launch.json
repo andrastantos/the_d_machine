@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "GEN CPU",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "rtl/cpu.py",
+        },
+        {
             "name": "TB_CPU",
             "type": "debugpy",
             "request": "launch",
