@@ -577,7 +577,7 @@ class Sequencer(Module):
 
         self.l_inst_ld <<= phase0
 
-        is_branch = update_reg & (self.inst_field_opa == OPA_PC)
+        is_branch = update_reg & (self.inst_field_opa == OPA_PC) & (inst_is_not_INST_SWAP | self.inst_field_d)
         l_was_branch.input_port <<= is_branch
         l_was_branch.latch_port <<= phase5
 

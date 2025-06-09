@@ -437,7 +437,7 @@ class Processor(object):
                     # If we update $pc here, we should not update pc in the next step.
                     # NOTE: none of the predicates that can clear 'noskip' update $pc,
                     #       so we're fine completely skipping that step
-                    skip_pc_update = inst_field_opa == OPA_PC
+                    skip_pc_update = (inst_field_opa == OPA_PC) and ((inst_field_opcode != INST_SWAP) or (inst_field_d == 1))
                 yield from self.wait_clk()
                 # Update PC
                 if not skip_pc_update:
