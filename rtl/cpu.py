@@ -577,10 +577,7 @@ class Sequencer(Module):
 
         self.l_inst_ld <<= phase0
 
-        # THIS IS NOT GOOD!!!!!
-        # BUG BUG BUG !!!!!!
-        # This implementation skips the interrupted instruction upon return from interrupt.
-        is_branch = update_reg & (self.inst_field_opa == OPA_PC) & (inst_is_not_INST_SWAP | self.inst_field_d)
+        is_branch = update_reg & (self.inst_field_opa == OPA_PC)
         l_was_branch.input_port <<= is_branch
         l_was_branch.latch_port <<= phase5
 
@@ -622,7 +619,8 @@ class Sequencer(Module):
                 inst_is_INST_AND,
                 inst_is_INST_SUB,
                 inst_is_INST_ISUB,
-                inst_is_predicate
+                inst_is_predicate,
+                and_gate(inst_is_INST_SWAP, (self.inst_field_opa == OPA_PC))
             )),
             and_gate(phase5, ~is_branch)
         )

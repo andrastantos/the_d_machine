@@ -358,7 +358,7 @@ class Processor(object):
                 yield from self.wait_clk()
 
                 if inst_field_opcode == INST_SWAP:
-                    self._set_reg(inst_field_opa, alu_opb)
+                    self._set_reg(inst_field_opa, alu_opb + (inst_field_opb == OPB_IMMED_PC))
                     yield from self.wait_clk()
                 if mem_ref and not mem_result:
                     self._write_mem(mem_op_addr, alu_opb)
@@ -370,7 +370,7 @@ class Processor(object):
                 noskip = True
                 skip_pc_update = False
                 if inst_field_opcode == INST_SWAP:
-                    alu_result = alu_opa
+                    alu_result = alu_opa + (inst_field_opa == OPA_PC)
                 elif inst_field_opcode == INST_OR:
                     alu_result = alu_opa | alu_opb
                 elif inst_field_opcode == INST_AND:
@@ -428,6 +428,10 @@ class Processor(object):
                     # We have one unused code, but I don't know yet what to do about it...
                     assert False
                 if mem_result:
+                    if inst_field_opcode == INST_SWAP:
+                        if inst_field_opb in (OPB_IMMED_PC, OPB_IMMED_R0, OPB_IMMED_SP, OPB_IMMED):
+                            assert False, "SWAP between two registers is not supported"
+                        skip_pc_update = inst_field_opa == OPA_PC
                     self._write_mem(mem_op_addr, alu_result)
                 elif reg_result:
                     # The only case we have both of these set is SWAP/SWAPI and in
@@ -437,7 +441,7 @@ class Processor(object):
                     # If we update $pc here, we should not update pc in the next step.
                     # NOTE: none of the predicates that can clear 'noskip' update $pc,
                     #       so we're fine completely skipping that step
-                    skip_pc_update = (inst_field_opa == OPA_PC) and ((inst_field_opcode != INST_SWAP) or (inst_field_d == 1))
+                    skip_pc_update = inst_field_opa == OPA_PC
                 yield from self.wait_clk()
                 # Update PC
                 if not skip_pc_update:
@@ -685,6 +689,17 @@ if __name__ == "__main__":
             add $pc, 2
             mov [TERMINATE_PORT], $r1
 
+            ; Test SWAP against $pc: this should increment $pc as it is swapped.
+            sub $r1, 1
+            mov $r0, $pc+4
+            mov [6], $r0
+            swap $pc, [6]
+            mov [TERMINATE_PORT], $r1 ; this should not get executed
+            mov $r0, [6]
+            add $r0, 3
+            if_neq $r0, $pc
+            mov [TERMINATE_PORT], $r1 ; this should not get executed
+
             ; During these tests, we also had a bunch of PC manipulation instructions.
             ; That is to say: we've tested the fact that PC should not get incremented
             ; if it was the target of the operation. So, at this point, we can be pretty
@@ -705,7 +720,7 @@ if __name__ == "__main__":
         sim.terminate()
     if sim.mem.compare(
         {
-            0x0000: (0x1000, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007),
+            0x0000: (0x1000, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x108c),
             0x1000: (0x8743, 0x8b41, 0x8784, 0x89bf, 0x87c5, 0x6741, 0x89c1, 0x5744, 0x8a40, 0x87df, 0x57df, 0xc580, 0x8bff, 0xcf84, 0x8bff, 0x67c1),
             0x1010: (0xc784, 0x8402, 0x8bff, 0xcf83, 0x8402, 0x8bff, 0x67c1, 0x879f, 0x8640, 0xb780, 0x7580, 0x7740, 0xce40, 0x8bff, 0x67c1, 0x8783),
             0x1020: (0xa780, 0xce80, 0x8001, 0xc8bf, 0x8bff, 0x67c1, 0x874c, 0x879a, 0x3580, 0xcf96, 0x8bff, 0x879a, 0x2580, 0xcf88, 0x8bff, 0x879a),
@@ -714,7 +729,8 @@ if __name__ == "__main__":
             0x1050: (0x8bff, 0x8141, 0xcf47, 0x8bff, 0x9780, 0xcf80, 0x8bff, 0x8743, 0x8785, 0xd580, 0x8bff, 0x87bc, 0xe640, 0x8bff, 0x877c, 0xe640),
             0x1060: (0x8bff, 0x8743, 0xf640, 0x8bff, 0xde40, 0x8bff, 0x87bc, 0xed80, 0x8bff, 0x877c, 0xed80, 0x8402, 0x8bff, 0x8743, 0xfd80, 0x8bff),
             0x1070: (0x8743, 0x8785, 0xd640, 0x8402, 0x8bff, 0x87bc, 0xe580, 0x8402, 0x8bff, 0x8743, 0xf580, 0x8402, 0x8bff, 0xdd80, 0x8402, 0x8bff),
-            0x1080: (0x87bc, 0xee80, 0x8402, 0x8bff, 0x8743, 0xfe40, 0x5702, 0x8bff, 0x87c0, 0x8bff, 0x8400),
+            0x1080: (0x87bc, 0xee80, 0x8402, 0x8bff, 0x8743, 0xfe40, 0x5702, 0x8bff, 0x67c1, 0x8484, 0x8b86, 0x0b06, 0x8bff, 0x8386, 0x5783, 0xcc80),
+            0x1090: (0x8bff, 0x87c0, 0x8bff, 0x8400),
         }
     ):
         print("Memory compare succeeded")

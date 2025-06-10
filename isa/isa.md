@@ -100,8 +100,10 @@ B_OP codes:
 
 NOTE: SWAP is special in several ways:
 - It writes both operands. This means that the 'D' bit is meaningless and can be re-purposed as follows:
-  - If 'D' is set to 0, it forces OPB to be IMMED or MEM[ IMMED ], in other words, it blocks the load of the base register into the ALU in cycle 4. In this case the INTDIS bit is also flipped during execution. Finally $PC gets incremented after the execution of ISWAP.
+  - If 'D' is set to 0, the INTDIS bit is also flipped during execution.
   - If 'D' is set to 1, normal SWAP operation is performed.
+- If one of the targets is $PC, it's value is incremented during the swap operation. So for instance SWAP $PC, $R0 is executed with at location 0x1000, $R0 will contain the value $1001 after the instruction finished.
+- SWAP between registers is difficult (as it would need to check for the immediate field being 0), so it is not supported.
 
 D codes:
 - 1b0 - reg is destination

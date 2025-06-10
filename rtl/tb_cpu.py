@@ -276,6 +276,17 @@ bct_code = \
     add $pc, 2
     mov [TERMINATE_PORT], $r1
 
+    ; Test SWAP against $pc: this should increment $pc as it is swapped.
+    sub $r1, 1
+    mov $r0, $pc+4
+    mov [6], $r0
+    swap $pc, [6]
+    mov [TERMINATE_PORT], $r1 ; this should not get executed
+    mov $r0, [6]
+    add $r0, 3
+    if_neq $r0, $pc
+    mov [TERMINATE_PORT], $r1 ; this should not get executed
+
     ; During these tests, we also had a bunch of PC manipulation instructions.
     ; That is to say: we've tested the fact that PC should not get incremented
     ; if it was the target of the operation. So, at this point, we can be pretty
