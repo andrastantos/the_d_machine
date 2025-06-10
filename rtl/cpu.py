@@ -231,6 +231,8 @@ class DataPath(Module):
     inst_field_opb = Output(Unsigned(3))
     inst_field_opa = Output(Unsigned(2))
 
+    serve_interrupt = Output(logic)
+
     def body(self):
         # The 8 latches we have in our system
         l_bus_a = HighLatch()
@@ -303,7 +305,7 @@ class DataPath(Module):
 
         serve_interrupt = and_gate(not_gate(self.intdis), self.interrupt)
         serve_interrupt_n = not_gate(serve_interrupt)
-
+        self.serve_interrupt <<= serve_interrupt
 
         # We're creating the input mux for the instruction latch. This is highly optimized because the only alternatives to bus_d
         # are constants. So, we examine them bit-by-bit and generate the most optimal logic. We are also careful about priorities:
@@ -423,6 +425,8 @@ class Sequencer(Module):
     inst_field_opb    = Input(Unsigned(3))
     inst_field_opa    = Input(Unsigned(2))
 
+    serve_interrupt = Input(logic)
+
     def body(self):
         # State
         update_reg = Wire(logic)
@@ -431,6 +435,7 @@ class Sequencer(Module):
         l_intdis_prev = HighLatch()
         l_intdis = HighLatch()
         l_was_branch = HighLatch()
+        l_int_cycle = HighLatch()
 
         inst_is_predicate = self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE
         inst_is_not_predicate = not_gate(inst_is_predicate)
@@ -498,6 +503,19 @@ class Sequencer(Module):
             # Not a predicate instruction --> field D determines if we write to registers
             and_gate(inst_is_not_predicate, inst_field_d_n)
         )
+
+        l_int_cycle.input_port <<= Select(self.rst,
+            Select(phase,
+                self.serve_interrupt,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ),
+            0
+        )
+        l_int_cycle.latch_port <<= or_gate(phase0, phase5)
 
         self.bus_wr <<= Select(self.rst,
             Select(phase,
@@ -620,7 +638,7 @@ class Sequencer(Module):
                 inst_is_INST_SUB,
                 inst_is_INST_ISUB,
                 inst_is_predicate,
-                and_gate(inst_is_INST_SWAP, (self.inst_field_opa == OPA_PC))
+                and_gate(inst_is_INST_SWAP, (self.inst_field_opa == OPA_PC), not_gate(l_int_cycle.output_port))
             )),
             and_gate(phase5, ~is_branch)
         )
@@ -795,6 +813,8 @@ class Cpu(Module):
         data_path.intdis <<= sequencer.intdis
 
         data_path.alu_c_in <<= sequencer.alu_c_in
+
+        sequencer.serve_interrupt <<= data_path.serve_interrupt
 
         sequencer.alu_c_out <<= data_path.alu_c_out
         sequencer.alu_z_out <<= data_path.alu_z_out
