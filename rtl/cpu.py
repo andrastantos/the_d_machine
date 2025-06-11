@@ -520,8 +520,8 @@ class Sequencer(Module):
                 1,
                 0,
                 0, # SWAP-only cycle
-                and_gate(opb_is_mem_ref, not_gate(update_mem)),
-                update_mem,
+                0,
+                opb_is_mem_ref,
             ),
             0
         )
@@ -552,7 +552,7 @@ class Sequencer(Module):
             0,
             1,
             0, # SWAP cycle: in here we put l_bus_d into l_alu_result
-            inst_is_INST_SWAP | (inst_is_not_INST_SWAP & update_mem),
+            inst_is_INST_SWAP | update_mem,
             0,
         )
 

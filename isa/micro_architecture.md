@@ -181,7 +181,7 @@ I think this wavedrom script captures what's going on relatively well:
   {name: 'BUS_CMD', wave: '6555557', data: ['write/idle','read', 'write', 'read/idle', 'write/idle', 'write/idle', 'read']},
   {name: 'L_BUS_A_ld',      wave: '01010.1'},
   {name: 'L_BUS_A', wave: '65.5..7', data: ['OP--', 'PC', 'opb_result', 'PC+1']},
-  {name: 'L_BUS_D_ld',      wave: '1.0101.'},
+  {name: 'L_BUS_D_ld',      wave: '1.01=0.'},
   {name: 'BUS_D_in', wave: 'x5x5x.', data: ['INST', 'data'], phase: -1.5},
   {name: 'L_BUS_D', wave: '6x5x55x', data: ['op_result--','INST', 'data', 'op_result']},
   {},
@@ -194,8 +194,8 @@ I think this wavedrom script captures what's going on relatively well:
   {name: 'ALU use', wave: '6.5.55.', data: ['update PC--', 'compute OPB', 'execute', 'update PC']},
   {name: 'phase', wave:'4333338', data: [4,0,1,2,4,5,0]},
   {name: 'ALU_RESULT', wave: '5.5.57', data: ['PC', 'opb_result', 'op_result', 'PC+1'], phase: -1.5},
-  {name: 'L_ALU_RESULT_ld', wave: '010.10.'},
-  {name: 'L_ALU_RESULT', wave: '6x5.x5.', data: ['op_result--','PC', 'op_result']},
+  {name: 'L_ALU_RESULT_ld', wave: '010.101'},
+  {name: 'L_ALU_RESULT', wave: '6x5.x5x', data: ['op_result--','PC', 'op_result']},
   {},
   {name: 'L_PC_ld',         wave: '0.10...'},
   {name: 'L_PC', wave: '6.5....', data: ['PC-1', 'PC']},
@@ -204,7 +204,6 @@ I think this wavedrom script captures what's going on relatively well:
 ],
 config: { hscale: 2 }
 }
-
 
 
 
