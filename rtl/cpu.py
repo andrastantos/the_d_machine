@@ -191,7 +191,6 @@ class DataPath(Module):
 
     l_bus_d_load_bus_d = Input(logic)
     l_bus_d_load_alu_result = Input(logic)
-    l_bus_d_load_l_alu_result = Input(logic)
 
     alu_a_select_pc = Input(logic)
     alu_a_select_sp = Input(logic)
@@ -294,8 +293,7 @@ class DataPath(Module):
         l_bus_a.input_port <<= alu_result
         l_bus_d.input_port <<= or_gate(
             and_gate(repeat(self.l_bus_d_load_bus_d, DataWidth), self.bus_d_in),
-            and_gate(repeat(self.l_bus_d_load_alu_result, DataWidth), alu_result),
-            and_gate(repeat(self.l_bus_d_load_l_alu_result, DataWidth), l_alu_result.output_port)
+            and_gate(repeat(self.l_bus_d_load_alu_result, DataWidth), alu_result)
         )
         l_alu_result.input_port <<= alu_result
         l_pc.input_port <<= l_alu_result.output_port
@@ -388,7 +386,6 @@ class Sequencer(Module):
 
     l_bus_d_load_bus_d =        Output(logic)
     l_bus_d_load_alu_result =   Output(logic)
-    l_bus_d_load_l_alu_result = Output(logic)
 
     alu_a_select_pc       = Output(logic)
     alu_a_select_sp       = Output(logic)
@@ -483,12 +480,12 @@ class Sequencer(Module):
             (phase + Select(inst_is_INST_SWAP | (phase != 2), 2, 1))[2:0],
             0
         )
-        phase0 = phase == 0
-        phase1 = phase == 1
-        phase2 = phase == 2
-        phase3 = phase == 3
-        phase4 = phase == 4
-        phase5 = phase == 5
+        phase0 = phase == 0    # Instruction fetch
+        phase1 = phase == 1    # Doesn't matter, latch is disabled
+        phase2 = phase == 2    # Data fetch, capture it for write-back
+        phase3 = phase == 3    # SWAP cycle: in here we put l_bus_d into l_alu_result
+        phase4 = phase == 4    # Capture ALU result
+        phase5 = phase == 5    # Capture ALU result for result write-back
 
 
         update_mem <<= or_gate(
@@ -555,8 +552,8 @@ class Sequencer(Module):
             0,
             1,
             0, # SWAP cycle: in here we put l_bus_d into l_alu_result
-            inst_is_INST_SWAP,
-            inst_is_not_INST_SWAP,
+            inst_is_INST_SWAP | (inst_is_not_INST_SWAP & update_mem),
+            0,
         )
 
         self.l_bus_d_load_bus_d <<= Select(phase,
@@ -575,14 +572,6 @@ class Sequencer(Module):
             1, # Capture ALU result
             0  # Capture ALU result for result write-back
         )
-        self.l_bus_d_load_l_alu_result <<= Select(phase,
-            0, # Instruction fetch, capture it for write-back
-            0, # Doesn't matter, latch is disabled
-            0, # Data fetch, capture it for write-back
-            0, # SWAP cycle: Doesn't matter, latch is disabled
-            0, # Capture ALU result
-            1  # Capture ALU result for result write-back
-        )
 
         self.l_alu_result_ld <<= Select(phase,
             1,
@@ -599,7 +588,7 @@ class Sequencer(Module):
         l_was_branch.input_port <<= is_branch
         l_was_branch.latch_port <<= phase5
 
-        self.l_pc_ld <<= or_gate(phase2, and_gate(phase5, is_branch))
+        self.l_pc_ld <<= or_gate(phase1, and_gate(phase5, is_branch))
 
         ld_target = and_gate(phase5, update_reg)
         self.l_sp_ld <<= ld_target & (self.inst_field_opa == OPA_SP)
@@ -785,7 +774,6 @@ class Cpu(Module):
 
         data_path.l_bus_d_load_bus_d <<= sequencer.l_bus_d_load_bus_d
         data_path.l_bus_d_load_alu_result <<= sequencer.l_bus_d_load_alu_result
-        data_path.l_bus_d_load_l_alu_result <<= sequencer.l_bus_d_load_l_alu_result
 
         data_path.alu_a_select_pc <<= sequencer.alu_a_select_pc
         data_path.alu_a_select_sp <<= sequencer.alu_a_select_sp
@@ -849,7 +837,7 @@ def generic_latch_injector(module: Module):
         # - two NAND gates (3 transistors per) to create the latch-enable logic
         # I don't think the reset port matters in this particular design so that's going to be ignored for now
         return bit_count * (3+3+2+3+3)
-    
+
     module.get_transistor_count = transistor_count
 
 def bail(module):
@@ -894,4 +882,3 @@ if __name__ == '__main__':
             break
         assert found
         continue
-        
