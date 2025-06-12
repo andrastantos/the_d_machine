@@ -1,0 +1,17 @@
+.title KiCad schematic
+.include "/home/tantos/tcomp/spice_models/standard.bjt"
+.include "/home/tantos/tcomp/spice_models/standard.dio"
+.save all
+.probe alli
+.temp = -25
+
+R2 /BASE 0 300
+R1 Net-_Q3-E_ /BASE 600
+V2 /IN 0 PULSE( 0 5 2n 2n 2n 50n 100n 100 ) 
+Q3 VCC /IN Net-_Q3-E_ 2N3904
+R3 VCC /OUT 300
+Q2 /OUT /BASE 0 2N3904
+D1 /BASE /OUT BAT54
+Q1 unconnected-_Q1-C-Pad1_ unconnected-_Q1-B-Pad2_ unconnected-_Q1-E-Pad3_ 2N3906
+V1 VCC 0 DC 5 
+.end
