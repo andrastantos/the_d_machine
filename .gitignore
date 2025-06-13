@@ -151,3 +151,6 @@ verilog_tests/*
 repro/*
 unit_tests/my_fsm
 cuttingroom_floor/*
+
+**/*-backups/*
+fp-info-cache
