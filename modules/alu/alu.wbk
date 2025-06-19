@@ -42,20 +42,6 @@
         },
         {
           "color": "rgb(231, 138, 195)",
-          "cursor1": {
-            "position": 1.2000796886784318e-05,
-            "x_format": "3~s",
-            "y_format": "3~V"
-          },
-          "cursor2": {
-            "position": 1.2324021532684496e-05,
-            "x_format": "3~s",
-            "y_format": "3~V"
-          },
-          "cursorD": {
-            "x_format": "3~s",
-            "y_format": "3~V"
-          },
           "signal": "V(/C_IN)",
           "trace_type": 257
         },
@@ -66,6 +52,20 @@
         },
         {
           "color": "rgb(247, 129, 191)",
+          "cursor1": {
+            "position": 1.999658477092435e-06,
+            "x_format": "3~s",
+            "y_format": "3~V"
+          },
+          "cursor2": {
+            "position": 2.3299312182908964e-06,
+            "x_format": "3~s",
+            "y_format": "3~V"
+          },
+          "cursorD": {
+            "x_format": "3~s",
+            "y_format": "3~V"
+          },
           "signal": "V(/S15)",
           "trace_type": 257
         },
