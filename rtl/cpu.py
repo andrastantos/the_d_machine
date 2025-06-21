@@ -3,6 +3,7 @@ from typing import *
 from silicon import *
 from silicon.memory import SimpleDualPortMemory
 from constants import *
+from types import MethodType
 
 """
 This is a simulation model of the transistorized computer.
@@ -824,9 +825,16 @@ class Cpu(Module):
 
 def default_injector(module: Module):
     def transistor_count(self: Module):
-        return 0
+        transistor_count = 0
+        sub_modules = self.get_sub_modules()
+        if len(sub_modules) == 0:
+            print(f"****************** {module} doesn't have any transistors defined!!!")
+        for sub_module in sub_modules:
+            transistor_count += sub_module.get_transistor_count()
+        return transistor_count
 
-    module.get_transistor_count = transistor_count
+    method = MethodType(transistor_count, module)
+    module._impl.supersetattr("get_transistor_count", method)
 
 def generic_latch_injector(module: Module):
     def transistor_count(self: GenericLatch):
@@ -838,19 +846,107 @@ def generic_latch_injector(module: Module):
         # I don't think the reset port matters in this particular design so that's going to be ignored for now
         return bit_count * (3+3+2+3+3)
 
-    module.get_transistor_count = transistor_count
+    method = MethodType(transistor_count, module)
+    module._impl.supersetattr("get_transistor_count", method)
 
-def bail(module):
-    raise SyntaxErrorException(f"Module: {module} is not in injector table")
+# Gates will get much more complex for at least two reasons:
+# - AOI gates get created
+# - Constant inputs simplfy gates on a *bit* level
+# For now, however, I simply assume no double-inverters on AND and OR gates and no simplification either.
+# This should get me in the ballpark at least.
+
+def xor_injector(module: Module):
+    def transistor_count(self: GenericLatch):
+        bit_count = max(port.get_num_bits() for port in self.get_ports().values())
+        return bit_count * 8
+
+    method = MethodType(transistor_count, module)
+    module._impl.supersetattr("get_transistor_count", method)
+
+def or_injector(module: Module):
+    def transistor_count(self: GenericLatch):
+        bit_count = max(port.get_num_bits() for port in self.get_ports().values())
+        return bit_count
+
+    method = MethodType(transistor_count, module)
+    module._impl.supersetattr("get_transistor_count", method)
+
+def and_injector(module: Module):
+    def transistor_count(self: GenericLatch):
+        bit_count = max(port.get_num_bits() for port in self.get_ports().values())
+        return bit_count
+
+    method = MethodType(transistor_count, module)
+    module._impl.supersetattr("get_transistor_count", method)
+
+def not_injector(module: Module):
+    def transistor_count(self: GenericLatch):
+        bit_count = max(port.get_num_bits() for port in self.get_ports().values())
+        return bit_count
+
+    method = MethodType(transistor_count, module)
+    module._impl.supersetattr("get_transistor_count", method)
+
+def zero_injector(module: Module):
+    def transistor_count(self: GenericLatch):
+        return 0
+
+    method = MethodType(transistor_count, module)
+    module._impl.supersetattr("get_transistor_count", method)
+
+def eq_ne_injector(module: Module):
+    def transistor_count(self: GenericLatch):
+        bit_count = max(port.get_num_bits() for port in self.get_ports().values())
+        return bit_count * 9 + 2 # We need an XOR gate for each bit, plus an AND gate that has two inverters at the end
+
+    method = MethodType(transistor_count, module)
+    module._impl.supersetattr("get_transistor_count", method)
+
+def sum_injector(module: Module):
+    def transistor_count(self: GenericLatch):
+        adder_count = len(self.get_inputs())-1
+        bit_count = max(port.get_num_bits() for port in self.get_ports().values())
+        return bit_count * adder_count * (8+8+4) # We need two XOR gates and an OR gate (the two AND gates are assumed to be pulled from the XORs)
+
+    method = MethodType(transistor_count, module)
+    module._impl.supersetattr("get_transistor_count", method)
+
+def select_one_injector(module: Module):
+    def transistor_count(self: GenericLatch):
+        bit_count = 0
+        branch_count = 0
+        for port_name, port in self.get_inputs().items():
+            if port_name.startswith("value_"):
+                bit_count = max(bit_count, port.get_num_bits())
+                branch_count += 1
+            elif port_name == "default_port" and port.get_net_type() is not None:
+                bit_count = max(bit_count, port.get_num_bits())
+                branch_count += 1
+        return bit_count * (branch_count*(2 + 1) + 2) # For ech bit we need an AND gate and an OR input per branch plus a non-inverting driver in the end
+
+    method = MethodType(transistor_count, module)
+    module._impl.supersetattr("get_transistor_count", method)
+
 
 module_injectors = {
-    Cpu: None,
-    DataPath: None,
-    Sequencer: None,
     GenericLatch: generic_latch_injector,
-    Concatenator: None,
-    "Slice": None,
-    Module: bail
+    Concatenator: zero_injector,
+    "Slice": zero_injector,
+    Module: default_injector,
+    xor_gate: xor_injector,
+    or_gate: or_injector,
+    and_gate: and_injector,
+    not_gate: not_injector,
+    ConstantModule: zero_injector,
+    eq_gate: eq_ne_injector,
+    ne_gate: eq_ne_injector,
+    "PhiSlice": zero_injector,
+    "TrivialAdaptor": zero_injector,
+    #Select: select_injector,
+    sum_gate: sum_injector,
+    SelectOne: select_one_injector,
+    "EnumAdaptor": zero_injector,
+
 }
 
 if __name__ == '__main__':
@@ -870,10 +966,9 @@ if __name__ == '__main__':
                 injector = module_injectors[base]
             except KeyError:
                 try:
-                    injector = module_injectors[str(base)]
+                    injector = module_injectors[base.__name__]
                 except KeyError:
                     continue
-                continue
             if injector is not None:
                 injector(module)
             else:
@@ -882,3 +977,6 @@ if __name__ == '__main__':
             break
         assert found
         continue
+    transistor_count = netlist.top_level.get_transistor_count()
+    print(f"Total transistors needed: {transistor_count}")
+
