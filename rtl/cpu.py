@@ -472,15 +472,6 @@ class Sequencer(Module):
         l_phase.reset_value_port <<= 1
         l_phase_next.reset_value_port <<= 2
         phase <<= l_phase.output_port
-
-        opb_is_mem_ref = self.inst_field_opb[2] != OPB_CLASS_IMM
-        opb_is_imm_ref = not_gate(opb_is_mem_ref)
-        # We skip over phase 4 for anything but a SWAP instruction
-        l_phase_next.input_port <<= Select(
-            phase == 5,
-            (phase + Select(inst_is_INST_SWAP | (phase != 2), 2, 1))[2:0],
-            0
-        )
         phase0 = phase == 0    # Instruction fetch
         phase1 = phase == 1    # Doesn't matter, latch is disabled
         phase2 = phase == 2    # Data fetch, capture it for write-back
@@ -488,6 +479,13 @@ class Sequencer(Module):
         phase4 = phase == 4    # Capture ALU result
         phase5 = phase == 5    # Capture ALU result for result write-back
 
+        opb_is_mem_ref = self.inst_field_opb[2] != OPB_CLASS_IMM
+        opb_is_imm_ref = not_gate(opb_is_mem_ref)
+        # We skip over phase 4 for anything but a SWAP instruction
+        skip_phase = ~(inst_is_INST_SWAP | (~phase2))
+        phase_increment = concat(skip_phase, ~skip_phase)
+        #phase_increment = Select(inst_is_INST_SWAP | (~phase2), 2, 1)
+        l_phase_next.input_port <<= and_gate(repeat(~phase5, 3), (phase + phase_increment)[2:0])
 
         update_mem <<= or_gate(
             # Swap always updates mem
@@ -502,85 +500,76 @@ class Sequencer(Module):
             and_gate(inst_is_not_predicate, inst_field_d_n)
         )
 
-        l_int_cycle.input_port <<= Select(self.rst,
-            Select(phase,
-                self.serve_interrupt,
-                0,
-                0,
-                0,
-                0,
-                0,
-            ),
-            0
+        l_int_cycle.input_port <<= (~self.rst) & SelectOne(
+            phase0, self.serve_interrupt,
+            phase1, 0,
+            phase2, 0,
+            phase3, 0,
+            phase4, 0,
+            phase5, 0,
         )
         l_int_cycle.latch_port <<= or_gate(phase0, phase5)
 
-        self.bus_wr <<= Select(self.rst,
-            Select(phase,
-                0,
-                1,
-                0,
-                0, # SWAP-only cycle
-                0,
-                opb_is_mem_ref,
-            ),
-            0
+        self.bus_wr <<= (~self.rst) & SelectOne(
+            phase0, 0,
+            phase1, 1,
+            phase2, 0,
+            phase3, 0, # SWAP-only cycle
+            phase4, 0,
+            phase5, opb_is_mem_ref,
         )
 
-        self.bus_rd <<= Select(self.rst,
-            Select(phase,
-                1,
-                0,
-                opb_is_mem_ref,
-                0, # SWAP-only cycle
-                0,
-                0,
-            ),
-            0
+        self.bus_rd <<= (~self.rst) & SelectOne(
+            phase0, 1,
+            phase1, 0,
+            phase2, opb_is_mem_ref,
+            phase3, 0, # SWAP-only cycle
+            phase4, 0,
+            phase5, 0,
         )
 
-        self.l_bus_a_ld <<= Select(phase,
-            1,
-            0,
-            1,
-            0,
-            0,
-            0,
+        self.l_bus_a_ld <<= SelectOne(
+            phase0, 1,
+            phase1, 0,
+            phase2, 1,
+            phase3, 0,
+            phase4, 0,
+            phase5, 0,
         )
 
-        self.l_bus_d_ld <<= Select(phase,
-            1,
-            0,
-            1,
-            0, # SWAP cycle: in here we put l_bus_d into l_alu_result
-            inst_is_INST_SWAP | update_mem,
-            0,
+        self.l_bus_d_ld <<= SelectOne(
+            phase0, 1,
+            phase1, 0,
+            phase2, 1,
+            phase3, 0, # SWAP cycle: in here we put l_bus_d into l_alu_result
+            phase4, inst_is_INST_SWAP | update_mem,
+            phase5, 0,
         )
 
-        self.l_bus_d_load_bus_d <<= Select(phase,
-            1, # Instruction fetch, capture it for write-back
-            0, # Doesn't matter, latch is disabled
-            1, # Data fetch, capture it for write-back
-            0, # SWAP cycle: Doesn't matter, latch is disabled
-            0, # Capture ALU result
-            0  # Capture ALU result for result write-back
+        self.l_bus_d_load_bus_d <<= SelectOne(
+            phase0, 1, # Instruction fetch, capture it for write-back
+            phase1, 0, # Doesn't matter, latch is disabled
+            phase2, 1, # Data fetch, capture it for write-back
+            phase3, 0, # SWAP cycle: Doesn't matter, latch is disabled
+            phase4, 0, # Capture ALU result
+            phase5, 0  # Capture ALU result for result write-back
         )
-        self.l_bus_d_load_alu_result <<= Select(phase,
-            0, # Instruction fetch, capture it for write-back
-            0, # Doesn't matter, latch is disabled
-            0, # Data fetch, capture it for write-back
-            0, # SWAP cycle: Doesn't matter, latch is disabled
-            1, # Capture ALU result
-            0  # Capture ALU result for result write-back
+        self.l_bus_d_load_alu_result <<= SelectOne(
+            phase0, 0, # Instruction fetch, capture it for write-back
+            phase1, 0, # Doesn't matter, latch is disabled
+            phase2, 0, # Data fetch, capture it for write-back
+            phase3, 0, # SWAP cycle: Doesn't matter, latch is disabled
+            phase4, 1, # Capture ALU result
+            phase5, 0  # Capture ALU result for result write-back
         )
 
-        self.l_alu_result_ld <<= Select(phase,
-            1,
-            0,
-            0,
-            1, # Capture result in l_alu_result for SWAP instructions
-            inst_is_not_INST_SWAP, # Capture result in l_alu_result in non-SWAP instructions only
-            0,
+        self.l_alu_result_ld <<= SelectOne(
+            phase0, 1,
+            phase1, 0,
+            phase2, 0,
+            phase3, 1, # Capture result in l_alu_result for SWAP instructions
+            phase4, inst_is_not_INST_SWAP, # Capture result in l_alu_result in non-SWAP instructions only
+            phase5, 0,
         )
 
         self.l_inst_ld <<= phase0
@@ -687,13 +676,13 @@ class Sequencer(Module):
         #    ),
         #)
 
-        alu_a_select = Select(phase,
-            AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
-            opb_base,   # compute opb offset
-            opb_base,   # compute opb offset
-            AluASelect.l_bus_d, # skip-cycle for SWAP only
-            opa_select, # execute instruction
-            AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
+        alu_a_select = SelectOne(
+            phase0, AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
+            phase1, opb_base,   # compute opb offset
+            phase2, opb_base,   # compute opb offset
+            phase3, AluASelect.l_bus_d, # skip-cycle for SWAP only
+            phase4, opa_select, # execute instruction
+            phase5, AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
         )
 
         self.alu_a_select_pc       <<= alu_a_select == AluASelect.pc
@@ -951,7 +940,7 @@ module_injectors = {
 
 if __name__ == '__main__':
     with Netlist().elaborate() as netlist:
-        Cpu()
+        Sequencer()
     print("Done with elaboration")
     import inspect
     for module in netlist.modules:
