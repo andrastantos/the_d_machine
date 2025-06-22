@@ -164,7 +164,7 @@ class Alu(Module):
         del bitslice # clean up the namespace a little
 
         self.c_out <<= c_chain ^ (self.inv_a_in | self.inv_b_in)
-        self.z_out <<= self.o_out == 0
+        self.z_out <<= ~or_gate(*self.o_out)
         self.s_out <<= self.o_out[15]
         # overflow for now is only valid for a_minus_b (which is what all the predicates use)
         # See https://en.wikipedia.org/wiki/Overflow_flag for details
@@ -435,26 +435,31 @@ class Sequencer(Module):
         l_was_branch = HighLatch()
         l_int_cycle = HighLatch()
 
-        inst_is_predicate = self.inst_field_opcode[3:2] == INST_GROUP_PREDICATE
+        inst_group_decoder = OneHotDecode()
+        inst_group_decoder.input_port <<= self.inst_field_opcode[3:2]
+        inst_is_predicate = inst_group_decoder.decode(INST_GROUP_PREDICATE)
         inst_is_not_predicate = not_gate(inst_is_predicate)
-        inst_is_unary = self.inst_field_opcode[3:2] == INST_GROUP_UNARY
+        inst_is_unary = inst_group_decoder.decode(INST_GROUP_UNARY)
         inst_is_not_unary = not_gate(inst_is_unary)
 
-        inst_is_INST_SWAP  = self.inst_field_opcode == INST_SWAP
-        inst_is_INST_OR    = self.inst_field_opcode == INST_OR
-        inst_is_INST_AND   = self.inst_field_opcode == INST_AND
-        inst_is_INST_XOR   = self.inst_field_opcode == INST_XOR
-        inst_is_INST_ADD   = self.inst_field_opcode == INST_ADD
-        inst_is_INST_SUB   = self.inst_field_opcode == INST_SUB
-        inst_is_INST_ISUB  = self.inst_field_opcode == INST_ISUB
-        inst_is_INST_ROR   = self.inst_field_opcode == INST_ROR
-        inst_is_INST_ROL   = self.inst_field_opcode == INST_ROL
-        inst_is_INST_MOV   = self.inst_field_opcode == INST_MOV
-        inst_is_INST_ISTAT = self.inst_field_opcode == INST_ISTAT
-        inst_is_INST_EQ    = self.inst_field_opcode == INST_EQ
-        inst_is_INST_LTU   = self.inst_field_opcode == INST_LTU
-        inst_is_INST_LTS   = self.inst_field_opcode == INST_LTS
-        inst_is_INST_LES   = self.inst_field_opcode == INST_LES
+        opcode_decoder = OneHotDecode()
+        opcode_decoder.input_port <<= self.inst_field_opcode
+
+        inst_is_INST_SWAP  = opcode_decoder.decode(INST_SWAP)
+        inst_is_INST_OR    = opcode_decoder.decode(INST_OR)
+        inst_is_INST_AND   = opcode_decoder.decode(INST_AND)
+        inst_is_INST_XOR   = opcode_decoder.decode(INST_XOR)
+        inst_is_INST_ADD   = opcode_decoder.decode(INST_ADD)
+        inst_is_INST_SUB   = opcode_decoder.decode(INST_SUB)
+        inst_is_INST_ISUB  = opcode_decoder.decode(INST_ISUB)
+        inst_is_INST_ROR   = opcode_decoder.decode(INST_ROR)
+        inst_is_INST_ROL   = opcode_decoder.decode(INST_ROL)
+        inst_is_INST_MOV   = opcode_decoder.decode(INST_MOV)
+        inst_is_INST_ISTAT = opcode_decoder.decode(INST_ISTAT)
+        inst_is_INST_EQ    = opcode_decoder.decode(INST_EQ)
+        inst_is_INST_LTU   = opcode_decoder.decode(INST_LTU)
+        inst_is_INST_LTS   = opcode_decoder.decode(INST_LTS)
+        inst_is_INST_LES   = opcode_decoder.decode(INST_LES)
 
         inst_is_not_INST_SWAP = not_gate(inst_is_INST_SWAP)
         inst_is_not_INST_MOV   = not_gate(inst_is_INST_MOV)
@@ -472,12 +477,14 @@ class Sequencer(Module):
         l_phase.reset_value_port <<= 1
         l_phase_next.reset_value_port <<= 2
         phase <<= l_phase.output_port
-        phase0 = phase == 0    # Instruction fetch
-        phase1 = phase == 1    # Doesn't matter, latch is disabled
-        phase2 = phase == 2    # Data fetch, capture it for write-back
-        phase3 = phase == 3    # SWAP cycle: in here we put l_bus_d into l_alu_result
-        phase4 = phase == 4    # Capture ALU result
-        phase5 = phase == 5    # Capture ALU result for result write-back
+        phase_decoder = OneHotDecode()
+        phase_decoder.input_port <<= phase
+        phase0 = phase_decoder.decode(0)    # Instruction fetch
+        phase1 = phase_decoder.decode(1)    # Doesn't matter, latch is disabled
+        phase2 = phase_decoder.decode(2)    # Data fetch, capture it for write-back
+        phase3 = phase_decoder.decode(3)    # SWAP cycle: in here we put l_bus_d into l_alu_result
+        phase4 = phase_decoder.decode(4)    # Capture ALU result
+        phase5 = phase_decoder.decode(5)    # Capture ALU result for result write-back
 
         opb_is_mem_ref = self.inst_field_opb[2] != OPB_CLASS_IMM
         opb_is_imm_ref = not_gate(opb_is_mem_ref)
@@ -574,16 +581,23 @@ class Sequencer(Module):
 
         self.l_inst_ld <<= phase0
 
-        is_branch = update_reg & (self.inst_field_opa == OPA_PC)
+        opa_decoder = OneHotDecode()
+        opa_decoder.input_port <<= self.inst_field_opa
+        opa_is_pc = opa_decoder.decode(OPA_PC)
+        opa_is_sp = opa_decoder.decode(OPA_SP)
+        opa_is_r0 = opa_decoder.decode(OPA_R0)
+        opa_is_r1 = opa_decoder.decode(OPA_R1)
+
+        is_branch = update_reg & opa_is_pc
         l_was_branch.input_port <<= is_branch
         l_was_branch.latch_port <<= phase5
 
         self.l_pc_ld <<= or_gate(phase1, and_gate(phase5, is_branch))
 
         ld_target = and_gate(phase5, update_reg)
-        self.l_sp_ld <<= ld_target & (self.inst_field_opa == OPA_SP)
-        self.l_r0_ld <<= ld_target & (self.inst_field_opa == OPA_R0)
-        self.l_r1_ld <<= ld_target & (self.inst_field_opa == OPA_R1)
+        self.l_sp_ld <<= ld_target & opa_is_sp
+        self.l_r0_ld <<= ld_target & opa_is_r0
+        self.l_r1_ld <<= ld_target & opa_is_r1
 
         # Let's figure out what the ALU should do and on what for each cycle
         self.alu_cmd_nor   <<= and_gate(phase4, inst_is_INST_AND)
@@ -617,23 +631,25 @@ class Sequencer(Module):
                 inst_is_INST_SUB,
                 inst_is_INST_ISUB,
                 inst_is_predicate,
-                and_gate(inst_is_INST_SWAP, (self.inst_field_opa == OPA_PC), not_gate(l_int_cycle.output_port))
+                and_gate(inst_is_INST_SWAP, opa_is_pc, not_gate(l_int_cycle.output_port))
             )),
             and_gate(phase5, ~is_branch)
         )
 
+        opb_base_decode = OneHotDecode()
         inst_field_opb_base = self.inst_field_opb[OPB_BASE_SIZE+OPB_BASE_OFS-1:OPB_BASE_OFS]
+        opb_base_decode.input_port <<= inst_field_opb_base
         opb_base = SelectOne(
-            inst_field_opb_base == (OPB_IMMED_PC & OPB_BASE_MASK),      AluASelect.pc,
-            inst_field_opb_base == (OPB_IMMED_SP & OPB_BASE_MASK),      AluASelect.sp,
-            inst_field_opb_base == (OPB_IMMED_R0 & OPB_BASE_MASK),      AluASelect.r0,
-            inst_field_opb_base == (OPB_IMMED    & OPB_BASE_MASK),      AluASelect.zero,
+            opb_base_decode.decode(OPB_IMMED_PC & OPB_BASE_MASK),      AluASelect.pc,
+            opb_base_decode.decode(OPB_IMMED_SP & OPB_BASE_MASK),      AluASelect.sp,
+            opb_base_decode.decode(OPB_IMMED_R0 & OPB_BASE_MASK),      AluASelect.r0,
+            opb_base_decode.decode(OPB_IMMED    & OPB_BASE_MASK),      AluASelect.zero,
         )
         opa_reg = SelectOne(
-            self.inst_field_opa == OPA_PC, AluASelect.pc,
-            self.inst_field_opa == OPA_SP, AluASelect.sp,
-            self.inst_field_opa == OPA_R0, AluASelect.r0,
-            self.inst_field_opa == OPA_R1, AluASelect.r1,
+            opa_is_pc, AluASelect.pc,
+            opa_is_sp, AluASelect.sp,
+            opa_is_r0, AluASelect.r0,
+            opa_is_r1, AluASelect.r1,
         )
         move_to_reg =   and_gate(inst_is_INST_MOV, inst_field_d_n)
         move_to_reg_n = and_gate(not_gate(move_to_reg), inst_is_not_INST_ISTAT)
@@ -685,13 +701,15 @@ class Sequencer(Module):
             phase5, AluASelect.pc,   # increment PC or do nothing (i.e. adding 0)
         )
 
-        self.alu_a_select_pc       <<= alu_a_select == AluASelect.pc
-        self.alu_a_select_sp       <<= alu_a_select == AluASelect.sp
-        self.alu_a_select_r0       <<= alu_a_select == AluASelect.r0
-        self.alu_a_select_r1       <<= alu_a_select == AluASelect.r1
-        self.alu_a_select_zero     <<= alu_a_select == AluASelect.zero
-        self.alu_a_select_int_stat <<= alu_a_select == AluASelect.int_stat
-        self.alu_a_select_l_bus_d  <<= alu_a_select == AluASelect.l_bus_d
+        alu_a_decode = OneHotDecode()
+        alu_a_decode.input_port <<= alu_a_select
+        self.alu_a_select_pc       <<= alu_a_decode.decode(AluASelect.pc)
+        self.alu_a_select_sp       <<= alu_a_decode.decode(AluASelect.sp)
+        self.alu_a_select_r0       <<= alu_a_decode.decode(AluASelect.r0)
+        self.alu_a_select_r1       <<= alu_a_decode.decode(AluASelect.r1)
+        self.alu_a_select_zero     <<= alu_a_decode.decode(AluASelect.zero)
+        self.alu_a_select_int_stat <<= alu_a_decode.decode(AluASelect.int_stat)
+        self.alu_a_select_l_bus_d  <<= alu_a_decode.decode(AluASelect.l_bus_d)
 
 
         alu_b_is_zero_for_exec = or_gate(inst_is_INST_SWAP, and_gate(inst_is_INST_MOV, self.inst_field_d))
@@ -705,10 +723,10 @@ class Sequencer(Module):
         self.alu_b_select_l_bus_a <<= and_gate(phase4, alu_b_is_imm_ref_for_exec)
 
         raw_condition_match = SelectOne(
-            self.inst_field_opcode == INST_EQ, (self.alu_z_out == 1),
-            self.inst_field_opcode == INST_LTU, (self.alu_c_out == 1),
-            self.inst_field_opcode == INST_LTS, (self.alu_s_out ^ self.alu_v_out),
-            self.inst_field_opcode == INST_LES, (self.alu_s_out ^ self.alu_v_out) | (self.alu_z_out == 1),
+            inst_is_INST_EQ, (self.alu_z_out),
+            inst_is_INST_LTU, (self.alu_c_out),
+            inst_is_INST_LTS, (self.alu_s_out ^ self.alu_v_out),
+            inst_is_INST_LES, (self.alu_s_out ^ self.alu_v_out) | (self.alu_z_out),
         )
         condition_match = raw_condition_match ^ ~self.inst_field_d
 
@@ -927,7 +945,7 @@ module_injectors = {
     and_gate: and_injector,
     not_gate: not_injector,
     ConstantModule: zero_injector,
-    eq_gate: eq_ne_injector,
+    #eq_gate: eq_ne_injector,
     ne_gate: eq_ne_injector,
     "PhiSlice": zero_injector,
     "TrivialAdaptor": zero_injector,
@@ -940,7 +958,7 @@ module_injectors = {
 
 if __name__ == '__main__':
     with Netlist().elaborate() as netlist:
-        Sequencer()
+        Cpu()
     print("Done with elaboration")
     import inspect
     for module in netlist.modules:
