@@ -830,20 +830,23 @@ class Cpu(Module):
 # Modules don't have a terribly wild inhertience structure (as opposed to nets which inherit from their nettype dynamically)
 # so a simple lookup should suffice
 
-def default_injector(module: Module):
+def default_injector(module: Module, base: Union[Type, str]):
     def transistor_count(self: Module):
-        transistor_count = 0
+        transistor_counts = dict()
         sub_modules = self.get_sub_modules()
         if len(sub_modules) == 0:
             print(f"****************** {module} doesn't have any transistors defined!!!")
         for sub_module in sub_modules:
-            transistor_count += sub_module.get_transistor_count()
-        return transistor_count
+            sub_counts = sub_module.get_transistor_count()
+            for sub_key, sub_count in sub_counts.items():
+                transistor_counts[sub_key] = transistor_counts.get(sub_key, 0) + sub_count
+        return transistor_counts
 
     method = MethodType(transistor_count, module)
     module._impl.supersetattr("get_transistor_count", method)
+    module._impl.supersetattr("transistor_count_category", base)
 
-def generic_latch_injector(module: Module):
+def generic_latch_injector(module: Module, base: Union[Type, str]):
     def transistor_count(self: GenericLatch):
         bit_count = self.input_port.get_num_bits()
         # For now, we'll simply assume
@@ -851,10 +854,11 @@ def generic_latch_injector(module: Module):
         # - a data inverter (2 transistors) to create d_n from d
         # - two NAND gates (3 transistors per) to create the latch-enable logic
         # I don't think the reset port matters in this particular design so that's going to be ignored for now
-        return bit_count * (3+3+2+3+3)
+        return {self.transistor_count_category: bit_count * (3+3+2+3+3)}
 
     method = MethodType(transistor_count, module)
     module._impl.supersetattr("get_transistor_count", method)
+    module._impl.supersetattr("transistor_count_category", base)
 
 # Gates will get much more complex for at least two reasons:
 # - AOI gates get created
@@ -862,63 +866,70 @@ def generic_latch_injector(module: Module):
 # For now, however, I simply assume no double-inverters on AND and OR gates and no simplification either.
 # This should get me in the ballpark at least.
 
-def xor_injector(module: Module):
+def xor_injector(module: Module, base: Union[Type, str]):
     def transistor_count(self: GenericLatch):
         bit_count = max(port.get_num_bits() for port in self.get_ports().values())
-        return bit_count * 8
+        return {self.transistor_count_category: bit_count * 8}
 
     method = MethodType(transistor_count, module)
     module._impl.supersetattr("get_transistor_count", method)
+    module._impl.supersetattr("transistor_count_category", base)
 
-def or_injector(module: Module):
+def or_injector(module: Module, base: Union[Type, str]):
     def transistor_count(self: GenericLatch):
         bit_count = max(port.get_num_bits() for port in self.get_ports().values())
-        return bit_count
+        return {self.transistor_count_category: bit_count}
 
     method = MethodType(transistor_count, module)
     module._impl.supersetattr("get_transistor_count", method)
+    module._impl.supersetattr("transistor_count_category", base)
 
-def and_injector(module: Module):
+def and_injector(module: Module, base: Union[Type, str]):
     def transistor_count(self: GenericLatch):
         bit_count = max(port.get_num_bits() for port in self.get_ports().values())
-        return bit_count
+        return {self.transistor_count_category: bit_count}
 
     method = MethodType(transistor_count, module)
     module._impl.supersetattr("get_transistor_count", method)
+    module._impl.supersetattr("transistor_count_category", base)
 
-def not_injector(module: Module):
+def not_injector(module: Module, base: Union[Type, str]):
     def transistor_count(self: GenericLatch):
         bit_count = max(port.get_num_bits() for port in self.get_ports().values())
-        return bit_count
+        return {self.transistor_count_category: bit_count}
 
     method = MethodType(transistor_count, module)
     module._impl.supersetattr("get_transistor_count", method)
+    module._impl.supersetattr("transistor_count_category", base)
 
-def zero_injector(module: Module):
+def zero_injector(module: Module, base: Union[Type, str]):
     def transistor_count(self: GenericLatch):
-        return 0
+        return {self.transistor_count_category: 0}
 
     method = MethodType(transistor_count, module)
     module._impl.supersetattr("get_transistor_count", method)
+    module._impl.supersetattr("transistor_count_category", base)
 
-def eq_ne_injector(module: Module):
+def eq_ne_injector(module: Module, base: Union[Type, str]):
     def transistor_count(self: GenericLatch):
         bit_count = max(port.get_num_bits() for port in self.get_ports().values())
-        return bit_count * 9 + 2 # We need an XOR gate for each bit, plus an AND gate that has two inverters at the end
+        return {self.transistor_count_category: bit_count * 9 + 2} # We need an XOR gate for each bit, plus an AND gate that has two inverters at the end
 
     method = MethodType(transistor_count, module)
     module._impl.supersetattr("get_transistor_count", method)
+    module._impl.supersetattr("transistor_count_category", base)
 
-def sum_injector(module: Module):
+def sum_injector(module: Module, base: Union[Type, str]):
     def transistor_count(self: GenericLatch):
         adder_count = len(self.get_inputs())-1
         bit_count = max(port.get_num_bits() for port in self.get_ports().values())
-        return bit_count * adder_count * (8+8+4) # We need two XOR gates and an OR gate (the two AND gates are assumed to be pulled from the XORs)
+        return {self.transistor_count_category: bit_count * adder_count * (8+8+4)} # We need two XOR gates and an OR gate (the two AND gates are assumed to be pulled from the XORs)
 
     method = MethodType(transistor_count, module)
     module._impl.supersetattr("get_transistor_count", method)
+    module._impl.supersetattr("transistor_count_category", base)
 
-def select_one_injector(module: Module):
+def select_one_injector(module: Module, base: Union[Type, str]):
     def transistor_count(self: GenericLatch):
         bit_count = 0
         branch_count = 0
@@ -929,10 +940,11 @@ def select_one_injector(module: Module):
             elif port_name == "default_port" and port.get_net_type() is not None:
                 bit_count = max(bit_count, port.get_num_bits())
                 branch_count += 1
-        return bit_count * (branch_count*(2 + 1) + 2) # For ech bit we need an AND gate and an OR input per branch plus a non-inverting driver in the end
+        return {self.transistor_count_category: bit_count * (branch_count*(2 + 1) + 2)} # For ech bit we need an AND gate and an OR input per branch plus a non-inverting driver in the end
 
     method = MethodType(transistor_count, module)
     module._impl.supersetattr("get_transistor_count", method)
+    module._impl.supersetattr("transistor_count_category", base)
 
 
 module_injectors = {
@@ -976,14 +988,18 @@ if __name__ == '__main__':
                     injector = module_injectors[base.__name__]
                 except KeyError:
                     continue
-            if injector is not None:
-                injector(module)
-            else:
-                default_injector(module)
+            injector(module, base)
             found = True
             break
         assert found
         continue
-    transistor_count = netlist.top_level.get_transistor_count()
+    transistor_counts: Dict = netlist.top_level.get_transistor_count()
+    transistor_count = sum(transistor_counts.values())
     print(f"Total transistors needed: {transistor_count}")
-
+    for key, count in transistor_counts.items():
+        try:
+            name = key.__name__
+        except AttributeError:
+            name = key
+        if count > 0:
+            print(f"    {name}: {count}")
