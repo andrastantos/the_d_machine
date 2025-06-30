@@ -1,0 +1,92 @@
+{
+  "last_sch_text_sim_command": "",
+  "tabs": [
+    {
+      "analysis": "TRAN",
+      "commands": [
+        ".tran 1n 15u",
+        ".kicad adjustpaths",
+        ".save all",
+        ".probe alli",
+        ".probe allp"
+      ],
+      "dottedSecondary": true,
+      "margins": {
+        "bottom": 45,
+        "left": 70,
+        "right": 70,
+        "top": 30
+      },
+      "measurements": [],
+      "showGrid": true,
+      "traces": [
+        {
+          "color": "rgb(255, 255, 51)",
+          "signal": "V(/A)",
+          "trace_type": 257
+        },
+        {
+          "color": "rgb(152, 78, 163)",
+          "signal": "V(/SENSE_OUT)",
+          "trace_type": 257
+        },
+        {
+          "color": "rgb(231, 138, 195)",
+          "cursor1": {
+            "position": 7.879954080374753e-06,
+            "x_format": "3~s",
+            "y_format": "3~V"
+          },
+          "cursorD": {
+            "x_format": "3~s",
+            "y_format": "3~V"
+          },
+          "signal": "V(Net-_Q10-E_)",
+          "trace_type": 257
+        },
+        {
+          "color": "rgb(252, 141, 98)",
+          "signal": "V(/INA)*100",
+          "trace_type": 257
+        },
+        {
+          "color": "rgb(141, 160, 203)",
+          "signal": "V(/INB)*100",
+          "trace_type": 257
+        }
+      ]
+    },
+    {
+      "analysis": "DC",
+      "commands": [
+        ".dc VINA1 -100m 100m 1m",
+        ".kicad adjustpaths",
+        ".save all",
+        ".probe alli",
+        ".probe allp"
+      ],
+      "dottedSecondary": true,
+      "margins": {
+        "bottom": 45,
+        "left": 70,
+        "right": 70,
+        "top": 30
+      },
+      "measurements": [],
+      "showGrid": true,
+      "traces": [
+        {
+          "color": "rgb(166, 86, 40)",
+          "signal": "V(Net-_D6-K_)",
+          "trace_type": 2049
+        }
+      ]
+    }
+  ],
+  "user_defined_signals": [
+    "V(/OUT)/1000",
+    "V(/INA)*100",
+    "V(/INB)*100"
+  ],
+  "version": 6
+}
