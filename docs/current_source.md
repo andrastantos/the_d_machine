@@ -5,7 +5,7 @@ I have written up a bunch of words, complete chapters in fact on how the current
 
 That happens, it's called a learning experience. At any rate, if you happen to come across these pages before, you please try to expunge all that information from your memory and I'm terribly sorry to entertain you wil false information.
 
-So, second time, a charm...
+So, second time, a charm. Maybe?
 
 A (very) short intro into core memories
 ========================================
@@ -16,23 +16,13 @@ Readout is achieved in a similar manner: enough current is passed through some w
 
 For this to work, the core needs to have a "square" hysteresis curve, in other words, it needs to be a pretty good permanent magnet.
 
-These windings that I was talking about are the simplest possible: a wire threaded through the hole in the core. They are single-turn windings. For this reason, they are not really called windings, just wires.
+These windings that I was talking about are the simplest possible: a wire threaded through the hole in the core. They are single-turn windings. For this reason, they are not really called windings, just lines.
 
-The square hysteresis curve allows for a trick in addressing: instead of using just one wire to send the read or write current through, we use two: an X and a Y wire and we organize the cores into a square matrix. Each of the X and Y currents only carry half of the current (called half-current) needed to flip the magnetization of the cores. Since X and Y wires intersect only on a single core (more on this later), only one core will see this full current applied. A full row and a full column will see half the current, but that doesn't change (much) the magnetization of the core due to the square hysteresis curve.
+The square hysteresis curve allows for a trick in addressing: instead of using just one line to send the read or write current through, we use two: an X and a Y line and we organize the cores into a square matrix. Each of the X and Y currents only carry half of the current (called half-current) needed to flip the magnetization of the cores. Since a pair of X and Y lines intersect only in a single core (in single-bit memories at least), only one core will see this full current applied. A full row and a full column will see half the current, but that's not enough to flip the magnetization of the core.
 
-So, we can select a single core by directing half-currents to one each of the many X and Y wires. Cool.
+For this scheme to work, we need current sources that can generate the requisite X and Y currents. We also need switches to direct the current to the right lines of course. Finally, since we're dealing with multi-bit memories, we also need current a current source to energize the inhibit lines during writes if we want to avoid overwriting a zero with a one.
 
-We read the memory by sending half-currents in one direction through the X and Y wires. These set the magnetic field of the selected core to '0' and induce a voltage spike (about 40mV) on the sense wire, if it wasn't '0' already.
-
-Write is achieved by applying a half-currents in the opposite direction through the X and Y wires, flipping the core in the intersection to the '1' state. Of course, if we try to write a '0' we can simply not do anything. As you saw in the previous sentence, reads are destructive: they clear the bits to '0'. So if we precede every write with a read, we can simply write '1' if needed and nothing if we're fine with the '0' content the read left behind.
-
-Things get more complicated in multi-bit memories: these have one such matrix for each bit-plane, but their X and Y wires are connected in series. This suddenly means that any X and Y wire has (in a 16-bit memory) 16 intersection points. That is fine for reads: we just need individual sense wires for each bit-plane, but what about writes? How do we prevent all selected bits in the bit-planes to flip to '1'? THe answer is an 'inhibit' current. This is sent in the sense wire (at least in my memory) in the opposite direction of the write current. It's amplitude is also a half-current and it cancels out one of the select currents; lowering the total to below the flip current threshold for the given bit-plane.
-
-In essence:
-
-1. We need a way to drive a 'half-current' into any of the X wires (128 in my case) in either direction for reads and writes
-2. We need a way to drive a 'half-current' into any of the Y wires (128 in my case) in either direction for reads and writes
-3. We need a way to drive a 'half-current' into any of the sense/inhibit wires (16 in my case) in one particular direction during writes
+In this chapter I'm going to introduce 
 
 For the topic at hand, we need current sources that can source this magical 'half-current'. This is documented to be 410mA for memory have.Life isn't that simple though. Ever. Among the many complications is that the 'half-current' is temperature dependent.
 
