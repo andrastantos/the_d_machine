@@ -1,0 +1,83 @@
+ 15   14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+| 0 | 0 |   Y row   |   Y column    |   X row   |   X column    |
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+
+
+
+
+
+      sense_en --------------+
+                             |
+                    +        |
+                    |\       |___+----.      +-----+
+        +-----------| \       ___ )    )-----+S    |
+        O           |  +-----'   +----'      |    Q+-----
+        +-----------| /                   +--+R    |
+                    |/ sense amp          |  +-----+
+                    +                     |
+                                          |
+     sense_clr ---------------------------+
+
+
+Read timing
+
+{signal: [
+  {name: 'phase',   wave:'552222222244', data: [6,7,0,1,2,3,4,5,6,7,0,1]},
+  {name: 'clk_8m', wave: 'p.....', period: 2},
+  {name: 'sys_clk', wave: '0.1...0...1.'},
+  [ "bus",
+    {name: 'b_rd_n',     wave: '1..0.......1.', phase:1.5},
+    {name: 'b_wr_n',     wave: '=..1.......=.', phase:1.5},
+    {name: 'b_cs_n',     wave: '=..0.......=', phase:0.5},
+  ],
+  {},
+  [ "internal control",
+    {name: 'x_rd_en_n',     wave: '1...0...1...'},
+    {name: 'x_wr_en_n',     wave: '1...........'},
+    {name: 'y_rd_en_n',     wave: '1..0....1...'},
+    {name: 'y_wr_en_n',     wave: '1...........'},
+    {name: 'inh_en_n',      wave: '1...........'},
+    {name: 'sense_clr',     wave: '0..1.0......'},
+    {name: 'sense_en',      wave: '0....1..0...'},
+  ],
+  {},
+  [ "actual currents",
+    {name: 'x',             wave: '0..z.....0..'},
+    {name: 'y',             wave: '0...z....0..'},
+    {name: 'inhibit',       wave: '0...........'},
+  ],
+],
+config: { hscale: 2 }
+}
+
+
+{signal: [
+  {name: 'phase',   wave:'552222222244', data: [6,7,0,1,2,3,4,5,6,7,0,1]},
+  {name: 'clk_8m', wave: 'p.....', period: 2},
+  {name: 'sys_clk', wave: '0.1...0...1.'},
+  [ "bus",
+    {name: 'b_rd_n',     wave: '1..0.......1.', phase:1.5},
+    {name: 'b_wr_n',     wave: '=..1.......=.', phase:1.5},
+    {name: 'b_cs_n',     wave: '=..0.......=', phase:0.5},
+  ],
+  {},
+  [ "internal control",
+    {name: 'x_rd_en_n',     wave: '1...........'},
+    {name: 'x_wr_en_n',     wave: '1...0...1...'},
+    {name: 'y_rd_en_n',     wave: '1...........'},
+    {name: 'y_wr_en_n',     wave: '1..0....1...'},
+    {name: 'inh_en_n',      wave: '1...0...1...'},
+    {name: 'sense_clr',     wave: '0...........'},
+    {name: 'sense_en',      wave: '0...........'},
+  ],
+  {},
+  [ "actual currents",
+    {name: 'x',             wave: '0..z.....0..'},
+    {name: 'y',             wave: '0...z....0..'},
+    {name: 'inhibit',       wave: '0...z....0..'},
+  ],
+],
+config: { hscale: 2 }
+}
