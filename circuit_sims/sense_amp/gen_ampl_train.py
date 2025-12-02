@@ -19,10 +19,11 @@ def advance_time(ns):
     cur_time += ns
 
 with open("ampl_train.pwl", 'w') as f:
-    for pulse_height in range(20, 40, 2):
+    for pulse_height in range(2, 40, 2):
         gen_pulse(f, edge_rate_ns=50, pulse_width_ns=200, pulse_height_mv=pulse_height, gap_ns=300)
 
     advance_time(1000)
 
     for pulse_width in range(10, 300, 10):
         gen_pulse(f, edge_rate_ns=1, pulse_width_ns=pulse_width, pulse_height_mv=30, gap_ns=300)
+        gen_pulse(f, edge_rate_ns=1, pulse_width_ns=pulse_width, pulse_height_mv=26, gap_ns=500)
