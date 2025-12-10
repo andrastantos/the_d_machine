@@ -452,7 +452,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "aoi_2x2.kicad_pro",
+    "filename": "diff_probe.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -592,7 +592,7 @@
         "version": 0
       },
       "model_mode": 4,
-      "workbook_filename": "aoi_2x2.wbk"
+      "workbook_filename": "diff_probe.wbk"
     },
     "page_layout_descr_file": "",
     "plot_directory": "",
