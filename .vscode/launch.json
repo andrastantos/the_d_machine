@@ -33,6 +33,13 @@
             "type": "debugpy",
             "request": "launch",
             "program": "rtl/sim.py",
-        }
-    ]
+        },
+        {
+            "name": "SPICE: gen_ampl_train",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/circuit_sims/sense_amp/",
+            "program": "gen_ampl_train.py",
+        },
+   ]
 }
