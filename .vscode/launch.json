@@ -41,5 +41,12 @@
             "cwd": "${workspaceFolder}/circuit_sims/sense_amp/",
             "program": "gen_ampl_train.py",
         },
-   ]
+        {
+            "name": "PRISM",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "rom/prism.py",
+            "justMyCode": false
+        }
+    ]
 }
