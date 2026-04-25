@@ -1,14 +1,18 @@
 (kicad_sch
-	(version 20231120)
+	(version 20250114)
 	(generator "eeschema")
-	(generator_version "8.0")
+	(generator_version "9.0")
 	(uuid "ed92c5aa-463d-470b-a4b4-8d1a1cd780d2")
 	(paper "A2")
 	(lib_symbols
 		(symbol "Device:R_Small_US"
-			(pin_numbers hide)
+			(pin_numbers
+				(hide yes)
+			)
 			(pin_names
-				(offset 0.254) hide)
+				(offset 0.254)
+				(hide yes)
+			)
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -78,7 +82,7 @@
 			(symbol "R_Small_US_1_1"
 				(polyline
 					(pts
-						(xy 0 0) (xy 1.016 -0.381) (xy 0 -0.762) (xy -1.016 -1.143) (xy 0 -1.524)
+						(xy 0 1.524) (xy 1.016 1.143) (xy 0 0.762) (xy -1.016 0.381) (xy 0 0)
 					)
 					(stroke
 						(width 0)
@@ -90,7 +94,7 @@
 				)
 				(polyline
 					(pts
-						(xy 0 1.524) (xy 1.016 1.143) (xy 0 0.762) (xy -1.016 0.381) (xy 0 0)
+						(xy 0 0) (xy 1.016 -0.381) (xy 0 -0.762) (xy -1.016 -1.143) (xy 0 -1.524)
 					)
 					(stroke
 						(width 0)
@@ -137,174 +141,17 @@
 					)
 				)
 			)
-		)
-		(symbol "Diode:BAT54W"
-			(pin_names
-				(offset 1.016) hide)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "D"
-				(at 0 2.54 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "BAT54W"
-				(at 0 -2.54 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
-				(at 0 -4.445 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "Schottky barrier diode, SOT-323"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_keywords" "schottky diode"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_fp_filters" "SOT?323*"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "BAT54W_0_1"
-				(polyline
-					(pts
-						(xy 1.27 0) (xy -1.27 0)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 1.27 1.27) (xy 1.27 -1.27) (xy -1.27 0) (xy 1.27 1.27)
-					)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -1.905 0.635) (xy -1.905 1.27) (xy -1.27 1.27) (xy -1.27 -1.27) (xy -0.635 -1.27) (xy -0.635 -0.635)
-					)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "BAT54W_1_1"
-				(pin passive line
-					(at 3.81 0 180)
-					(length 2.54)
-					(name "A"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin no_connect line
-					(at 0 0 90)
-					(length 2.54) hide
-					(name "NC"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -3.81 0 0)
-					(length 2.54)
-					(name "K"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
+			(embedded_fonts no)
 		)
 		(symbol "Simulation_SPICE:0"
 			(power)
-			(pin_numbers hide)
+			(pin_numbers
+				(hide yes)
+			)
 			(pin_names
-				(offset 0) hide)
+				(offset 0)
+				(hide yes)
+			)
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -395,467 +242,12 @@
 					)
 				)
 			)
-		)
-		(symbol "Simulation_SPICE:NPN"
-			(pin_numbers hide)
-			(pin_names
-				(offset 0)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "Q"
-				(at -2.54 7.62 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "NPN"
-				(at -2.54 5.08 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 63.5 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
-				(at 63.5 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "Bipolar transistor symbol for simulation only, substrate tied to the emitter"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Sim.Device" "NPN"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Sim.Type" "GUMMELPOON"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Sim.Pins" "1=C 2=B 3=E"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_keywords" "simulation"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "NPN_0_1"
-				(polyline
-					(pts
-						(xy -2.54 0) (xy 0.635 0)
-					)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.635 0.635) (xy 2.54 2.54)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.794 -1.27) (xy 2.794 -1.27)
-					)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.794 -1.27) (xy 2.794 -1.27)
-					)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.635 -0.635) (xy 2.54 -2.54) (xy 2.54 -2.54)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.635 1.905) (xy 0.635 -1.905) (xy 0.635 -1.905)
-					)
-					(stroke
-						(width 0.508)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 1.27 -1.778) (xy 1.778 -1.27) (xy 2.286 -2.286) (xy 1.27 -1.778) (xy 1.27 -1.778)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(circle
-					(center 1.27 0)
-					(radius 2.8194)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "NPN_1_1"
-				(pin open_collector line
-					(at 2.54 5.08 270)
-					(length 2.54)
-					(name "C"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -5.08 0 0)
-					(length 2.54)
-					(name "B"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin open_emitter line
-					(at 2.54 -5.08 90)
-					(length 2.54)
-					(name "E"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-		)
-		(symbol "Simulation_SPICE:PNP"
-			(pin_numbers hide)
-			(pin_names
-				(offset 0)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "Q"
-				(at -2.54 7.62 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "PNP"
-				(at -2.54 5.08 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 35.56 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
-				(at 35.56 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "Bipolar transistor symbol for simulation only, substrate tied to the emitter"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Sim.Device" "PNP"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Sim.Type" "GUMMELPOON"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Sim.Pins" "1=C 2=B 3=E"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_keywords" "simulation"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "PNP_0_1"
-				(polyline
-					(pts
-						(xy -2.54 0) (xy 0.635 0)
-					)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.635 0.635) (xy 2.54 2.54)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.635 -0.635) (xy 2.54 -2.54) (xy 2.54 -2.54)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0.635 1.905) (xy 0.635 -1.905) (xy 0.635 -1.905)
-					)
-					(stroke
-						(width 0.508)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 2.286 -1.778) (xy 1.778 -2.286) (xy 1.27 -1.27) (xy 2.286 -1.778) (xy 2.286 -1.778)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(circle
-					(center 1.27 0)
-					(radius 2.8194)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "PNP_1_1"
-				(pin open_collector line
-					(at 2.54 5.08 270)
-					(length 2.54)
-					(name "C"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -5.08 0 0)
-					(length 2.54)
-					(name "B"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin open_emitter line
-					(at 2.54 -5.08 90)
-					(length 2.54)
-					(name "E"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
+			(embedded_fonts no)
 		)
 		(symbol "Simulation_SPICE:VDC"
-			(pin_numbers hide)
+			(pin_numbers
+				(hide yes)
+			)
 			(pin_names
 				(offset 0.0254)
 			)
@@ -1053,9 +445,12 @@
 					)
 				)
 			)
+			(embedded_fonts no)
 		)
 		(symbol "Simulation_SPICE:VPULSE"
-			(pin_numbers hide)
+			(pin_numbers
+				(hide yes)
+			)
 			(pin_names
 				(offset 0.0254)
 			)
@@ -1227,12 +622,719 @@
 					)
 				)
 			)
+			(embedded_fonts no)
+		)
+		(symbol "TCOMP:2N3904"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "Q"
+				(at -2.54 7.62 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "2N3904"
+				(at -2.54 5.08 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
+				(at 63.5 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
+				(at 63.5 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Bipolar transistor symbol for simulation only, substrate tied to the emitter"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Device" "NPN"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Type" "GUMMELPOON"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Pins" "1=C 2=B 3=E"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Library" "/home/tantos/tcomp/spice_models/standard.bjt"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Name" "2N3904"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "NPN"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "2N3904_0_1"
+				(polyline
+					(pts
+						(xy -2.54 0) (xy 0.635 0)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.635 1.905) (xy 0.635 -1.905) (xy 0.635 -1.905)
+					)
+					(stroke
+						(width 0.508)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.635 0.635) (xy 2.54 2.54)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.635 -0.635) (xy 2.54 -2.54) (xy 2.54 -2.54)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center 1.27 0)
+					(radius 2.8194)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 -1.778) (xy 1.778 -1.27) (xy 2.286 -2.286) (xy 1.27 -1.778) (xy 1.27 -1.778)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.794 -1.27) (xy 2.794 -1.27)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.794 -1.27) (xy 2.794 -1.27)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "2N3904_1_1"
+				(pin input line
+					(at -5.08 0 0)
+					(length 2.54)
+					(name "B"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin open_collector line
+					(at 2.54 5.08 270)
+					(length 2.54)
+					(name "C"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin open_emitter line
+					(at 2.54 -5.08 90)
+					(length 2.54)
+					(name "E"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "TCOMP:2N3906"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "Q"
+				(at -2.54 7.62 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "2N3906"
+				(at -2.54 5.08 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
+				(at 35.56 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3906.pdf"
+				(at 35.56 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Bipolar transistor symbol for simulation only, substrate tied to the emitter"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Device" "PNP"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Type" "GUMMELPOON"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Pins" "1=C 2=B 3=E"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Library" "/home/tantos/tcomp/spice_models/standard.bjt"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Name" "2N3906"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "simulation"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "2N3906_0_1"
+				(polyline
+					(pts
+						(xy -2.54 0) (xy 0.635 0)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.635 1.905) (xy 0.635 -1.905) (xy 0.635 -1.905)
+					)
+					(stroke
+						(width 0.508)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.635 0.635) (xy 2.54 2.54)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.635 -0.635) (xy 2.54 -2.54) (xy 2.54 -2.54)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center 1.27 0)
+					(radius 2.8194)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.286 -1.778) (xy 1.778 -2.286) (xy 1.27 -1.27) (xy 2.286 -1.778) (xy 2.286 -1.778)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+			)
+			(symbol "2N3906_1_1"
+				(pin input line
+					(at -5.08 0 0)
+					(length 2.54)
+					(name "B"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin open_collector line
+					(at 2.54 5.08 270)
+					(length 2.54)
+					(name "C"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin open_emitter line
+					(at 2.54 -5.08 90)
+					(length 2.54)
+					(name "E"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "TCOMP:BAT54LT1G"
+			(pin_names
+				(offset 1.016)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "D"
+				(at 0 2.54 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "BAT54LT1G"
+				(at 0 -2.54 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
+				(at 0 -4.445 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Schottky barrier diode, SOT-23"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Library" "/home/tantos/tcomp/spice_models/standard.dio"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Name" "BAT54"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Device" "D"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Sim.Pins" "1=A 3=K"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "schottky diode"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "SOT?323*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "BAT54LT1G_0_1"
+				(polyline
+					(pts
+						(xy -1.905 0.635) (xy -1.905 1.27) (xy -1.27 1.27) (xy -1.27 -1.27) (xy -0.635 -1.27) (xy -0.635 -0.635)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 1.27) (xy 1.27 -1.27) (xy -1.27 0) (xy 1.27 1.27)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 0) (xy -1.27 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "BAT54LT1G_1_1"
+				(pin passive line
+					(at -3.81 0 0)
+					(length 2.54)
+					(name "K"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at 0 0 90)
+					(length 2.54)
+					(hide yes)
+					(name "NC"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 3.81 0 180)
+					(length 2.54)
+					(name "A"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
 		)
 		(symbol "power:VCC"
 			(power)
-			(pin_numbers hide)
+			(pin_numbers
+				(hide yes)
+			)
 			(pin_names
-				(offset 0) hide)
+				(offset 0)
+				(hide yes)
+			)
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
@@ -1304,7 +1406,7 @@
 				)
 				(polyline
 					(pts
-						(xy 0 0) (xy 0 2.54)
+						(xy 0 2.54) (xy 0.762 1.27)
 					)
 					(stroke
 						(width 0)
@@ -1316,7 +1418,7 @@
 				)
 				(polyline
 					(pts
-						(xy 0 2.54) (xy 0.762 1.27)
+						(xy 0 0) (xy 0 2.54)
 					)
 					(stroke
 						(width 0)
@@ -1347,7 +1449,38 @@
 					)
 				)
 			)
+			(embedded_fonts no)
 		)
+	)
+	(text ".param edge=1n\n"
+		(exclude_from_sim no)
+		(at 97.79 38.1 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "1218a9cd-e1b7-4468-908c-9acfc63c0c1a")
+	)
+	(text ".temp = -25\n"
+		(exclude_from_sim no)
+		(at 32.512 64.77 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "6bc9bccb-8b6c-4d46-a17a-ae79beb833ff")
+	)
+	(text ".param freq=0.25Mega"
+		(exclude_from_sim no)
+		(at 97.79 35.56 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "6d3c2da7-c556-44ae-b1c9-f435944381ba")
 	)
 	(junction
 		(at 317.5 374.65)
@@ -9103,6 +9236,16 @@
 	)
 	(wire
 		(pts
+			(xy 30.48 58.42) (xy 30.48 57.15)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f7a9e89f-089d-4d8d-8d14-cdff08faf9a8")
+	)
+	(wire
+		(pts
 			(xy 41.91 57.15) (xy 41.91 58.42)
 		)
 		(stroke
@@ -9300,36 +9443,6 @@
 			(type default)
 		)
 		(uuid "fec2638f-f6c0-4c30-b95c-73ad86f8422c")
-	)
-	(text ".param edge=1n\n"
-		(exclude_from_sim no)
-		(at 97.79 38.1 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-		)
-		(uuid "1218a9cd-e1b7-4468-908c-9acfc63c0c1a")
-	)
-	(text ".temp = -25\n"
-		(exclude_from_sim no)
-		(at 32.512 64.77 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-		)
-		(uuid "6bc9bccb-8b6c-4d46-a17a-ae79beb833ff")
-	)
-	(text ".param freq=0.25Mega"
-		(exclude_from_sim no)
-		(at 97.79 35.56 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-		)
-		(uuid "6d3c2da7-c556-44ae-b1c9-f435944381ba")
 	)
 	(label "B7"
 		(at 77.47 105.41 0)
@@ -12114,7 +12227,7 @@
 		(uuid "ff17cd68-13cd-46e4-b13f-89810eae121e")
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 308.61 43.18 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -12123,21 +12236,19 @@
 		(dnp no)
 		(uuid "01ac468c-e83f-4433-9bd8-1e40d900b309")
 		(property "Reference" "Q934"
-			(at 313.69 41.9099 0)
+			(at 306.07 35.56 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 313.69 44.4499 0)
+			(at 306.07 38.1 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -12149,7 +12260,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 372.11 43.18 0)
 			(effects
 				(font
@@ -12299,7 +12410,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Diode:BAT54W")
+		(lib_id "TCOMP:BAT54LT1G")
 		(at 412.75 311.15 180)
 		(unit 1)
 		(exclude_from_sim no)
@@ -12316,7 +12427,7 @@
 				)
 			)
 		)
-		(property "Value" "BAT54W"
+		(property "Value" "BAT54LT1G"
 			(at 413.0675 307.34 0)
 			(effects
 				(font
@@ -12324,7 +12435,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
 			(at 412.75 306.705 0)
 			(effects
 				(font
@@ -12333,7 +12444,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
+		(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
 			(at 412.75 311.15 0)
 			(effects
 				(font
@@ -12342,7 +12453,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Schottky barrier diode, SOT-323"
+		(property "Description" "Schottky barrier diode, SOT-23"
 			(at 412.75 311.15 0)
 			(effects
 				(font
@@ -12614,7 +12725,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:PNP")
+		(lib_id "TCOMP:2N3906")
 		(at 425.45 200.66 0)
 		(mirror x)
 		(unit 1)
@@ -12624,21 +12735,19 @@
 		(dnp no)
 		(uuid "0c3ea53f-1823-425a-8823-3c9141bf298f")
 		(property "Reference" "Q916"
-			(at 430.53 199.3899 0)
+			(at 422.91 208.28 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3906"
-			(at 430.53 201.9299 0)
+			(at 422.91 205.74 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -12650,7 +12759,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3906.pdf"
 			(at 461.01 200.66 0)
 			(effects
 				(font
@@ -12732,7 +12841,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 275.59 219.71 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -12741,21 +12850,19 @@
 		(dnp no)
 		(uuid "0f162100-13cf-4304-97b1-c9ba661a3844")
 		(property "Reference" "Q921"
-			(at 280.67 218.4399 0)
+			(at 273.05 212.09 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 280.67 220.9799 0)
+			(at 273.05 214.63 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -12767,7 +12874,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 339.09 219.71 0)
 			(effects
 				(font
@@ -12917,7 +13024,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Diode:BAT54W")
+		(lib_id "TCOMP:BAT54LT1G")
 		(at 397.51 236.22 180)
 		(unit 1)
 		(exclude_from_sim no)
@@ -12934,7 +13041,7 @@
 				)
 			)
 		)
-		(property "Value" "BAT54W"
+		(property "Value" "BAT54LT1G"
 			(at 397.8275 232.41 0)
 			(effects
 				(font
@@ -12942,7 +13049,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
 			(at 397.51 231.775 0)
 			(effects
 				(font
@@ -12951,7 +13058,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
+		(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
 			(at 397.51 236.22 0)
 			(effects
 				(font
@@ -12960,7 +13067,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Schottky barrier diode, SOT-323"
+		(property "Description" "Schottky barrier diode, SOT-23"
 			(at 397.51 236.22 0)
 			(effects
 				(font
@@ -13321,7 +13428,7 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "0"
+		(property "Value" "GND"
 			(at 57.15 60.96 0)
 			(effects
 				(font
@@ -13369,7 +13476,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 416.56 391.16 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -13405,7 +13512,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 480.06 391.16 0)
 			(effects
 				(font
@@ -13504,7 +13611,7 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "0"
+		(property "Value" "GND"
 			(at 402.59 332.74 0)
 			(effects
 				(font
@@ -13552,7 +13659,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 288.29 379.73 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -13588,7 +13695,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 351.79 379.73 0)
 			(effects
 				(font
@@ -13670,7 +13777,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 415.29 119.38 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -13679,21 +13786,19 @@
 		(dnp no)
 		(uuid "1f56cfd4-d647-46ad-956a-e1edfc069131")
 		(property "Reference" "Q927"
-			(at 420.37 118.1099 0)
+			(at 412.75 111.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 420.37 120.6499 0)
+			(at 412.75 114.3 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -13705,7 +13810,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 478.79 119.38 0)
 			(effects
 				(font
@@ -13857,7 +13962,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 406.4 113.03 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -13866,21 +13971,19 @@
 		(dnp no)
 		(uuid "223fb060-7fec-4981-a3ae-0458eed4f392")
 		(property "Reference" "Q928"
-			(at 411.48 111.7599 0)
+			(at 403.86 105.41 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 411.48 114.2999 0)
+			(at 403.86 107.95 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -13892,7 +13995,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 469.9 113.03 0)
 			(effects
 				(font
@@ -14656,7 +14759,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Diode:BAT54W")
+		(lib_id "TCOMP:BAT54LT1G")
 		(at 499.11 231.14 180)
 		(unit 1)
 		(exclude_from_sim no)
@@ -14673,7 +14776,7 @@
 				)
 			)
 		)
-		(property "Value" "BAT54W"
+		(property "Value" "BAT54LT1G"
 			(at 499.4275 227.33 0)
 			(effects
 				(font
@@ -14681,7 +14784,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
 			(at 499.11 226.695 0)
 			(effects
 				(font
@@ -14690,7 +14793,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
+		(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
 			(at 499.11 231.14 0)
 			(effects
 				(font
@@ -14699,7 +14802,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Schottky barrier diode, SOT-323"
+		(property "Description" "Schottky barrier diode, SOT-23"
 			(at 499.11 231.14 0)
 			(effects
 				(font
@@ -14763,7 +14866,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 335.28 62.23 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -14772,21 +14875,19 @@
 		(dnp no)
 		(uuid "30e29d5d-dd8b-48b6-a1c1-f1748f6c2b9b")
 		(property "Reference" "Q937"
-			(at 340.36 60.9599 0)
+			(at 332.74 54.61 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 340.36 63.4999 0)
+			(at 332.74 57.15 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -14798,7 +14899,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 398.78 62.23 0)
 			(effects
 				(font
@@ -14897,7 +14998,7 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "0"
+		(property "Value" "GND"
 			(at 402.59 405.13 0)
 			(effects
 				(font
@@ -15014,7 +15115,7 @@
 	)
 	(symbol
 		(lib_id "Simulation_SPICE:0")
-		(at 30.48 57.15 0)
+		(at 30.48 58.42 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -15022,7 +15123,7 @@
 		(dnp no)
 		(uuid "37028957-268c-4d74-bafe-2e864e35643d")
 		(property "Reference" "#GND1"
-			(at 30.48 62.23 0)
+			(at 30.48 63.5 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15030,8 +15131,8 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "0"
-			(at 30.48 59.69 0)
+		(property "Value" "GND"
+			(at 30.48 60.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15039,7 +15140,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 30.48 57.15 0)
+			(at 30.48 58.42 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15048,7 +15149,7 @@
 			)
 		)
 		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#subsec_Circuit_elements__device"
-			(at 30.48 67.31 0)
+			(at 30.48 68.58 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15057,7 +15158,7 @@
 			)
 		)
 		(property "Description" "0V reference potential for simulation"
-			(at 30.48 64.77 0)
+			(at 30.48 66.04 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15078,7 +15179,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 397.51 106.68 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -15114,7 +15215,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 461.01 106.68 0)
 			(effects
 				(font
@@ -15401,7 +15502,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Diode:BAT54W")
+		(lib_id "TCOMP:BAT54LT1G")
 		(at 311.15 387.35 180)
 		(unit 1)
 		(exclude_from_sim no)
@@ -15418,7 +15519,7 @@
 				)
 			)
 		)
-		(property "Value" "BAT54W"
+		(property "Value" "BAT54LT1G"
 			(at 311.4675 383.54 0)
 			(effects
 				(font
@@ -15426,7 +15527,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
 			(at 311.15 382.905 0)
 			(effects
 				(font
@@ -15435,7 +15536,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
+		(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
 			(at 311.15 387.35 0)
 			(effects
 				(font
@@ -15444,7 +15545,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Schottky barrier diode, SOT-323"
+		(property "Description" "Schottky barrier diode, SOT-23"
 			(at 311.15 387.35 0)
 			(effects
 				(font
@@ -15984,7 +16085,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 377.19 281.94 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -15993,21 +16094,19 @@
 		(dnp no)
 		(uuid "4a21533b-e4b6-495f-abd1-4f2bda29ca29")
 		(property "Reference" "Q946"
-			(at 382.27 280.6699 0)
+			(at 374.65 274.32 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 382.27 283.2099 0)
+			(at 374.65 276.86 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -16019,7 +16118,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 440.69 281.94 0)
 			(effects
 				(font
@@ -16101,7 +16200,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:PNP")
+		(lib_id "TCOMP:2N3906")
 		(at 339.09 360.68 0)
 		(mirror x)
 		(unit 1)
@@ -16111,21 +16210,19 @@
 		(dnp no)
 		(uuid "4acafd06-4393-43df-b741-79d3b0f78689")
 		(property "Reference" "Q952"
-			(at 344.17 359.4099 0)
+			(at 336.55 368.3 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3906"
-			(at 344.17 361.9499 0)
+			(at 336.55 365.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -16137,7 +16234,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3906.pdf"
 			(at 374.65 360.68 0)
 			(effects
 				(font
@@ -16287,7 +16384,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 326.39 55.88 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -16323,7 +16420,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 389.89 55.88 0)
 			(effects
 				(font
@@ -16422,7 +16519,7 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "0"
+		(property "Value" "GND"
 			(at 488.95 264.16 0)
 			(effects
 				(font
@@ -16470,7 +16567,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 288.29 227.33 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -16506,7 +16603,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 351.79 227.33 0)
 			(effects
 				(font
@@ -16588,7 +16685,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 370.84 87.63 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -16597,21 +16694,19 @@
 		(dnp no)
 		(uuid "5bf8ea4a-e6d7-433a-bf2d-6fcb2fea91a2")
 		(property "Reference" "Q929"
-			(at 375.92 86.3599 0)
+			(at 368.3 80.01 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 375.92 88.8999 0)
+			(at 368.3 82.55 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -16623,7 +16718,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 434.34 87.63 0)
 			(effects
 				(font
@@ -16842,7 +16937,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:PNP")
+		(lib_id "TCOMP:2N3906")
 		(at 339.09 288.29 0)
 		(mirror x)
 		(unit 1)
@@ -16852,21 +16947,19 @@
 		(dnp no)
 		(uuid "5dd52241-c312-4397-9e4e-426c440f3ad3")
 		(property "Reference" "Q944"
-			(at 344.17 287.0199 0)
+			(at 336.55 295.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3906"
-			(at 344.17 289.5599 0)
+			(at 336.55 293.37 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -16878,7 +16971,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3906.pdf"
 			(at 374.65 288.29 0)
 			(effects
 				(font
@@ -17026,7 +17119,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Diode:BAT54W")
+		(lib_id "TCOMP:BAT54LT1G")
 		(at 506.73 300.99 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -17043,7 +17136,7 @@
 				)
 			)
 		)
-		(property "Value" "BAT54W"
+		(property "Value" "BAT54LT1G"
 			(at 506.4125 297.18 0)
 			(effects
 				(font
@@ -17051,7 +17144,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
 			(at 506.73 305.435 0)
 			(effects
 				(font
@@ -17060,7 +17153,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
+		(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
 			(at 506.73 300.99 0)
 			(effects
 				(font
@@ -17069,7 +17162,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Schottky barrier diode, SOT-323"
+		(property "Description" "Schottky barrier diode, SOT-23"
 			(at 506.73 300.99 0)
 			(effects
 				(font
@@ -17203,7 +17296,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 361.95 81.28 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -17239,7 +17332,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 425.45 81.28 0)
 			(effects
 				(font
@@ -17529,7 +17622,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:PNP")
+		(lib_id "TCOMP:2N3906")
 		(at 511.81 290.83 0)
 		(mirror x)
 		(unit 1)
@@ -17539,21 +17632,19 @@
 		(dnp no)
 		(uuid "6b5e3bcc-fe1c-4ef0-b84b-a400605fcbb7")
 		(property "Reference" "Q960"
-			(at 516.89 289.5599 0)
+			(at 509.27 298.45 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3906"
-			(at 516.89 292.0999 0)
+			(at 509.27 295.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -17565,7 +17656,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3906.pdf"
 			(at 547.37 290.83 0)
 			(effects
 				(font
@@ -17647,7 +17738,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 476.25 222.25 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -17683,7 +17774,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 539.75 222.25 0)
 			(effects
 				(font
@@ -17765,7 +17856,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 288.29 307.34 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -17801,7 +17892,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 351.79 307.34 0)
 			(effects
 				(font
@@ -18023,8 +18114,8 @@
 		(at 41.91 52.07 0)
 		(unit 1)
 		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
+		(in_bom no)
+		(on_board no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "6eb3f409-fd71-4926-8050-127b29c16771")
@@ -18197,7 +18288,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 389.89 374.65 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -18206,21 +18297,19 @@
 		(dnp no)
 		(uuid "6f78cde7-f060-4651-821d-709b7a473788")
 		(property "Reference" "Q955"
-			(at 394.97 373.3799 0)
+			(at 387.35 367.03 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 394.97 374.6499 0)
+			(at 387.35 369.57 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -18232,7 +18321,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 453.39 374.65 0)
 			(effects
 				(font
@@ -18314,7 +18403,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:PNP")
+		(lib_id "TCOMP:2N3906")
 		(at 350.52 367.03 0)
 		(mirror x)
 		(unit 1)
@@ -18324,21 +18413,19 @@
 		(dnp no)
 		(uuid "7156ea57-455e-48b1-b1ff-7f6d4a138c23")
 		(property "Reference" "Q953"
-			(at 355.6 365.7599 0)
+			(at 347.98 374.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3906"
-			(at 355.6 368.2999 0)
+			(at 347.98 372.11 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -18350,7 +18437,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3906.pdf"
 			(at 386.08 367.03 0)
 			(effects
 				(font
@@ -18432,7 +18519,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 379.73 93.98 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -18441,21 +18528,19 @@
 		(dnp no)
 		(uuid "7182a770-cf0f-4366-9931-48c21f875206")
 		(property "Reference" "Q930"
-			(at 384.81 92.7099 0)
+			(at 377.19 86.36 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 384.81 95.2499 0)
+			(at 377.19 88.9 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -18467,7 +18552,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 443.23 93.98 0)
 			(effects
 				(font
@@ -18619,7 +18704,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Diode:BAT54W")
+		(lib_id "TCOMP:BAT54LT1G")
 		(at 311.15 236.22 180)
 		(unit 1)
 		(exclude_from_sim no)
@@ -18636,7 +18721,7 @@
 				)
 			)
 		)
-		(property "Value" "BAT54W"
+		(property "Value" "BAT54LT1G"
 			(at 311.4675 232.41 0)
 			(effects
 				(font
@@ -18644,7 +18729,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
 			(at 311.15 231.775 0)
 			(effects
 				(font
@@ -18653,7 +18738,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
+		(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
 			(at 311.15 236.22 0)
 			(effects
 				(font
@@ -18662,7 +18747,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Schottky barrier diode, SOT-323"
+		(property "Description" "Schottky barrier diode, SOT-23"
 			(at 311.15 236.22 0)
 			(effects
 				(font
@@ -18726,7 +18811,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 388.62 100.33 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -18735,21 +18820,19 @@
 		(dnp no)
 		(uuid "74c6b279-a1fa-4851-b72f-71a36fa221fd")
 		(property "Reference" "Q931"
-			(at 393.7 99.0599 0)
+			(at 386.08 92.71 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 393.7 101.5999 0)
+			(at 386.08 95.25 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -18761,7 +18844,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 452.12 100.33 0)
 			(effects
 				(font
@@ -18917,8 +19000,8 @@
 		(at 72.39 52.07 0)
 		(unit 1)
 		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
+		(in_bom no)
+		(on_board no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "77f17764-8e04-4b5f-8864-e5329ffd71b4")
@@ -19021,7 +19104,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 528.32 320.04 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -19057,7 +19140,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 591.82 320.04 0)
 			(effects
 				(font
@@ -19207,7 +19290,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 416.56 318.77 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -19243,7 +19326,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 480.06 318.77 0)
 			(effects
 				(font
@@ -19325,7 +19408,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 275.59 373.38 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -19334,21 +19417,19 @@
 		(dnp no)
 		(uuid "7e795f83-dae5-489b-a7a7-1f6685fa8882")
 		(property "Reference" "Q949"
-			(at 280.67 372.1099 0)
+			(at 273.05 365.76 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 280.67 374.6499 0)
+			(at 273.05 368.3 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -19360,7 +19441,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 339.09 373.38 0)
 			(effects
 				(font
@@ -19442,7 +19523,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 314.96 393.7 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -19478,7 +19559,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 378.46 393.7 0)
 			(effects
 				(font
@@ -19560,7 +19641,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 361.95 219.71 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -19569,21 +19650,19 @@
 		(dnp no)
 		(uuid "7f4806cd-1693-4636-9c90-4d9191ea672a")
 		(property "Reference" "Q913"
-			(at 367.03 218.4399 0)
+			(at 359.41 212.09 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 367.03 220.9799 0)
+			(at 359.41 214.63 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -19595,7 +19674,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 425.45 219.71 0)
 			(effects
 				(font
@@ -19764,7 +19843,7 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "0"
+		(property "Value" "GND"
 			(at 497.84 351.79 0)
 			(effects
 				(font
@@ -19880,7 +19959,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 374.65 227.33 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -19916,7 +19995,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 438.15 227.33 0)
 			(effects
 				(font
@@ -20498,7 +20577,7 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "0"
+		(property "Value" "GND"
 			(at 66.04 184.15 0)
 			(effects
 				(font
@@ -20614,7 +20693,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:PNP")
+		(lib_id "TCOMP:2N3906")
 		(at 474.98 317.5 0)
 		(mirror x)
 		(unit 1)
@@ -20624,21 +20703,19 @@
 		(dnp no)
 		(uuid "93c3e0a1-ba36-43cc-942d-a7c36a74776b")
 		(property "Reference" "Q958"
-			(at 480.06 316.2299 0)
+			(at 472.44 325.12 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3906"
-			(at 480.06 318.7699 0)
+			(at 472.44 322.58 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -20650,7 +20727,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3906.pdf"
 			(at 510.54 317.5 0)
 			(effects
 				(font
@@ -20805,8 +20882,8 @@
 		(at 30.48 52.07 0)
 		(unit 1)
 		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
+		(in_bom no)
+		(on_board no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "95b555f7-761e-402a-b211-d5940ce6799a")
@@ -20899,7 +20976,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Diode:BAT54W")
+		(lib_id "TCOMP:BAT54LT1G")
 		(at 311.15 314.96 180)
 		(unit 1)
 		(exclude_from_sim no)
@@ -20916,7 +20993,7 @@
 				)
 			)
 		)
-		(property "Value" "BAT54W"
+		(property "Value" "BAT54LT1G"
 			(at 311.4675 311.15 0)
 			(effects
 				(font
@@ -20924,7 +21001,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
 			(at 311.15 310.515 0)
 			(effects
 				(font
@@ -20933,7 +21010,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
+		(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
 			(at 311.15 314.96 0)
 			(effects
 				(font
@@ -20942,7 +21019,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Schottky barrier diode, SOT-323"
+		(property "Description" "Schottky barrier diode, SOT-23"
 			(at 311.15 314.96 0)
 			(effects
 				(font
@@ -21006,7 +21083,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 314.96 321.31 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -21042,7 +21119,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 378.46 321.31 0)
 			(effects
 				(font
@@ -21192,7 +21269,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 401.32 245.11 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -21228,7 +21305,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 464.82 245.11 0)
 			(effects
 				(font
@@ -21310,7 +21387,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 353.06 74.93 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -21319,21 +21396,19 @@
 		(dnp no)
 		(uuid "a3604103-d789-4dd0-afe2-29859cdc0772")
 		(property "Reference" "Q939"
-			(at 358.14 73.6599 0)
+			(at 350.52 67.31 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 358.14 76.1999 0)
+			(at 350.52 69.85 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -21345,7 +21420,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 416.56 74.93 0)
 			(effects
 				(font
@@ -21496,7 +21571,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 314.96 245.11 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -21532,7 +21607,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 378.46 245.11 0)
 			(effects
 				(font
@@ -21614,7 +21689,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:PNP")
+		(lib_id "TCOMP:2N3906")
 		(at 485.14 307.34 0)
 		(mirror x)
 		(unit 1)
@@ -21624,21 +21699,19 @@
 		(dnp no)
 		(uuid "a7362185-ee04-4893-ad20-300c2e20646a")
 		(property "Reference" "Q959"
-			(at 490.22 306.0699 0)
+			(at 482.6 314.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3906"
-			(at 490.22 308.6099 0)
+			(at 482.6 312.42 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -21650,7 +21723,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3906.pdf"
 			(at 520.7 307.34 0)
 			(effects
 				(font
@@ -21800,7 +21873,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 344.17 68.58 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -21809,21 +21882,19 @@
 		(dnp no)
 		(uuid "a759aab8-5e11-4502-ab3b-449b56f0c967")
 		(property "Reference" "Q938"
-			(at 349.25 67.3099 0)
+			(at 341.63 60.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 349.25 69.8499 0)
+			(at 341.63 63.5 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -21835,7 +21906,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 407.67 68.58 0)
 			(effects
 				(font
@@ -22057,8 +22128,8 @@
 		(at 57.15 52.07 0)
 		(unit 1)
 		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
+		(in_bom no)
+		(on_board no)
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "ac363133-ff6f-4de7-8530-aba60dc093f7")
@@ -22244,7 +22315,7 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "0"
+		(property "Value" "GND"
 			(at 41.91 60.96 0)
 			(effects
 				(font
@@ -22360,7 +22431,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 299.72 36.83 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -22369,21 +22440,19 @@
 		(dnp no)
 		(uuid "b69d9e67-0210-4984-ab3f-00bf24ff992b")
 		(property "Reference" "Q933"
-			(at 304.8 35.5599 0)
+			(at 297.18 29.21 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 304.8 38.0999 0)
+			(at 297.18 31.75 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -22395,7 +22464,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 363.22 36.83 0)
 			(effects
 				(font
@@ -22494,7 +22563,7 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "0"
+		(property "Value" "GND"
 			(at 72.39 60.96 0)
 			(effects
 				(font
@@ -22610,7 +22679,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 502.92 240.03 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -22646,7 +22715,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 566.42 240.03 0)
 			(effects
 				(font
@@ -22728,7 +22797,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 317.5 49.53 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -22737,21 +22806,19 @@
 		(dnp no)
 		(uuid "c0121ea2-0a78-4bad-a1b7-c89b6c707c55")
 		(property "Reference" "Q935"
-			(at 322.58 48.2599 0)
+			(at 314.96 41.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 322.58 50.7999 0)
+			(at 314.96 44.45 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -22763,7 +22830,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 381 49.53 0)
 			(effects
 				(font
@@ -22845,7 +22912,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:PNP")
+		(lib_id "TCOMP:2N3906")
 		(at 350.52 294.64 0)
 		(mirror x)
 		(unit 1)
@@ -22855,21 +22922,19 @@
 		(dnp no)
 		(uuid "c1090cab-c787-43c2-83a5-70c50399d8b2")
 		(property "Reference" "Q945"
-			(at 355.6 293.3699 0)
+			(at 347.98 302.26 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3906"
-			(at 355.6 295.9099 0)
+			(at 347.98 299.72 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -22881,7 +22946,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3906.pdf"
 			(at 386.08 294.64 0)
 			(effects
 				(font
@@ -23031,7 +23096,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 459.74 149.86 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -23067,7 +23132,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 523.24 149.86 0)
 			(effects
 				(font
@@ -23217,7 +23282,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Diode:BAT54W")
+		(lib_id "TCOMP:BAT54LT1G")
 		(at 455.93 140.97 180)
 		(unit 1)
 		(exclude_from_sim no)
@@ -23234,7 +23299,7 @@
 				)
 			)
 		)
-		(property "Value" "BAT54W"
+		(property "Value" "BAT54LT1G"
 			(at 456.2475 137.16 0)
 			(effects
 				(font
@@ -23242,7 +23307,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
 			(at 455.93 136.525 0)
 			(effects
 				(font
@@ -23251,7 +23316,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
+		(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
 			(at 455.93 140.97 0)
 			(effects
 				(font
@@ -23260,7 +23325,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Schottky barrier diode, SOT-323"
+		(property "Description" "Schottky barrier diode, SOT-23"
 			(at 455.93 140.97 0)
 			(effects
 				(font
@@ -23324,7 +23389,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 389.89 302.26 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -23333,21 +23398,19 @@
 		(dnp no)
 		(uuid "cb425a98-c260-4bdf-b546-fc2636475751")
 		(property "Reference" "Q947"
-			(at 394.97 300.9899 0)
+			(at 387.35 294.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 394.97 302.2599 0)
+			(at 387.35 297.18 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -23359,7 +23422,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 453.39 302.26 0)
 			(effects
 				(font
@@ -23441,7 +23504,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 463.55 194.31 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -23450,21 +23513,19 @@
 		(dnp no)
 		(uuid "cc758614-f85d-4f40-a5b7-f667f5ddf86d")
 		(property "Reference" "Q918"
-			(at 468.63 193.0399 0)
+			(at 461.01 186.69 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 468.63 195.5799 0)
+			(at 461.01 189.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -23476,7 +23537,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 527.05 194.31 0)
 			(effects
 				(font
@@ -23558,7 +23619,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Diode:BAT54W")
+		(lib_id "TCOMP:BAT54LT1G")
 		(at 412.75 383.54 180)
 		(unit 1)
 		(exclude_from_sim no)
@@ -23575,7 +23636,7 @@
 				)
 			)
 		)
-		(property "Value" "BAT54W"
+		(property "Value" "BAT54LT1G"
 			(at 413.0675 379.73 0)
 			(effects
 				(font
@@ -23583,7 +23644,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
 			(at 412.75 379.095 0)
 			(effects
 				(font
@@ -23592,7 +23653,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
+		(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
 			(at 412.75 383.54 0)
 			(effects
 				(font
@@ -23601,7 +23662,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Schottky barrier diode, SOT-323"
+		(property "Description" "Schottky barrier diode, SOT-23"
 			(at 412.75 383.54 0)
 			(effects
 				(font
@@ -23665,7 +23726,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 433.07 132.08 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -23701,7 +23762,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 496.57 132.08 0)
 			(effects
 				(font
@@ -23851,7 +23912,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 275.59 300.99 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -23860,21 +23921,19 @@
 		(dnp no)
 		(uuid "d2c59595-06b4-47c9-8692-305d9cc07b28")
 		(property "Reference" "Q941"
-			(at 280.67 299.7199 0)
+			(at 273.05 293.37 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 280.67 302.2599 0)
+			(at 273.05 295.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -23886,7 +23945,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 339.09 300.99 0)
 			(effects
 				(font
@@ -24170,7 +24229,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Diode:BAT54W")
+		(lib_id "TCOMP:BAT54LT1G")
 		(at 524.51 311.15 180)
 		(unit 1)
 		(exclude_from_sim no)
@@ -24187,7 +24246,7 @@
 				)
 			)
 		)
-		(property "Value" "BAT54W"
+		(property "Value" "BAT54LT1G"
 			(at 524.8275 307.34 0)
 			(effects
 				(font
@@ -24195,7 +24254,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Package_TO_SOT_SMD:SOT-323_SC-70"
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
 			(at 524.51 306.705 0)
 			(effects
 				(font
@@ -24204,7 +24263,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/BAT54W_SER.pdf"
+		(property "Datasheet" "https://www.onsemi.com/pdf/datasheet/bat54lt1-d.pdf"
 			(at 524.51 311.15 0)
 			(effects
 				(font
@@ -24213,7 +24272,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Schottky barrier diode, SOT-323"
+		(property "Description" "Schottky barrier diode, SOT-23"
 			(at 524.51 311.15 0)
 			(effects
 				(font
@@ -24294,7 +24353,7 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "0"
+		(property "Value" "GND"
 			(at 448.31 168.91 0)
 			(effects
 				(font
@@ -24412,7 +24471,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:PNP")
+		(lib_id "TCOMP:2N3906")
 		(at 436.88 212.09 0)
 		(mirror x)
 		(unit 1)
@@ -24422,21 +24481,19 @@
 		(dnp no)
 		(uuid "e4158812-8891-4058-838a-6a94a7a7f416")
 		(property "Reference" "Q917"
-			(at 441.96 210.8199 0)
+			(at 434.34 219.71 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3906"
-			(at 441.96 213.3599 0)
+			(at 434.34 217.17 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -24448,7 +24505,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3906.pdf"
 			(at 472.44 212.09 0)
 			(effects
 				(font
@@ -24738,7 +24795,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 377.19 354.33 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -24747,21 +24804,19 @@
 		(dnp no)
 		(uuid "ee7b2750-c7a2-4580-b02f-ef8c40819f34")
 		(property "Reference" "Q954"
-			(at 382.27 353.0599 0)
+			(at 374.65 346.71 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 382.27 355.5999 0)
+			(at 374.65 349.25 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -24773,7 +24828,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 440.69 354.33 0)
 			(effects
 				(font
@@ -24993,7 +25048,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Simulation_SPICE:NPN")
+		(lib_id "TCOMP:2N3904")
 		(at 424.18 125.73 0)
 		(unit 1)
 		(exclude_from_sim no)
@@ -25002,21 +25057,19 @@
 		(dnp no)
 		(uuid "f2ee6fc2-27d6-4ae8-8aca-befb11fae98e")
 		(property "Reference" "Q924"
-			(at 429.26 124.4599 0)
+			(at 421.64 118.11 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Value" "2N3904"
-			(at 429.26 126.9999 0)
+			(at 421.64 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-3"
@@ -25028,7 +25081,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#cha_BJTs"
+		(property "Datasheet" "https://www.diodes.com/datasheet/download/MMBT3904.pdf"
 			(at 487.68 125.73 0)
 			(effects
 				(font
@@ -25456,6 +25509,10 @@
 	(sheet
 		(at 148.59 245.11)
 		(size 29.21 63.5)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
 		(fields_autoplaced yes)
 		(stroke
 			(width 0.1524)
@@ -25485,273 +25542,273 @@
 		)
 		(pin "IN_C_IS_1" input
 			(at 148.59 283.21 180)
+			(uuid "2e50b215-d023-49b8-9b8d-bb8ba569f349")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "2e50b215-d023-49b8-9b8d-bb8ba569f349")
 		)
 		(pin "OUT_C" output
 			(at 177.8 266.7 0)
+			(uuid "927d085f-dfa0-455e-ad5f-c071804dcbea")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "927d085f-dfa0-455e-ad5f-c071804dcbea")
 		)
 		(pin "IN_B3" input
 			(at 148.59 267.97 180)
+			(uuid "9484bbf6-62bc-4653-add5-ac93a9fd455d")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "9484bbf6-62bc-4653-add5-ac93a9fd455d")
 		)
 		(pin "IN_A3" input
 			(at 148.59 255.27 180)
+			(uuid "f3666622-0311-450b-a30c-5ca4582f4763")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "f3666622-0311-450b-a30c-5ca4582f4763")
 		)
 		(pin "IN_A_NEXT" input
 			(at 148.59 274.32 180)
+			(uuid "86ab867d-a6f8-4cf0-be6e-a66391532e97")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "86ab867d-a6f8-4cf0-be6e-a66391532e97")
 		)
 		(pin "OUT_S3" output
 			(at 177.8 255.27 0)
+			(uuid "e7eb6aa4-6c54-4fc7-a165-e46b4fa52e64")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "e7eb6aa4-6c54-4fc7-a165-e46b4fa52e64")
 		)
 		(pin "OUT_A3" output
 			(at 177.8 262.89 0)
+			(uuid "59f060c9-dd38-4165-b1e8-7d5f61482e29")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "59f060c9-dd38-4165-b1e8-7d5f61482e29")
 		)
 		(pin "~{IN_OR_EN}" input
 			(at 148.59 300.99 180)
+			(uuid "22e43d9f-d31b-467f-9362-ddc777bdd3e6")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "22e43d9f-d31b-467f-9362-ddc777bdd3e6")
 		)
 		(pin "~{IN_C_IS_0}" input
 			(at 148.59 285.75 180)
+			(uuid "63f43472-3049-4421-8c5c-15b8d7668281")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "63f43472-3049-4421-8c5c-15b8d7668281")
 		)
 		(pin "IN_AND_EN" input
 			(at 148.59 298.45 180)
+			(uuid "032cfec4-308e-4838-8ea7-69e7fa13111c")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "032cfec4-308e-4838-8ea7-69e7fa13111c")
 		)
 		(pin "IN_ADD_EN" input
 			(at 148.59 295.91 180)
+			(uuid "11bfdb50-9f8f-4c66-813a-420ccd02b900")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "11bfdb50-9f8f-4c66-813a-420ccd02b900")
 		)
 		(pin "IN_INV_B" input
 			(at 148.59 289.56 180)
+			(uuid "20680f3e-cab2-4392-bbf1-494eb822d8fc")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "20680f3e-cab2-4392-bbf1-494eb822d8fc")
 		)
 		(pin "IN_ROR_EN" input
 			(at 148.59 303.53 180)
+			(uuid "c828b98f-80fb-4523-b244-8a122cbdc15e")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "c828b98f-80fb-4523-b244-8a122cbdc15e")
 		)
 		(pin "IN_INV_A" input
 			(at 148.59 292.1 180)
+			(uuid "25dcb5f7-4e63-466e-980f-889571225791")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "25dcb5f7-4e63-466e-980f-889571225791")
 		)
 		(pin "IN_ROL_EN" input
 			(at 148.59 306.07 180)
+			(uuid "5f158d11-fd5d-4e2e-a3e8-1531c821006c")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "5f158d11-fd5d-4e2e-a3e8-1531c821006c")
 		)
 		(pin "IN_A_PREV" input
 			(at 148.59 271.78 180)
+			(uuid "c7b3488f-e2c6-4a16-9a64-ee330a22fb7d")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "c7b3488f-e2c6-4a16-9a64-ee330a22fb7d")
 		)
 		(pin "OUT_S1" output
 			(at 177.8 250.19 0)
+			(uuid "82e31f2e-99d3-4e9d-8760-27f6cf7a7663")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "82e31f2e-99d3-4e9d-8760-27f6cf7a7663")
 		)
 		(pin "IN_A1" input
 			(at 148.59 250.19 180)
+			(uuid "13979db4-0297-46ee-9738-4d574682a162")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "13979db4-0297-46ee-9738-4d574682a162")
 		)
 		(pin "IN_B1" input
 			(at 148.59 262.89 180)
+			(uuid "6f3f3754-4df2-41f8-8152-a477c93e4b8d")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "6f3f3754-4df2-41f8-8152-a477c93e4b8d")
 		)
 		(pin "OUT_S2" output
 			(at 177.8 252.73 0)
+			(uuid "b34562b9-37e2-4dc2-adc4-752b9ec03882")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "b34562b9-37e2-4dc2-adc4-752b9ec03882")
 		)
 		(pin "IN_B2" input
 			(at 148.59 265.43 180)
+			(uuid "1a8756c3-f3b8-49c2-b84f-11ccbd198e63")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "1a8756c3-f3b8-49c2-b84f-11ccbd198e63")
 		)
 		(pin "IN_A2" input
 			(at 148.59 252.73 180)
+			(uuid "dca33a97-df24-46ad-8a37-f15eff422edc")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "dca33a97-df24-46ad-8a37-f15eff422edc")
 		)
 		(pin "IN_B0" input
 			(at 148.59 260.35 180)
+			(uuid "e9018619-4705-4a6d-96d8-6e6e5a8e621f")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "e9018619-4705-4a6d-96d8-6e6e5a8e621f")
 		)
 		(pin "IN_A0" input
 			(at 148.59 247.65 180)
+			(uuid "a8d8f0e0-0af1-4b2b-b41f-655503b87fc4")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "a8d8f0e0-0af1-4b2b-b41f-655503b87fc4")
 		)
 		(pin "IN_C" input
 			(at 148.59 278.13 180)
+			(uuid "03ddb797-bd8d-43ef-a9f2-d4c5a623b921")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "03ddb797-bd8d-43ef-a9f2-d4c5a623b921")
 		)
 		(pin "OUT_S0" output
 			(at 177.8 247.65 0)
+			(uuid "d105afa5-9a28-430f-a217-7cfef00caff1")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "d105afa5-9a28-430f-a217-7cfef00caff1")
 		)
 		(pin "OUT_A0" output
 			(at 177.8 260.35 0)
+			(uuid "5ef0fa35-09a0-42df-8a8a-55fbbe4e7a4e")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "5ef0fa35-09a0-42df-8a8a-55fbbe4e7a4e")
 		)
 		(instances
 			(project "alu"
@@ -25764,6 +25821,10 @@
 	(sheet
 		(at 148.59 154.94)
 		(size 29.21 63.5)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
 		(fields_autoplaced yes)
 		(stroke
 			(width 0.1524)
@@ -25793,273 +25854,273 @@
 		)
 		(pin "IN_C_IS_1" input
 			(at 148.59 193.04 180)
+			(uuid "a7bdbf9c-ce29-461a-a72b-ea6cd2fe93a8")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "a7bdbf9c-ce29-461a-a72b-ea6cd2fe93a8")
 		)
 		(pin "OUT_C" output
 			(at 177.8 176.53 0)
+			(uuid "1582e567-171e-43b6-92f9-8a31a9b45f61")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "1582e567-171e-43b6-92f9-8a31a9b45f61")
 		)
 		(pin "IN_B3" input
 			(at 148.59 177.8 180)
+			(uuid "396bd0ad-020a-4ccc-86f9-290285a4a393")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "396bd0ad-020a-4ccc-86f9-290285a4a393")
 		)
 		(pin "IN_A3" input
 			(at 148.59 165.1 180)
+			(uuid "f1b872ee-d4ce-4a1d-93ed-4cf2a56bb0f5")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "f1b872ee-d4ce-4a1d-93ed-4cf2a56bb0f5")
 		)
 		(pin "IN_A_NEXT" input
 			(at 148.59 184.15 180)
+			(uuid "d5896ca6-543a-4553-aa07-a5618f45d3f9")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "d5896ca6-543a-4553-aa07-a5618f45d3f9")
 		)
 		(pin "OUT_S3" output
 			(at 177.8 165.1 0)
+			(uuid "0dde225f-4dac-4e8f-a4a5-ce68f365746e")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "0dde225f-4dac-4e8f-a4a5-ce68f365746e")
 		)
 		(pin "OUT_A3" output
 			(at 177.8 172.72 0)
+			(uuid "91eae57e-6f5e-4e12-908b-868cb7b84aa4")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "91eae57e-6f5e-4e12-908b-868cb7b84aa4")
 		)
 		(pin "~{IN_OR_EN}" input
 			(at 148.59 210.82 180)
+			(uuid "3c4edc0b-cb06-4726-b923-eaf8b6e06657")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "3c4edc0b-cb06-4726-b923-eaf8b6e06657")
 		)
 		(pin "~{IN_C_IS_0}" input
 			(at 148.59 195.58 180)
+			(uuid "4f6d6690-8b4c-47ba-9058-504293f81878")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "4f6d6690-8b4c-47ba-9058-504293f81878")
 		)
 		(pin "IN_AND_EN" input
 			(at 148.59 208.28 180)
+			(uuid "80d1fff0-0f6f-45ea-8c4e-c0054e5d8820")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "80d1fff0-0f6f-45ea-8c4e-c0054e5d8820")
 		)
 		(pin "IN_ADD_EN" input
 			(at 148.59 205.74 180)
+			(uuid "a2814211-2325-452d-a532-5538c3b32bde")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "a2814211-2325-452d-a532-5538c3b32bde")
 		)
 		(pin "IN_INV_B" input
 			(at 148.59 199.39 180)
+			(uuid "3eff72ed-da00-496d-84b5-c869963cc0ad")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "3eff72ed-da00-496d-84b5-c869963cc0ad")
 		)
 		(pin "IN_ROR_EN" input
 			(at 148.59 213.36 180)
+			(uuid "d3ac148f-8aaa-48e3-a624-267bb9cf3819")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "d3ac148f-8aaa-48e3-a624-267bb9cf3819")
 		)
 		(pin "IN_INV_A" input
 			(at 148.59 201.93 180)
+			(uuid "1cd2cbfe-e2b9-4d97-ab3e-d40105a05440")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "1cd2cbfe-e2b9-4d97-ab3e-d40105a05440")
 		)
 		(pin "IN_ROL_EN" input
 			(at 148.59 215.9 180)
+			(uuid "919c9d27-39f4-4f9e-b81a-569b22389c9e")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "919c9d27-39f4-4f9e-b81a-569b22389c9e")
 		)
 		(pin "IN_A_PREV" input
 			(at 148.59 181.61 180)
+			(uuid "d809a04f-d7ff-42a9-bd78-b6e291f2e8af")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "d809a04f-d7ff-42a9-bd78-b6e291f2e8af")
 		)
 		(pin "OUT_S1" output
 			(at 177.8 160.02 0)
+			(uuid "a90a42c7-a98a-4e87-9b4b-f64b2f5b2522")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "a90a42c7-a98a-4e87-9b4b-f64b2f5b2522")
 		)
 		(pin "IN_A1" input
 			(at 148.59 160.02 180)
+			(uuid "e117c2cd-2ed5-4b7e-b8cf-d1b32e2b1431")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "e117c2cd-2ed5-4b7e-b8cf-d1b32e2b1431")
 		)
 		(pin "IN_B1" input
 			(at 148.59 172.72 180)
+			(uuid "5b01db42-d631-4979-a0fe-a4240ca920e8")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "5b01db42-d631-4979-a0fe-a4240ca920e8")
 		)
 		(pin "OUT_S2" output
 			(at 177.8 162.56 0)
+			(uuid "a3e0b562-7867-48e6-bf4b-b0c9399fa4d3")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "a3e0b562-7867-48e6-bf4b-b0c9399fa4d3")
 		)
 		(pin "IN_B2" input
 			(at 148.59 175.26 180)
+			(uuid "22bb5012-8cc5-4a0f-a0f7-ca6f13643991")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "22bb5012-8cc5-4a0f-a0f7-ca6f13643991")
 		)
 		(pin "IN_A2" input
 			(at 148.59 162.56 180)
+			(uuid "a740a88c-9761-4b14-809e-0a7fbfedb1ff")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "a740a88c-9761-4b14-809e-0a7fbfedb1ff")
 		)
 		(pin "IN_B0" input
 			(at 148.59 170.18 180)
+			(uuid "9d74c021-6c0e-4c70-880f-77ada70bf128")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "9d74c021-6c0e-4c70-880f-77ada70bf128")
 		)
 		(pin "IN_A0" input
 			(at 148.59 157.48 180)
+			(uuid "e49f2432-8160-4ba9-8415-d6eae0f17ada")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "e49f2432-8160-4ba9-8415-d6eae0f17ada")
 		)
 		(pin "IN_C" input
 			(at 148.59 187.96 180)
+			(uuid "c3fe5dcc-94eb-486f-aeb0-c404eec11b07")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "c3fe5dcc-94eb-486f-aeb0-c404eec11b07")
 		)
 		(pin "OUT_S0" output
 			(at 177.8 157.48 0)
+			(uuid "ce87aaa3-ab27-4359-8913-e3245d386695")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "ce87aaa3-ab27-4359-8913-e3245d386695")
 		)
 		(pin "OUT_A0" output
 			(at 177.8 170.18 0)
+			(uuid "f168e56d-8df9-4e76-881b-89c84ecfa07a")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "f168e56d-8df9-4e76-881b-89c84ecfa07a")
 		)
 		(instances
 			(project "alu"
@@ -26072,6 +26133,10 @@
 	(sheet
 		(at 148.59 334.01)
 		(size 29.21 63.5)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
 		(fields_autoplaced yes)
 		(stroke
 			(width 0.1524)
@@ -26101,273 +26166,273 @@
 		)
 		(pin "IN_C_IS_1" input
 			(at 148.59 372.11 180)
+			(uuid "74cef6f9-e3db-4ac0-b7cd-37d11d933c64")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "74cef6f9-e3db-4ac0-b7cd-37d11d933c64")
 		)
 		(pin "OUT_C" output
 			(at 177.8 355.6 0)
+			(uuid "26589a13-b25e-48d4-96fe-cd85bf477273")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "26589a13-b25e-48d4-96fe-cd85bf477273")
 		)
 		(pin "IN_B3" input
 			(at 148.59 356.87 180)
+			(uuid "742bcc1c-ce05-4dbc-9d71-36bf956b398d")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "742bcc1c-ce05-4dbc-9d71-36bf956b398d")
 		)
 		(pin "IN_A3" input
 			(at 148.59 344.17 180)
+			(uuid "216ace1b-66e5-4f81-bbb4-c898f26168d0")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "216ace1b-66e5-4f81-bbb4-c898f26168d0")
 		)
 		(pin "IN_A_NEXT" input
 			(at 148.59 363.22 180)
+			(uuid "5ac1490d-da93-4d4f-a4d0-685b6eff45ae")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "5ac1490d-da93-4d4f-a4d0-685b6eff45ae")
 		)
 		(pin "OUT_S3" output
 			(at 177.8 344.17 0)
+			(uuid "aafa2c02-aa18-4365-b4d2-d6c4e5c765bd")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "aafa2c02-aa18-4365-b4d2-d6c4e5c765bd")
 		)
 		(pin "OUT_A3" output
 			(at 177.8 351.79 0)
+			(uuid "1bc06a43-4a9c-4a16-a2ee-0a7ebe577e9e")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "1bc06a43-4a9c-4a16-a2ee-0a7ebe577e9e")
 		)
 		(pin "~{IN_OR_EN}" input
 			(at 148.59 389.89 180)
+			(uuid "7e584353-472a-4dd2-b1fa-8d27c1597589")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "7e584353-472a-4dd2-b1fa-8d27c1597589")
 		)
 		(pin "~{IN_C_IS_0}" input
 			(at 148.59 374.65 180)
+			(uuid "27ca6cc1-6ce6-4f60-8f16-038489681ff9")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "27ca6cc1-6ce6-4f60-8f16-038489681ff9")
 		)
 		(pin "IN_AND_EN" input
 			(at 148.59 387.35 180)
+			(uuid "bec46fe6-e520-42a4-841c-a4ca6fc5bf7f")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "bec46fe6-e520-42a4-841c-a4ca6fc5bf7f")
 		)
 		(pin "IN_ADD_EN" input
 			(at 148.59 384.81 180)
+			(uuid "c04d6d92-7891-4757-b4a7-7803610824b2")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "c04d6d92-7891-4757-b4a7-7803610824b2")
 		)
 		(pin "IN_INV_B" input
 			(at 148.59 378.46 180)
+			(uuid "f0a0b50e-d435-4592-a3c3-a4c2ad64623c")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "f0a0b50e-d435-4592-a3c3-a4c2ad64623c")
 		)
 		(pin "IN_ROR_EN" input
 			(at 148.59 392.43 180)
+			(uuid "bcd387cd-255a-4c0f-8eb7-7b379595ed75")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "bcd387cd-255a-4c0f-8eb7-7b379595ed75")
 		)
 		(pin "IN_INV_A" input
 			(at 148.59 381 180)
+			(uuid "4019c1a8-952c-465c-8408-a4440f564b36")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "4019c1a8-952c-465c-8408-a4440f564b36")
 		)
 		(pin "IN_ROL_EN" input
 			(at 148.59 394.97 180)
+			(uuid "ced1f81b-5813-45ea-8452-4a102d8f8e60")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "ced1f81b-5813-45ea-8452-4a102d8f8e60")
 		)
 		(pin "IN_A_PREV" input
 			(at 148.59 360.68 180)
+			(uuid "a6f5a06f-1bcb-4786-95d4-a53e22b1f91e")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "a6f5a06f-1bcb-4786-95d4-a53e22b1f91e")
 		)
 		(pin "OUT_S1" output
 			(at 177.8 339.09 0)
+			(uuid "1c5be0b5-854b-4efd-b12f-82a1a9108e6e")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "1c5be0b5-854b-4efd-b12f-82a1a9108e6e")
 		)
 		(pin "IN_A1" input
 			(at 148.59 339.09 180)
+			(uuid "b427017f-4b5c-4316-b89a-1e56f437c813")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "b427017f-4b5c-4316-b89a-1e56f437c813")
 		)
 		(pin "IN_B1" input
 			(at 148.59 351.79 180)
+			(uuid "044ba1f1-3585-4eb3-a9a7-fdb6f0c17f45")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "044ba1f1-3585-4eb3-a9a7-fdb6f0c17f45")
 		)
 		(pin "OUT_S2" output
 			(at 177.8 341.63 0)
+			(uuid "825cad83-b44a-47fe-9874-9676b038bb11")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "825cad83-b44a-47fe-9874-9676b038bb11")
 		)
 		(pin "IN_B2" input
 			(at 148.59 354.33 180)
+			(uuid "cf960f28-7035-4741-a63e-38a2c9656d71")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "cf960f28-7035-4741-a63e-38a2c9656d71")
 		)
 		(pin "IN_A2" input
 			(at 148.59 341.63 180)
+			(uuid "351de50d-3103-4993-b997-fce65c93f50d")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "351de50d-3103-4993-b997-fce65c93f50d")
 		)
 		(pin "IN_B0" input
 			(at 148.59 349.25 180)
+			(uuid "729f0c03-a5d7-40f7-b618-2223e3918450")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "729f0c03-a5d7-40f7-b618-2223e3918450")
 		)
 		(pin "IN_A0" input
 			(at 148.59 336.55 180)
+			(uuid "2fd002cd-c979-4ee0-827e-eac4f441bc41")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "2fd002cd-c979-4ee0-827e-eac4f441bc41")
 		)
 		(pin "IN_C" input
 			(at 148.59 367.03 180)
+			(uuid "3ff9ce1e-e420-43a8-852d-ee12e7293b9a")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "3ff9ce1e-e420-43a8-852d-ee12e7293b9a")
 		)
 		(pin "OUT_S0" output
 			(at 177.8 336.55 0)
+			(uuid "6762d006-9f41-4951-b5ee-4f8fe30af99a")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "6762d006-9f41-4951-b5ee-4f8fe30af99a")
 		)
 		(pin "OUT_A0" output
 			(at 177.8 349.25 0)
+			(uuid "3d561cb7-d82f-4bb0-8220-bc8070320aff")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "3d561cb7-d82f-4bb0-8220-bc8070320aff")
 		)
 		(instances
 			(project "alu"
@@ -26380,6 +26445,10 @@
 	(sheet
 		(at 148.59 68.58)
 		(size 29.21 63.5)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
 		(fields_autoplaced yes)
 		(stroke
 			(width 0.1524)
@@ -26409,273 +26478,273 @@
 		)
 		(pin "IN_C_IS_1" input
 			(at 148.59 106.68 180)
+			(uuid "4a448ec6-95ad-40b6-a928-f2f043e537eb")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "4a448ec6-95ad-40b6-a928-f2f043e537eb")
 		)
 		(pin "OUT_C" output
 			(at 177.8 90.17 0)
+			(uuid "a10f111e-bcb7-4ddd-85af-51bbfb8bff13")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "a10f111e-bcb7-4ddd-85af-51bbfb8bff13")
 		)
 		(pin "IN_B3" input
 			(at 148.59 91.44 180)
+			(uuid "3cae829d-fc37-4fab-9229-49add78f0713")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "3cae829d-fc37-4fab-9229-49add78f0713")
 		)
 		(pin "IN_A3" input
 			(at 148.59 78.74 180)
+			(uuid "04108f04-534d-4d77-b5d9-6b71cad50bd4")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "04108f04-534d-4d77-b5d9-6b71cad50bd4")
 		)
 		(pin "IN_A_NEXT" input
 			(at 148.59 97.79 180)
+			(uuid "fc67a0eb-ddba-4a60-be36-a7cbc20b7b60")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "fc67a0eb-ddba-4a60-be36-a7cbc20b7b60")
 		)
 		(pin "OUT_S3" output
 			(at 177.8 78.74 0)
+			(uuid "08320d20-4ad9-46c9-949d-308d6765e0a4")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "08320d20-4ad9-46c9-949d-308d6765e0a4")
 		)
 		(pin "OUT_A3" output
 			(at 177.8 86.36 0)
+			(uuid "f46c342f-fee9-46b2-8452-4f94bb6a231c")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "f46c342f-fee9-46b2-8452-4f94bb6a231c")
 		)
 		(pin "~{IN_OR_EN}" input
 			(at 148.59 124.46 180)
+			(uuid "3632c51d-f199-4472-94c3-3aabff8e0994")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "3632c51d-f199-4472-94c3-3aabff8e0994")
 		)
 		(pin "~{IN_C_IS_0}" input
 			(at 148.59 109.22 180)
+			(uuid "834a2775-1bd4-4bc9-ad7f-64074806e749")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "834a2775-1bd4-4bc9-ad7f-64074806e749")
 		)
 		(pin "IN_AND_EN" input
 			(at 148.59 121.92 180)
+			(uuid "b6cac9c7-f4af-4e1d-b796-191535bd32fd")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "b6cac9c7-f4af-4e1d-b796-191535bd32fd")
 		)
 		(pin "IN_ADD_EN" input
 			(at 148.59 119.38 180)
+			(uuid "7b79d153-6af4-43d3-9a6d-7c9d4958248c")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "7b79d153-6af4-43d3-9a6d-7c9d4958248c")
 		)
 		(pin "IN_INV_B" input
 			(at 148.59 113.03 180)
+			(uuid "7dfae498-ee96-4fb7-be47-014cdf27db3b")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "7dfae498-ee96-4fb7-be47-014cdf27db3b")
 		)
 		(pin "IN_ROR_EN" input
 			(at 148.59 127 180)
+			(uuid "fbff4adb-b3fa-48f2-8446-d4b9b2163f58")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "fbff4adb-b3fa-48f2-8446-d4b9b2163f58")
 		)
 		(pin "IN_INV_A" input
 			(at 148.59 115.57 180)
+			(uuid "9b49c762-8e7f-4a1a-9858-168c6e6faaa5")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "9b49c762-8e7f-4a1a-9858-168c6e6faaa5")
 		)
 		(pin "IN_ROL_EN" input
 			(at 148.59 129.54 180)
+			(uuid "8eef312d-c9b5-4e3b-8e8c-54056ec6bebb")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "8eef312d-c9b5-4e3b-8e8c-54056ec6bebb")
 		)
 		(pin "IN_A_PREV" input
 			(at 148.59 95.25 180)
+			(uuid "90e7435d-0a98-4cd3-a3d8-762fefed48ff")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "90e7435d-0a98-4cd3-a3d8-762fefed48ff")
 		)
 		(pin "OUT_S1" output
 			(at 177.8 73.66 0)
+			(uuid "259b36b8-bce0-49b8-880c-1894ba6af253")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "259b36b8-bce0-49b8-880c-1894ba6af253")
 		)
 		(pin "IN_A1" input
 			(at 148.59 73.66 180)
+			(uuid "5ab82a94-6ea1-47f8-8c36-fd8c7f91227f")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "5ab82a94-6ea1-47f8-8c36-fd8c7f91227f")
 		)
 		(pin "IN_B1" input
 			(at 148.59 86.36 180)
+			(uuid "fdec3112-9809-4e99-9ca6-962a812b72ef")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "fdec3112-9809-4e99-9ca6-962a812b72ef")
 		)
 		(pin "OUT_S2" output
 			(at 177.8 76.2 0)
+			(uuid "8d6a28ba-e772-4147-9e5a-123e009262b8")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "8d6a28ba-e772-4147-9e5a-123e009262b8")
 		)
 		(pin "IN_B2" input
 			(at 148.59 88.9 180)
+			(uuid "3cae4b5b-eeec-41b5-8392-20c8400195ad")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "3cae4b5b-eeec-41b5-8392-20c8400195ad")
 		)
 		(pin "IN_A2" input
 			(at 148.59 76.2 180)
+			(uuid "322a48bd-2088-40c7-9991-d8735ef1835a")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "322a48bd-2088-40c7-9991-d8735ef1835a")
 		)
 		(pin "IN_B0" input
 			(at 148.59 83.82 180)
+			(uuid "bb9f4bf9-4620-4833-95c0-dd6a987e12ed")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "bb9f4bf9-4620-4833-95c0-dd6a987e12ed")
 		)
 		(pin "IN_A0" input
 			(at 148.59 71.12 180)
+			(uuid "6988b122-b569-4af3-9d90-900307adb543")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "6988b122-b569-4af3-9d90-900307adb543")
 		)
 		(pin "IN_C" input
 			(at 148.59 101.6 180)
+			(uuid "2db216a7-a8a0-43ee-bebc-cb97b8cf6fca")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
 			)
-			(uuid "2db216a7-a8a0-43ee-bebc-cb97b8cf6fca")
 		)
 		(pin "OUT_S0" output
 			(at 177.8 71.12 0)
+			(uuid "689dae15-1b0d-4e6c-bfb5-97b67920b620")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "689dae15-1b0d-4e6c-bfb5-97b67920b620")
 		)
 		(pin "OUT_A0" output
 			(at 177.8 83.82 0)
+			(uuid "72fe48e8-a7a7-4d87-a42b-8de733ff8ee3")
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify right)
 			)
-			(uuid "72fe48e8-a7a7-4d87-a42b-8de733ff8ee3")
 		)
 		(instances
 			(project "alu"
@@ -26690,4 +26759,5 @@
 			(page "1")
 		)
 	)
+	(embedded_fonts no)
 )
