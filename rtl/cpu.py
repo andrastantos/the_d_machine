@@ -14,6 +14,71 @@ the logic to transistors is a significant undertaking, right now this is NOT the
 that is the basis of the physical implementation.
 """
 
+"""
+Musings about how to add protected mode of sorts.
+
+So, first, we need an extra status bit, called USER. This would be '1' for user mode, '0' for system mode.
+This bit can be queried using the ISTAT instruction, for instance.
+
+USER --> SYSTEM transition: SYSCALL
+===================================
+
+To clear the USER bit, we use the instruction SWAP $PC, imm. Notice how it's *not* SWAP $PC, [imm], though
+it executes as if it was, with the exception that it also clears the USER bit. This pattern is more or less
+a SYSCALL.
+
+The bit-pattern for this instruciton is:
+
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+| 0 | 0   0   0 | 1 | 1   1   1 | 0   0 |         IMMED         |
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+In user mode, interrupts are enabled, independent of the I status flag.
+Since the D bit being set, the I flag is not modified. This gives the
+system SW the flexibility to decide if syscalls are entered with interrupts
+disabled or enabled.
+
+!!!IMPORTANT!!!: the 'D' bit is forced to '1' in user mode for SWAP instrucitons, so user mode code can't alter the
+I flag anyway.
+
+Because of this, there's no point in checking the 'D' bit. This means that we need to check 10 bits for this condition.
+That's a large AND gate, but not terrible, maybe.
+
+SYSTEM --> USER transition: special SWAP
+========================================
+Any SWAP instruction, where OPB for swap is not a memory reference will set the USER big. Note, that this means for all
+these instruction 'D' is 0, so the previous test will fail it. The bit pattern is:
+
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+| 0 | 0   0   0 | 0 | 1   .   . | .   . |         IMMED         |
++---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+This is just a 6-bit test. The execution commences as if bit 10 was '0', other than setting the USER flag. Now, this
+encoding was not previously used, so no problem there. The proposed SYSCALL prolog already contains a similar pattern:
+
+SWAP $SP, [$PC+2]      ; swap back user stack, saving ours as we go <-- change this to SWAP $PC, $PC+2
+MOV $PC, $R1           ; return to caller
+
+The only problem here is that we set the USER bit one instruction too early, meaning the return statement cannot be executed.
+Probably the simplest solution is to delay the setting of the USER bit to after the fetch of the next instruction, i.e. to phase 1
+or something.
+
+Special address space protection
+=================================
+The USER bit is exposed to the memroy subsystem. 0-page is mapped to page 1 and page -1 is mapped to page -2. The logic is
+the following:
+
+if USER=1 and ADDR[15:6] == 0 then ADDR[6]=1
+if USER=1 and ADDR[15:6] == -1 then ADDR[6]=0
+
+RAM protection
+==============
+RAM contains a 16-bit register (accessible on page -1 as an I/O), that controls access to every 1kB RAM PAGE from USER mode.
+If the USER bit is set, and the bit corresponding to the requested RAM PAGE in the control register is also set, the read/write
+request is ignored. The data input bus is set to some default value (not floating as that potentially leakes info).
+
+There is no address translation here, everything is in physical addresses, but at least USER code can't read/alter SYSTEM memory.
+"""
 AddrWidth = 16
 DataWidth = 16
 AddrType = Unsigned(AddrWidth)
@@ -492,6 +557,11 @@ class Sequencer(Module):
         skip_phase = ~(inst_is_INST_SWAP | (~phase2))
         phase_increment = concat(skip_phase, ~skip_phase)
         #phase_increment = Select(inst_is_INST_SWAP | (~phase2), 2, 1)
+        # Here we could introduce wait-states by only changing l_phase_next if no external waitstates are requested.
+        # Something along these lines:
+        #  wait_state = (self.bus_rd | self.bus_wr) & self.bus_wait
+        #  phase_increment = concat(skip_hase, ~skip_phase) & repeat(~wait_state, 2)
+        #  l_phase_next.input_port <<= and_gate(repeat(~phase5 | wait_state, 3), (phase + phase_increment)[2:0])
         l_phase_next.input_port <<= and_gate(repeat(~phase5, 3), (phase + phase_increment)[2:0])
 
         update_mem <<= or_gate(
