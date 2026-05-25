@@ -15,69 +15,137 @@ that is the basis of the physical implementation.
 """
 
 """
-Musings about how to add protected mode of sorts.
+Musings about protected mode
+=======================================
 
-So, first, we need an extra status bit, called USER. This would be '1' for user mode, '0' for system mode.
-This bit can be queried using the ISTAT instruction, for instance.
+One simple way to provide memory protection is the CRAY-style offset/limit scheme.
+Here's how it would work in this case: the memory is broken up into 512-byte (256-word)
+pages. Every memory access is adjusted by an offset register which is added to the
+top 8-bits of the address bus. Simultaneously, a second adder (in subtract) mode
+subtracts the limit register from the top 8 bits of the address. The physical
+address handed to the memory subsystem is the offset-ed address and a violation
+exception (interrupt) really is thrown if the limit-subtraction results in a negative
+number.
 
-USER --> SYSTEM transition: SYSCALL
-===================================
+This page translation mechanism is disabled any time interrupts are disabled. The offset
+and limit registers are a single 16-bit I/O register. This provides memory protection
+both to page zero and page -1 (I/O) with the proper settings, so user code can't change
+the interrupt address nor can interact with I/O.
 
-To clear the USER bit, we use the instruction SWAP $PC, imm. Notice how it's *not* SWAP $PC, [imm], though
-it executes as if it was, with the exception that it also clears the USER bit. This pattern is more or less
-a SYSCALL.
+Supervisory mode gets control back though an interrupt, which automatically disables
+interrupts, and thus disables the translation mechanism as well. Physical and logical
+addresses are the same. At this point the interrupt handler can zero out the limit
+and offset registers before re-enabling interrupts, thus staying in supervisory mode.
 
-The bit-pattern for this instruciton is:
+Transition to supervisory mode (syscall) can be achieved by a jump to an invalid address,
+probably 0xffff by convention.
 
-+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-| 0 | 0   0   0 | 1 | 1   1   1 | 0   0 |         IMMED         |
-+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+The only thing left to do is to prevent user-mode code to disable interrupts. This can
+simply be done by blocking the ISWAP instruction. There are two options here: either
+ISWAP in user-mode causes an exception or it simply behaves as SWAP. Either way, this
+needs knowledge by the CPU whether it executes user code or not. Hmmm...
 
-In user mode, interrupts are enabled, independent of the I status flag.
-Since the D bit being set, the I flag is not modified. This gives the
-system SW the flexibility to decide if syscalls are entered with interrupts
-disabled or enabled.
+We have to also think about how to return to user-mode. The part of memory management
+is simple: all we need to do is to set up the offset and limit registers with interrupts
+disabled, put the user code somewhere in page 0 and ISWAP to it.
 
-!!!IMPORTANT!!!: the 'D' bit is forced to '1' in user mode for SWAP instrucitons, so user mode code can't alter the
-I flag anyway.
+The harder part is again: how does the CPU know it's in user-mode?
 
-Because of this, there's no point in checking the 'D' bit. This means that we need to check 10 bits for this condition.
-That's a large AND gate, but not terrible, maybe.
+Implementation
+-------------------
 
-SYSTEM --> USER transition: special SWAP
-========================================
-Any SWAP instruction, where OPB for swap is not a memory reference will set the USER big. Note, that this means for all
-these instruction 'D' is 0, so the previous test will fail it. The bit pattern is:
+So far this is a rather elegant system and requires *almost* no modification of the CPU
+itself, the whole memory management part can be bolted on externally.
 
-+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-| 0 | 0   0   0 | 0 | 1   .   . | .   . |         IMMED         |
-+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+At least in theory. In practice this is a bit more complicated. The problem is that the
+address translation still involves an 8-bit adder finishing its operation before we can
+start doing anything in the memory. My expectation is that it will take about 180ns to
+come up with the results. This eats more than a third of the available time for memory
+accesses, so unless the memory is significantly faster than I fear it to be, it's not
+going to fit while still running at 2MHz.
 
-This is just a 6-bit test. The execution commences as if bit 10 was '0', other than setting the USER flag. Now, this
-encoding was not previously used, so no problem there. The proposed SYSCALL prolog already contains a similar pattern:
+Now, we can be a bit more intrusive about the way we go here: the address latch
+is loaded in phase 0 and 2. However, the value we load in is computed in phase 5 and 1
+respectively (and help constant during phase 0 and 2 the address latch being, well
+a latch). We can't really put the translator in front of this latch as its output
+is fed back to the ALU (for the immediate+offset type addressing mode). What we can
+do though is to replicate the address latch: one, bypassing the translator and feeding
+back into the ALU and another that leaves the CPU towards the memory. By putting the
+translator in front of this second latch, we can shave off quite a bit from the timing
+budget: not only we have the ALU being done with the address calculation in 330ns, but
+as it produces bits (ripple-carry), our inputs for lower bits stabilize even further.
+In other words, the translator output will become valid only about 50ns after the
+ALU result does.
 
-SWAP $SP, [$PC+2]      ; swap back user stack, saving ours as we go <-- change this to SWAP $PC, $PC+2
-MOV $PC, $R1           ; return to caller
+Resource needs
+----------------
 
-The only problem here is that we set the USER bit one instruction too early, meaning the return statement cannot be executed.
-Probably the simplest solution is to delay the setting of the USER bit to after the fetch of the next instruction, i.e. to phase 1
-or something.
+Overall, this solution thus needs three 8-bit latches (one for the translation pages and
+another for the address-latch replication), two 8-bit adders with some comparison logic
+on one, some gates to enable/disable translation and exception (interrupt) generation.
 
-Special address space protection
-=================================
-The USER bit is exposed to the memroy subsystem. 0-page is mapped to page 1 and page -1 is mapped to page -2. The logic is
-the following:
+We will need another latch to keep around the interrupt cause (i.e. that we had an AV).
 
-if USER=1 and ADDR[15:6] == 0 then ADDR[6]=1
-if USER=1 and ADDR[15:6] == -1 then ADDR[6]=0
-
-RAM protection
+USER mode bit
 ==============
-RAM contains a 16-bit register (accessible on page -1 as an I/O), that controls access to every 1kB RAM PAGE from USER mode.
-If the USER bit is set, and the bit corresponding to the requested RAM PAGE in the control register is also set, the read/write
-request is ignored. The data input bus is set to some default value (not floating as that potentially leakes info).
 
-There is no address translation here, everything is in physical addresses, but at least USER code can't read/alter SYSTEM memory.
+Now to how to implement a USER-mode bit. This is a bit that the CPU needs in order to know
+if ISWAP is allowed or not. The trick, again, is that this bit is ignored if interrupts
+are disabled. That's because we *know* that interrupts are only disabled in supervisory mode.
+This trick allows us to put the USER bit into an I/O mapped register and set/cleared the same
+way as the offset/limit registers are.
+
+Then, the CPU can have an input pin that is driven by this bit.
+We also need an output from the CPU to let the translator know if interrupts are enabled or not.
+
+Modifications needed
+========================
+
+CPU modifications
+------------------
+- We need to expose the input bus of 'l_bus_a' as well as its 'enable' pin. These are used
+  to implement the secondary address latch outside the CPU as well as to feed the translator
+  with early results.
+- We need to expose an 'ISWAP inhibit' input and an 'interrupt enabled' output pins on the CPU.
+- We need to actually inhibit ISWAP instructions if they are inhibited.
+
+External additions
+-------------------
+- The MMU needs a 16-bit offset/limit register composed of two 8-bit parts. These are fed
+  to two adders on the (unlatched) address bus. The output of the first address is latched into
+  the secondary address bus latch (another 8-bit latch, the bottom 8-bits can come from the existing)
+- Both adders are bypassed/disabled/something if interrupts are disabled. For instance their second
+  input, the one normally connected to the offset/limit registers is AND-ed with this bit
+- We need comparison logic for the second (the limit) adder to catch AVs. The output of this is
+  latched into an I/O register bit at the same time the address bus latches are. This bit sticky and
+  can only be cleared by an I/O write and is directly OR-ed with other interrupt sources on its output.
+- There is yet another bit, which can be written using an I/O location that determines user-mode operation.
+  This bit is AND-ed with the interrupt enabled output from the CPU and fed back to the ISWAP inhibit
+
+Variations
+===========
+One variation worth considering is to implement 9-bit (1kByte/512Word) pages and compress all accesses into
+a single I/O register. Honestly that's probably still granular enough and saves both on logic size, timing
+and SW complexity.
+
+Syscall changes
+================
+Syscalls are intentional AVs. This of course means that address translation for user-mode code needs to be set up
+such that it can generate an AV. This is not a big deal though: if it can't generate an AV, then, by definition
+it has access to the whole of memory, which defeats the purpose.
+
+The way to determine if a SYSCALL happened is rather simple: when an interrupt occurs, system code needs to
+determine the source of the interrupt anyway. This process involves reading the AV bit to see if it was the
+memory mapper causing the interrupt. If it was, the saved off PC points to the *next* instruction after the
+SYSCALL. This means we can't really JUMP to a SYSCALL: that would mean we have no access to the user-mode PC
+anymore. It needs to be a read or write that triggers the AV. To simplify system code, we can designate a
+particular instruction for this purpose, say: 
+   MOV $R0, [-1] which encodes to 0b1000_1011_1011_1111.
+So, SW reads the instruction prior to the stored PC, compares it to this particular bit-pattern if it matches,
+assumes a SYSCALL took place. The rest of the protocol is as follows: the word after the instruction (so the one
+saved PC is pointing to) contains the SYSCALL number while $sp points to the SYSCALL parameters on the stack,
+just as a normal function call would.
+
 """
 AddrWidth = 16
 DataWidth = 16
