@@ -146,7 +146,38 @@ assumes a SYSCALL took place. The rest of the protocol is as follows: the word a
 saved PC is pointing to) contains the SYSCALL number while $sp points to the SYSCALL parameters on the stack,
 just as a normal function call would.
 
-"""
+
+  +--------------------------+             bottom 9 bits
+  |                          +--\-----------------------------\----
+  |              Addr[15:0]  |   +    ,------------------.     +  to address decode
+  |                          +--/---. |                  | .--/----
+  |                          |      | | top 7 bits       | |
+  |                          |      | |                  | |
+  |                          |      | |                  | |
+  |                          |      | |     +-----+      | |
+  |                          |      | '-----+  +  +------' |
+  |                          |      | .-----+     +--------'
+  |                          |      | |     +-+-+-+
+  |                          |      | |       | |
+  |                          |      | |       | |       +-----+ C_OUT
+  |                          |      | '-----------------+  -  +-------> access violation
+  |                          |      '-------------------+     +
+  |                          |                | |       +-+-+-+
+  |                          |                | |         | |
+  |                          |                | |         | |            
+  |                          |                .-.         .-.           +--.
+  |                  INT_EN  +----->---------/ & \-------/ & \----------+ & \___
+  |                          |              +-+-+-+     +-+-+-+     .---+   /   |
+  |                          |                | |         | |       |   +--'    |
+  |                          |           +----+-+---------+-+-------+-+         |
+  |                          |  MMU CFG  |   offset  |   limit    | U |         |
+  |                          |  REGISTER +----------------------------+         |
+  |                          |                                                  | 
+  |               USER_MODE  +-----<--------------------------------------------+ 
+  |                          |                                                    
+  +--------------------------+                                                   
+
+  """
 AddrWidth = 16
 DataWidth = 16
 AddrType = Unsigned(AddrWidth)
