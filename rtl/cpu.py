@@ -441,6 +441,10 @@ class DataPath(Module):
 
     serve_interrupt = Output(logic)
 
+    # MMU signals
+    logical_addr = Output(DataType)
+    physical_addr = Input(DataType)
+
     def body(self):
         # The 8 latches we have in our system
         l_bus_a = HighLatch()
@@ -499,7 +503,10 @@ class DataPath(Module):
         l_inst.latch_port <<= self.l_inst_ld | self.rst
         l_inst.reset_port <<= 0
 
-        l_bus_a.input_port <<= alu_result
+        # Add MMU into the address path
+        self.logical_addr <<= alu_result
+        l_bus_a.input_port <<= self.physical_addr
+
         l_bus_d.input_port <<= or_gate(
             and_gate(repeat(self.l_bus_d_load_bus_d, DataWidth), self.bus_d_in),
             and_gate(repeat(self.l_bus_d_load_alu_result, DataWidth), alu_result)
@@ -633,6 +640,10 @@ class Sequencer(Module):
 
     serve_interrupt = Input(logic)
 
+    # MMU interface
+    opb_is_mem_ref = Output(logic)
+    user_mode = Input(logic)
+
     def body(self):
         # State
         update_reg = Wire(logic)
@@ -694,8 +705,8 @@ class Sequencer(Module):
         phase4 = phase_decoder.decode(4)    # Capture ALU result
         phase5 = phase_decoder.decode(5)    # Capture ALU result for result write-back
 
-        opb_is_mem_ref = self.inst_field_opb[2] != OPB_CLASS_IMM
-        opb_is_imm_ref = not_gate(opb_is_mem_ref)
+        self.opb_is_mem_ref <<= self.inst_field_opb[2] != OPB_CLASS_IMM
+        opb_is_imm_ref = not_gate(self.opb_is_mem_ref)
         # We skip over phase 4 for anything but a SWAP instruction
         skip_phase = ~(inst_is_INST_SWAP | (~phase2))
         phase_increment = concat(skip_phase, ~skip_phase)
@@ -711,7 +722,7 @@ class Sequencer(Module):
             # Swap always updates mem
             inst_is_INST_SWAP,
             # Not a predicate instruction --> field D determines if we write to memory
-            and_gate(inst_is_not_predicate, opb_is_mem_ref, self.inst_field_d)
+            and_gate(inst_is_not_predicate, self.opb_is_mem_ref, self.inst_field_d)
         )
         update_reg <<= or_gate(
             # Swap always updates reg
@@ -736,13 +747,13 @@ class Sequencer(Module):
             phase2, 0,
             phase3, 0, # SWAP-only cycle
             phase4, 0,
-            phase5, opb_is_mem_ref,
+            phase5, self.opb_is_mem_ref,
         )
 
         self.bus_rd <<= (~self.rst) & SelectOne(
             phase0, 1,
             phase1, 0,
-            phase2, opb_is_mem_ref,
+            phase2, self.opb_is_mem_ref,
             phase3, 0, # SWAP-only cycle
             phase4, 0,
             phase5, 0,
@@ -927,7 +938,7 @@ class Sequencer(Module):
 
         alu_b_is_zero_for_exec = or_gate(inst_is_INST_SWAP, and_gate(inst_is_INST_MOV, self.inst_field_d))
         alu_b_is_ref_for_exec = not_gate(alu_b_is_zero_for_exec)
-        alu_b_is_mem_ref_for_exec = and_gate(alu_b_is_ref_for_exec, opb_is_mem_ref)
+        alu_b_is_mem_ref_for_exec = and_gate(alu_b_is_ref_for_exec, self.opb_is_mem_ref)
         alu_b_is_imm_ref_for_exec = and_gate(alu_b_is_ref_for_exec, opb_is_imm_ref)
 
         self.alu_b_select_immed <<= or_gate(phase1, phase2)
@@ -951,9 +962,55 @@ class Sequencer(Module):
 
         l_intdis_prev.input_port <<= l_intdis.output_port
         l_intdis.latch_port <<= or_gate(phase3, phase4)
-        int_dis_next <<= (l_intdis_prev.output_port ^ inst_is_INST_SWAP & inst_field_d_n) | self.rst
+        int_dis_next <<= (l_intdis_prev.output_port ^ inst_is_INST_SWAP & inst_field_d_n & ~self.user_mode) | self.rst
         l_intdis.input_port <<= int_dis_next
         self.intdis <<= l_intdis.output_port
+
+
+class Mmu(Module):
+    clk = ClkPort()
+    rst = RstPort()
+
+    logical_addr = Input(DataType)
+    physical_addr = Output(DataType)
+    
+    interrupt = Output(logic)
+    av = Output(logic)
+
+    bus_d = Input(DataType)
+    bus_wr = Input(logic)
+
+    user_mode = Output(logic)
+
+    int_en = Input(logic)
+    opb_is_mem_ref = Input(logic)
+
+    def body(self):
+        l_mmu_ctrl = HighLatch()
+        l_mmu_ctrl.latch_port <<= self.bus_wr
+        l_mmu_ctrl.input_port <<= self.bus_d[15:1]
+
+        mmu_offset = l_mmu_ctrl.output_port[14:8]
+        mmu_limit = l_mmu_ctrl.output_port[7:1]
+        mmu_user_mode = l_mmu_ctrl.output_port[0]
+        mmu_clear_av = self.bus_d[0] & self.bus_wr & self.clk
+
+        mmu_en = and_gate(self.int_en, self.opb_is_mem_ref)
+
+        self.physical_addr[8:0] <<= self.logical_addr[8:0]
+        self.physical_addr[15:9] <<= (self.logical_addr[15:9] + and_gate(mmu_offset, repeat(mmu_en, 7)))[6:0]
+        mmu_limit_check = (self.logical_addr[15:9] + not_gate(and_gate(mmu_limit, repeat(mmu_en, 7))))[6:0] # We don't set carry_in to 1, so limit is inclusive
+        not_av = mmu_limit_check[6]
+        self.av <<= not_gate(not_av)
+
+        av_sticky_bit = RSFlop()
+
+        av_sticky_bit.s <<= self.av
+        av_sticky_bit.r <<= and_gate(mmu_clear_av, not_av) # If there is an AV, we in the current cycle, we prevent the sticky bit from clearing
+
+        self.interrupt <<= av_sticky_bit.q
+        self.user_mode <<= and_gate(mmu_user_mode, self.int_en)
+
 
 
 class Cpu(Module):
@@ -974,15 +1031,26 @@ class Cpu(Module):
     def body(self):
         data_path = DataPath()
         sequencer = Sequencer()
+        mmu = Mmu()
 
+        mmu.bus_d <<= self.bus_d_out
+        mmu.bus_wr <<= and_gate(*mmu.physical_addr)
+        mmu.int_en <<= not_gate(sequencer.intdis)
+
+        mmu.logical_addr <<= data_path.logical_addr
+        data_path.physical_addr <<= mmu.physical_addr
+        sequencer.user_mode <<= mmu.user_mode
+        mmu.opb_is_mem_ref <<= sequencer.opb_is_mem_ref
+
+        self.bus_a <<= mmu.physical_addr
+        self.bus_wr <<= and_gate(sequencer.bus_wr, not_gate(mmu.av))
+        self.bus_rd <<= and_gate(sequencer.bus_rd, not_gate(mmu.av))
         self.bus_d_out <<= data_path.bus_d_out
-        self.bus_a <<= data_path.bus_a
-        self.bus_wr <<= sequencer.bus_wr
-        self.bus_rd <<= sequencer.bus_rd
         data_path.bus_d_in <<= self.bus_d_in
 
-        sequencer.interrupt <<= self.interrupt
-        data_path.interrupt <<= self.interrupt
+        interrupt = or_gate(self.interrupt, mmu.interrupt)
+        sequencer.interrupt <<= interrupt
+        data_path.interrupt <<= interrupt
 
         data_path.l_bus_a_ld <<= sequencer.l_bus_a_ld
         data_path.l_bus_d_ld <<= sequencer.l_bus_d_ld
@@ -1216,3 +1284,4 @@ if __name__ == '__main__':
             name = key
         if count > 0:
             print(f"    {name}: {count}")
+    netlist.generate(SystemVerilog())
