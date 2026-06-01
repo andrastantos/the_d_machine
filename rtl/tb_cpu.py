@@ -55,7 +55,7 @@ class Memory(GenericModule):
                 if data is not None:
                     data &= 0xffff
                     print(f"{now}: Writing MEM[0x{addr:04x}] = 0x{data:04x}")
-                    if addr & 0xffff == 0xffff:
+                    if addr & 0xffff == 0xfffe:
                         # This is the termination port
                         print(f"{now}: TERMINATING WITH EXIT CODE: {data:04x}")
                         assert data is not None
@@ -120,7 +120,7 @@ bct_code = \
     ; to verify that things went well. At least for the very
     ; beginning.
     .section TEXT 0x1000
-    .def TERMINATE_PORT = -1
+    .def TERMINATE_PORT = -2
     MOV $sp, 3
     mov [1], $sp      ; we should expect memory location 1 to contain 3
     mov $r0, 4
@@ -172,10 +172,12 @@ bct_code = \
     xor $r0, $sp
     if_neq $r0, (12 ^ 26)
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $r0, 26
     and $r0, $sp
     if_neq $r0, (12 & 26)
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $r0, 26
     or $r0, $sp
     if_neq $r0, (12 | 26)
@@ -183,10 +185,13 @@ bct_code = \
     sub $r1, 1
     ; Now we trust AND,OR,XOR,ADD,SUB,ISUB, ROL,ROR,MOV, at least on a basic level
     ; We will play around with ISTAT and SWAP (as well as SWAPI)
-    ; We don't actually have interrupts implemented, but we can test the interrupt enable behavior
+    ; First we have to make sure the AV bit is cleared as the reset state of that is unknown
+    mov $r0, 1
+    mov [-1], $r0
     istat $r0
-    if_neq $r0, 0
+    if_neq $r0, 0x2
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $sp, 7
     mov $r0, 0x10
     mov [5], $r0
@@ -194,57 +199,72 @@ bct_code = \
     swap $sp, [5]
     if_neq $sp, 0x10
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     istat $r0
-    if_neq $r0, 0
+    if_neq $r0, 0x2
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $r0, 0x11
     mov $sp, 5
     swapi $r0, [$sp]
     if_neq $r0, 0x7
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $r0, [$sp]
     if_neq $r0, 0x11
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     istat $r0
-    if_neq $r0, 2
+    if_neq $r0, 0
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
 
     mov $r0, 7
     sub $sp, 1
     swapi $r0, [$sp+1]
     if_neq $r0, 0x11
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $sp, [$sp+1]
     if_neq $sp, 7
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     istat $r0
-    if_neq $r0, 0
+    if_neq $r0, 2
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
 
     ; At this point we trust all instructions, except for a few predicates. Let's test those...
     mov $sp, 3
     mov $r0, 5
     if_ltu $r0, $sp
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $r0, -4
     if_lts $sp, $r0
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $sp, -4
     if_lts $sp, $r0
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $sp, 3
     if_les $sp, $r0
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
 
     if_geu $sp, $r0
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $r0, -4
     if_ges $r0, $sp
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $sp, -4
     if_ges $r0, $sp
     mov $pc, $pc+2
     mov [TERMINATE_PORT], $r1    ; This we should skip too
+    sub $r1, 1
     mov $sp, 3
     if_gts $r0, $sp
     mov [TERMINATE_PORT], $r1    ; This we should skip too

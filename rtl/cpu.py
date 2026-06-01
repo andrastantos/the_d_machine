@@ -599,6 +599,9 @@ class Sequencer(Module):
     l_r0_ld =         Output(logic)
     l_r1_ld =         Output(logic)
     l_inst_ld =       Output(logic)
+    l_interrupt_ld =  Output(logic)
+
+    inst_fetch =      Output(logic)
 
     l_bus_d_load_bus_d =        Output(logic)
     l_bus_d_load_alu_result =   Output(logic)
@@ -741,9 +744,11 @@ class Sequencer(Module):
         )
         l_int_cycle.latch_port <<= or_gate(phase0, phase5)
 
+        not_serve_interrupt = not_gate(self.serve_interrupt)
+
         self.bus_wr <<= (~self.rst) & SelectOne(
             phase0, 0,
-            phase1, 1,
+            phase1, not_serve_interrupt,
             phase2, 0,
             phase3, 0, # SWAP-only cycle
             phase4, 0,
@@ -751,7 +756,7 @@ class Sequencer(Module):
         )
 
         self.bus_rd <<= (~self.rst) & SelectOne(
-            phase0, 1,
+            phase0, not_serve_interrupt,
             phase1, 0,
             phase2, self.opb_is_mem_ref,
             phase3, 0, # SWAP-only cycle
@@ -804,6 +809,8 @@ class Sequencer(Module):
         )
 
         self.l_inst_ld <<= phase0
+        self.inst_fetch <<= or_gate(phase0, phase1)
+        self.l_interrupt_ld <<= phase5
 
         opa_decoder = OneHotDecode()
         opa_decoder.input_port <<= self.inst_field_opa
@@ -957,14 +964,21 @@ class Sequencer(Module):
         l_skip.latch_port <<= or_gate(phase1, phase4) # clear in phase 1, set, if needed in phase4
         l_skip.input_port <<= phase4 & inst_is_predicate & condition_match
 
-        l_intdis_prev.latch_port <<= phase1
+        # Interrupt enable/disable can happen in phase 0 for external interrupts or in phase 5 for ISWAP.
+        # We capture both in phase 1.
         int_dis_next = Wire(logic)
 
         l_intdis_prev.input_port <<= l_intdis.output_port
-        l_intdis.latch_port <<= or_gate(phase3, phase4)
-        int_dis_next <<= (l_intdis_prev.output_port ^ inst_is_INST_SWAP & inst_field_d_n & ~self.user_mode) | self.rst
+        handling_interrupt = and_gate(self.serve_interrupt, phase2)
+        l_intdis.latch_port <<= or_gate(phase5, handling_interrupt)
+        l_intdis.reset_value_port <<= 1
+        l_intdis_prev.latch_port <<= or_gate(phase1, handling_interrupt)
+        int_dis_next <<= (l_intdis_prev.output_port ^ inst_is_INST_SWAP & inst_field_d_n & ~self.user_mode) | self.rst | handling_interrupt
         l_intdis.input_port <<= int_dis_next
-        self.intdis <<= l_intdis.output_port
+        # We delay the change in interrupt state till the next instruction fetch. This is to prevent the MMU from throwing up when entering user mode.
+        # Since interrupts are checked for in phase 0, this means that the first instruction after an ISWAP still executes with interrupts disabled, or
+        # to put it differently, the first instruction after an ISWAP will execute even if interrupts are pending.
+        self.intdis <<= l_intdis_prev.output_port
 
 
 class Mmu(Module):
@@ -984,6 +998,7 @@ class Mmu(Module):
 
     int_en = Input(logic)
     opb_is_mem_ref = Input(logic)
+    inst_fetch = Input(logic)
 
     def body(self):
         l_mmu_ctrl = HighLatch()
@@ -993,22 +1008,28 @@ class Mmu(Module):
         mmu_offset = l_mmu_ctrl.output_port[14:8]
         mmu_limit = l_mmu_ctrl.output_port[7:1]
         mmu_user_mode = l_mmu_ctrl.output_port[0]
-        mmu_clear_av = self.bus_d[0] & self.bus_wr & self.clk
+        mmu_clear_av = self.bus_d[0] & self.bus_wr & ~self.clk # Including clock as a safey measure against data bus glitches. Not sure it's needed
 
-        mmu_en = and_gate(self.int_en, self.opb_is_mem_ref)
+        mmu_en = and_gate(self.int_en, or_gate(self.opb_is_mem_ref, self.inst_fetch), self.user_mode)
 
         self.physical_addr[8:0] <<= self.logical_addr[8:0]
         self.physical_addr[15:9] <<= (self.logical_addr[15:9] + and_gate(mmu_offset, repeat(mmu_en, 7)))[6:0]
-        mmu_limit_check = (self.logical_addr[15:9] + not_gate(and_gate(mmu_limit, repeat(mmu_en, 7))))[6:0] # We don't set carry_in to 1, so limit is inclusive
-        not_av = mmu_limit_check[6]
-        self.av <<= not_gate(not_av)
+        mmu_limit_check = Wire(Unsigned(7))
+        mmu_limit_check <<= (self.logical_addr[15:9] + not_gate(mmu_limit))[6:0] # We don't set carry_in to 1, so limit is inclusive
+        not_av = or_gate(mmu_limit_check[6], not_gate(mmu_en))
+        av = not_gate(not_av)
 
         av_sticky_bit = RSFlop()
 
-        av_sticky_bit.s <<= self.av
+        av_sticky_bit.s <<= av
+        #av_sticky_bit.r <<= or_gate(and_gate(mmu_clear_av, not_av), self.rst) # If there is an AV, we in the current cycle, we prevent the sticky bit from clearing
         av_sticky_bit.r <<= and_gate(mmu_clear_av, not_av) # If there is an AV, we in the current cycle, we prevent the sticky bit from clearing
 
         self.interrupt <<= av_sticky_bit.q
+        # We're working on logical address pre-address latch. The memory subsystem however sees the latched address.
+        # The write-back portion of accesses happen without a new latch into the address latch (being the point of a latch there).
+        # This means that the instantenous AV bit is not useful. What is useful is to prevent any and all memory accesses after an AV as long as the MMU is enabled.
+        self.av <<= and_gate(av_sticky_bit.q, mmu_en)
         self.user_mode <<= and_gate(mmu_user_mode, self.int_en)
 
 
@@ -1034,21 +1055,27 @@ class Cpu(Module):
         mmu = Mmu()
 
         mmu.bus_d <<= self.bus_d_out
-        mmu.bus_wr <<= and_gate(*mmu.physical_addr)
+        mmu.bus_wr <<= and_gate(*data_path.bus_a, sequencer.bus_wr)
         mmu.int_en <<= not_gate(sequencer.intdis)
 
         mmu.logical_addr <<= data_path.logical_addr
         data_path.physical_addr <<= mmu.physical_addr
         sequencer.user_mode <<= mmu.user_mode
         mmu.opb_is_mem_ref <<= sequencer.opb_is_mem_ref
+        mmu.inst_fetch <<= sequencer.inst_fetch
 
-        self.bus_a <<= mmu.physical_addr
+        self.bus_a <<= data_path.bus_a
         self.bus_wr <<= and_gate(sequencer.bus_wr, not_gate(mmu.av))
         self.bus_rd <<= and_gate(sequencer.bus_rd, not_gate(mmu.av))
         self.bus_d_out <<= data_path.bus_d_out
         data_path.bus_d_in <<= self.bus_d_in
 
-        interrupt = or_gate(self.interrupt, mmu.interrupt)
+        # We need to clean interrupts up at least a little. Only allow interrupts to change during phase4, when no memory access is happening
+        # This is needed because we need stable interrupt handling status during phase0 and 1, when the instruction fetch and its write-back is done
+        l_interrupt = HighLatch()
+        l_interrupt.latch_port <<= sequencer.l_interrupt_ld
+        l_interrupt.input_port <<= self.interrupt
+        interrupt = or_gate(l_interrupt.output_port, mmu.interrupt)
         sequencer.interrupt <<= interrupt
         data_path.interrupt <<= interrupt
 
