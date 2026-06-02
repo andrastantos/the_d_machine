@@ -7,6 +7,7 @@ from asm import *
 from disasm import *
 
 termination_code = None
+termination_port = -30
 class Memory(GenericModule):
     clk = ClkPort()
     bus_d_rd = Output(DataType)
@@ -55,7 +56,7 @@ class Memory(GenericModule):
                 if data is not None:
                     data &= 0xffff
                     print(f"{now}: Writing MEM[0x{addr:04x}] = 0x{data:04x}")
-                    if addr & 0xffff == 0xfffe:
+                    if addr & 0xffff == (termination_port & 0xffff):
                         # This is the termination port
                         print(f"{now}: TERMINATING WITH EXIT CODE: {data:04x}")
                         assert data is not None
@@ -111,7 +112,7 @@ class Memory(GenericModule):
 
 
 bct_code = \
-"""
+f"""
     ; This is a basic confidence test
     ; We start by not assuming anything works
     ; and build our toolbox as we go.
@@ -120,7 +121,7 @@ bct_code = \
     ; to verify that things went well. At least for the very
     ; beginning.
     .section TEXT 0x1000
-    .def TERMINATE_PORT = -2
+    .def TERMINATE_PORT = {termination_port}
     MOV $sp, 3
     mov [1], $sp      ; we should expect memory location 1 to contain 3
     mov $r0, 4
@@ -342,7 +343,7 @@ class TB(Module):
         self.bus_d_wr <<= dut.bus_d_out
         dut.bus_d_in <<= self.bus_d_rd
 
-        dut.interrupt <<= self.interrupt
+        dut.interrupts <<= concat("6'b0", self.interrupt)
 
         self.mem = Memory(16*1024)
         self.mem.bus_a <<= self.bus_a

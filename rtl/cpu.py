@@ -1033,12 +1033,63 @@ class Mmu(Module):
         self.user_mode <<= and_gate(mmu_user_mode, self.int_en)
 
 
+class IntCtrl(Module):
+    clk = ClkPort()
+    rst = RstPort()
+
+    interrupts = Input(Unsigned(8))
+    int_out = Output(logic)
+
+    bus_d_in = Input(DataType)
+    bus_d_out = Output(DataType)
+
+    bus_wr = Input(logic)
+    bus_rd = Input(logic)
+
+    l_interrupt_ld = Input(logic)
+
+    def body(self):
+        l_int_en = HighLatch()
+
+        int_stat = Wire(Unsigned(8))
+        sticky_bits = []
+        for idx, interrupt in enumerate(self.interrupts):
+            sticky_bit = RSFlop()
+            sticky_bits.append(sticky_bit)
+            sticky_bit.s <<= interrupt
+            sticky_bit.r <<= and_gate(self.bus_wr, self.bus_d_in[idx], ~self.clk) # Including clock as a safey measure against data bus glitches. Not sure it's needed
+            int_stat[idx] <<= sticky_bit.q
+
+        del interrupt
+        del idx
+        del sticky_bit
+
+        # We have a wired-or on the data-bus, so things that are disabled, should output a '1'
+        self.bus_d_out <<= or_gate(repeat(not_gate(self.bus_rd), 16), int_stat)
+        # Upper 8 bits are enable/disable, lower 8 are clear pending interrupt
+        l_int_en.input_port <<= self.bus_d_in[15:8]
+        # This is hard to read. In essence, we AND together the interrupt enable with the sticky bit output, then
+        # OR the whole thing together to create the interrupt output
+        l_int_en_out = Wire(Unsigned(8))
+        l_int_en_out <<= l_int_en.output_port
+        common_interrupt = or_gate(*list(and_gate(int_s, int_en) for int_s, int_en in zip(int_stat, l_int_en_out)))
+
+        # We need to clean interrupts up at least a little. Only allow interrupts to change during phase4, when no memory access is happening
+        # This is needed because we need stable interrupt handling status during phase0 and 1, when the instruction fetch and its write-back is done
+        l_interrupt = HighLatch()
+        l_interrupt.latch_port <<= self.l_interrupt_ld
+        l_interrupt.input_port <<= common_interrupt
+        self.int_out <<= l_interrupt.output_port
+
+        l_int_en.latch_port <<= self.bus_wr
+
+
 
 class Cpu(Module):
     clk = ClkPort()
     rst = RstPort()
 
-    interrupt = Input(logic)
+    interrupts = Input(Unsigned(7))
 
     bus_wr = Output(logic)
     bus_rd = Output(logic)
@@ -1053,9 +1104,28 @@ class Cpu(Module):
         data_path = DataPath()
         sequencer = Sequencer()
         mmu = Mmu()
+        int_ctrl = IntCtrl()
 
+        io_decoder = OneHotDecode()
+        io_decoder.input_port <<= data_path.bus_a[2:0]
+        addr_top = Wire(Unsigned(13))
+        addr_top <<= data_path.bus_a[15:3]
+        io_page = and_gate(*addr_top)
+
+        mmu_sel         = and_gate(io_decoder.decode(0b111), io_page)
+        int_ctrl_sel    = and_gate(io_decoder.decode(0b110), io_page)
+
+        int_ctrl.bus_d_in <<= self.bus_d_out
+        int_ctrl.bus_wr <<= and_gate(int_ctrl_sel, sequencer.bus_wr)
+        int_ctrl.bus_rd <<= and_gate(int_ctrl_sel, sequencer.bus_rd)
+        int_ctrl.l_interrupt_ld <<= sequencer.l_interrupt_ld
+        int_ctrl.interrupts <<= concat(self.interrupts, mmu.interrupt)
+
+        data_path.interrupt <<= int_ctrl.int_out
+        sequencer.interrupt <<= int_ctrl.int_out
+        
         mmu.bus_d <<= self.bus_d_out
-        mmu.bus_wr <<= and_gate(*data_path.bus_a, sequencer.bus_wr)
+        mmu.bus_wr <<= and_gate(mmu_sel, sequencer.bus_wr)
         mmu.int_en <<= not_gate(sequencer.intdis)
 
         mmu.logical_addr <<= data_path.logical_addr
@@ -1068,16 +1138,7 @@ class Cpu(Module):
         self.bus_wr <<= and_gate(sequencer.bus_wr, not_gate(mmu.av))
         self.bus_rd <<= and_gate(sequencer.bus_rd, not_gate(mmu.av))
         self.bus_d_out <<= data_path.bus_d_out
-        data_path.bus_d_in <<= self.bus_d_in
-
-        # We need to clean interrupts up at least a little. Only allow interrupts to change during phase4, when no memory access is happening
-        # This is needed because we need stable interrupt handling status during phase0 and 1, when the instruction fetch and its write-back is done
-        l_interrupt = HighLatch()
-        l_interrupt.latch_port <<= sequencer.l_interrupt_ld
-        l_interrupt.input_port <<= self.interrupt
-        interrupt = or_gate(l_interrupt.output_port, mmu.interrupt)
-        sequencer.interrupt <<= interrupt
-        data_path.interrupt <<= interrupt
+        data_path.bus_d_in <<= and_gate(int_ctrl.bus_d_out, self.bus_d_in)
 
         data_path.l_bus_a_ld <<= sequencer.l_bus_a_ld
         data_path.l_bus_d_ld <<= sequencer.l_bus_d_ld
