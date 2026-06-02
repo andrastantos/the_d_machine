@@ -139,7 +139,7 @@ determine the source of the interrupt anyway. This process involves reading the 
 memory mapper causing the interrupt. If it was, the saved off PC points to the *next* instruction after the
 SYSCALL. This means we can't really JUMP to a SYSCALL: that would mean we have no access to the user-mode PC
 anymore. It needs to be a read or write that triggers the AV. To simplify system code, we can designate a
-particular instruction for this purpose, say: 
+particular instruction for this purpose, say:
    MOV $R0, [-1] which encodes to 0b1000_1011_1011_1111.
 So, SW reads the instruction prior to the stored PC, compares it to this particular bit-pattern if it matches,
 assumes a SYSCALL took place. The rest of the protocol is as follows: the word after the instruction (so the one
@@ -164,7 +164,7 @@ just as a normal function call would.
   |                          |      '-------------------+     +
   |                          |                | |       +-+-+-+
   |                          |                | |         | |
-  |                          |                | |         | |            
+  |                          |                | |         | |
   |                          |                .-.         .-.           +--.
   |                  INT_EN  +----->---------/ & \-------/ & \----------+ & \___
   |                          |              +-+-+-+     +-+-+-+     .---+   /   |
@@ -172,10 +172,10 @@ just as a normal function call would.
   |                          |           +----+-+---------+-+-------+-+         |
   |                          |  MMU CFG  |   offset  |   limit    | U |         |
   |                          |  REGISTER +----------------------------+         |
-  |                          |                                                  | 
-  |               USER_MODE  +-----<--------------------------------------------+ 
-  |                          |                                                    
-  +--------------------------+                                                   
+  |                          |                                                  |
+  |               USER_MODE  +-----<--------------------------------------------+
+  |                          |
+  +--------------------------+
 
 
                                                                        REG_BUS_A
@@ -203,23 +203,23 @@ just as a normal function call would.
   |                          |                     | |         | |       |           |   |               |
   |                          |                     | |         | |       |    _______|___|________+---.  |
   |                          |                     | |         | |       |   |       |   |     ___| &  )-+
-  |                          |                     | |         | |       |   |       |   |    |   +---' 
-  |                          |                +----+-+---------+-+-------+-+---+     |   |    |   
+  |                          |                     | |         | |       |   |       |   |    |   +---'
+  |                          |                +----+-+---------+-+-------+-+---+     |   |    |
   |                          |       MMU CFG  |   offset  |   limit    | U |AVC|     |   |    |
   |                          |       REGISTER +----------------------------+---+     |   |    |
   |                          |                                                       |   |    |
-  |               USER_MODE  +----------<--------------------------------------------+   |    | 
+  |               USER_MODE  +----------<--------------------------------------------+   |    |
   |                          |       .-*-------------------------------------------------'    |
   |                          |       | |__+---.                                               |
   |                  BUS_WD  +-----.______| &  )----------------------------------------------*-------------------------> BUS_WR
-  |                          |            +---' 
-  |                          |       |                                                     
-  |                          |       |                                            
-  |                          |       |____+---.                                            
+  |                          |            +---'
+  |                          |       |
+  |                          |       |
+  |                          |       |____+---.
   |                  BUS_RD  +-----.______| &  )------------------------------------------------------------------------> BUS_RD
-  |                          |            +---'                                             
-  |                          |          
-  +--------------------------+                                                   
+  |                          |            +---'
+  |                          |
+  +--------------------------+
 
   """
 AddrWidth = 16
@@ -587,6 +587,7 @@ class Sequencer(Module):
     rst = RstPort()
 
     interrupt = Input(logic)
+    exception = Input(logic)
 
     bus_wr = Output(logic)
     bus_rd = Output(logic)
@@ -727,11 +728,14 @@ class Sequencer(Module):
             # Not a predicate instruction --> field D determines if we write to memory
             and_gate(inst_is_not_predicate, self.opb_is_mem_ref, self.inst_field_d)
         )
-        update_reg <<= or_gate(
-            # Swap always updates reg
-            inst_is_INST_SWAP,
-            # Not a predicate instruction --> field D determines if we write to registers
-            and_gate(inst_is_not_predicate, inst_field_d_n)
+        update_reg <<= and_gate(
+            or_gate(
+                # Swap always updates reg
+                inst_is_INST_SWAP,
+                # Not a predicate instruction --> field D determines if we write to registers
+                and_gate(inst_is_not_predicate, inst_field_d_n)
+            ),
+            not_gate(self.exception) # If there's an exception, we prevent register updates. NOTE: this assumes exceptions auto-clear once the excepting instruction is cancelled.
         )
 
         l_int_cycle.input_port <<= (~self.rst) & SelectOne(
@@ -987,7 +991,7 @@ class Mmu(Module):
 
     logical_addr = Input(DataType)
     physical_addr = Output(DataType)
-    
+
     interrupt = Output(logic)
     av = Output(logic)
 
@@ -1010,6 +1014,7 @@ class Mmu(Module):
         mmu_user_mode = l_mmu_ctrl.output_port[0]
         mmu_clear_av = self.bus_d[0] & self.bus_wr & ~self.clk # Including clock as a safey measure against data bus glitches. Not sure it's needed
 
+        # We MUST disable the MMU once we're not in user mode. The CPU sequencer relies on us removing the exception input once we're in the handler.
         mmu_en = and_gate(self.int_en, or_gate(self.opb_is_mem_ref, self.inst_fetch), self.user_mode)
 
         self.physical_addr[8:0] <<= self.logical_addr[8:0]
@@ -1121,9 +1126,13 @@ class Cpu(Module):
         int_ctrl.l_interrupt_ld <<= sequencer.l_interrupt_ld
         int_ctrl.interrupts <<= concat(self.interrupts, mmu.interrupt)
 
+        # NOTE: we are depending on all exceptions (well, AV) to also generate an interrupt.
+        # Otherwise the data-path would not latch in the proper instruction during the handler invocation
+        # and would report no pending interrupts either.
         data_path.interrupt <<= int_ctrl.int_out
         sequencer.interrupt <<= int_ctrl.int_out
-        
+        sequencer.exception <<= mmu.av
+
         mmu.bus_d <<= self.bus_d_out
         mmu.bus_wr <<= and_gate(mmu_sel, sequencer.bus_wr)
         mmu.int_en <<= not_gate(sequencer.intdis)
