@@ -2,6 +2,7 @@
 from typing import *
 from silicon import *
 from silicon.memory import SimpleDualPortMemory
+import silicon2 as si2
 from constants import *
 from types import MethodType
 
@@ -1346,6 +1347,7 @@ module_injectors = {
 
 }
 
+'''
 if __name__ == '__main__':
     with Netlist().elaborate() as netlist:
         Cpu()
@@ -1382,3 +1384,16 @@ if __name__ == '__main__':
         if count > 0:
             print(f"    {name}: {count}")
     netlist.generate(SystemVerilog())
+'''
+if __name__ == '__main__':
+    from asciitree import LeftAligned
+
+    def import_si(top: Module) -> si2.Scope:
+        with Netlist().elaborate() as netlist:
+            top()
+        print("Done with elaboration")
+        top_scope = si2.import_si1(netlist)
+        return top_scope
+
+    top_scope = import_si(Cpu)
+    print(LeftAligned()(si2.dump_scope(top_scope)))
