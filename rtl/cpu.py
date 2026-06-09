@@ -1396,4 +1396,5 @@ if __name__ == '__main__':
         return top_scope
 
     top_scope = import_si(Cpu)
-    print(LeftAligned()(si2.dump_scope(top_scope)))
+    with open("cpu.md", "wt") as f:
+        f.write(LeftAligned()(si2.dump_scope(top_scope)))
