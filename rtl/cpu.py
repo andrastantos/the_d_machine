@@ -713,7 +713,12 @@ class Sequencer(Module):
         self.opb_is_mem_ref <<= self.inst_field_opb[2] != OPB_CLASS_IMM
         opb_is_imm_ref = not_gate(self.opb_is_mem_ref)
         # We skip over phase 4 for anything but a SWAP instruction
-        skip_phase = ~(inst_is_INST_SWAP | (~phase2))
+        skip_phase = Wire(logic)
+        #####
+        ##### skip_phase can be safely grounded (by a jumper) to make every instruction execute in 6 phases
+        #####
+        skip_phase <<= ~(inst_is_INST_SWAP | (~phase2))
+        #skip_phase <<= 0
         phase_increment = concat(skip_phase, ~skip_phase)
         #phase_increment = Select(inst_is_INST_SWAP | (~phase2), 2, 1)
         # Here we could introduce wait-states by only changing l_phase_next if no external waitstates are requested.
