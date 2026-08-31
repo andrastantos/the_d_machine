@@ -652,7 +652,12 @@ class Sequencer(Module):
     def body(self):
         # State
         update_reg = Wire(logic)
+        update_breg = Wire(logic)
         update_mem = Wire(logic)
+
+        inst_field_opb_base = Wire(Unsigned(2))
+        inst_field_opb_msb  = Wire(logic)
+
         l_skip = HighLatch()
         l_intdis_prev = HighLatch()
         l_intdis = HighLatch()
@@ -734,6 +739,7 @@ class Sequencer(Module):
             # Not a predicate instruction --> field D determines if we write to memory
             and_gate(inst_is_not_predicate, self.opb_is_mem_ref, self.inst_field_d)
         )
+        exception_n = not_gate(self.exception)
         update_reg <<= and_gate(
             or_gate(
                 # Swap always updates reg
@@ -741,7 +747,14 @@ class Sequencer(Module):
                 # Not a predicate instruction --> field D determines if we write to registers
                 and_gate(inst_is_not_predicate, inst_field_d_n)
             ),
-            not_gate(self.exception) # If there's an exception, we prevent register updates. NOTE: this assumes exceptions auto-clear once the excepting instruction is cancelled.
+            # If there's an exception, we prevent register updates. NOTE: this assumes exceptions auto-clear once the excepting instruction is cancelled.
+            exception_n
+        )
+        update_breg <<= and_gate(
+            # Not a predicate instruction --> field D and MSB of OPB determines if we write to registers
+            inst_is_not_predicate, self.inst_field_d, inst_field_opb_msb,
+            # If there's an exception, we prevent register updates. NOTE: this assumes exceptions auto-clear once the excepting instruction is cancelled.
+            exception_n
         )
 
         l_int_cycle.input_port <<= (~self.rst) & SelectOne(
@@ -835,10 +848,11 @@ class Sequencer(Module):
 
         self.l_pc_ld <<= or_gate(phase1, and_gate(phase5, is_branch))
 
-        ld_target = and_gate(phase5, update_reg)
-        self.l_sp_ld <<= ld_target & opa_is_sp
-        self.l_r0_ld <<= ld_target & opa_is_r0
-        self.l_r1_ld <<= ld_target & opa_is_r1
+        ld_atarget = and_gate(phase5, update_reg)
+        ld_btarget = and_gate(phase5, update_breg)
+        self.l_sp_ld <<= (ld_atarget & opa_is_sp) | (ld_btarget & self.alu_a_select_sp)
+        self.l_r0_ld <<= (ld_atarget & opa_is_r0) | (ld_btarget & self.alu_a_select_r0)
+        self.l_r1_ld <<= (ld_atarget & opa_is_r1) | (ld_btarget & self.alu_a_select_r1)
 
         # Let's figure out what the ALU should do and on what for each cycle
         self.alu_cmd_nor   <<= and_gate(phase4, inst_is_INST_AND)
@@ -878,7 +892,8 @@ class Sequencer(Module):
         )
 
         opb_base_decode = OneHotDecode()
-        inst_field_opb_base = self.inst_field_opb[OPB_BASE_SIZE+OPB_BASE_OFS-1:OPB_BASE_OFS]
+        inst_field_opb_base <<= self.inst_field_opb[OPB_BASE_SIZE+OPB_BASE_OFS-1:OPB_BASE_OFS]
+        inst_field_opb_msb  <<= self.inst_field_opb[OPB_BASE_SIZE]
         opb_base_decode.input_port <<= inst_field_opb_base
         opb_base = SelectOne(
             opb_base_decode.decode(OPB_IMMED_PC & OPB_BASE_MASK),      AluASelect.pc,
