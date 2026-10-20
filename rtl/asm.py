@@ -327,26 +327,21 @@ def parse_isub(inst_code: int, line: Sequence[str]) -> Instruction:
         inst.d = 0
     return inst
 
-def parse_eq(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line)
-    inst.d = 0
-    return inst
-
-def parse_neq(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line)
-    inst.d = 1
-    return inst
-
-def parse_pos_pred(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line)
-    # If the arguments are swapped, we swap the test condition instead, but that's what 'd' already contains
-    return inst
-
-def parse_neg_pred(inst_code: int, line: Sequence[str]) -> Instruction:
-    inst = parse_dual_arg(inst_code, line)
-    # If the arguments are swapped, we swap the test condition instead
-    inst.d = 1-inst.d
-    return inst
+def pred_parser(invert: int, swapped: Optional[Tuple[int, int]]):
+    # Predicates always test 'reg <cond> opb', with 'D' selecting the inverted condition.
+    # If the memory operand is written first, we need the mirrored condition (a < b <==> b > a),
+    # which is not the same as the inverted one, and generally lives in a different opcode.
+    # 'swapped' is the (opcode, D) pair encoding the mirrored condition, or None if there's no such encoding.
+    def parse(inst_code: int, line: Sequence[str]) -> Instruction:
+        inst = parse_dual_arg(inst_code, line)
+        if inst.d:
+            if swapped is None:
+                raise AsmError(f"{line[0]} can't be encoded with the memory operand first: there are no unsigned <= or > predicates")
+            inst.opcode, inst.d = swapped
+        else:
+            inst.d = invert
+        return inst
+    return parse
 
 
 class InstParser(object):
@@ -469,14 +464,14 @@ class AsmContext(object):
         "sub":       InstParser(INST_SUB,   parse_sub),
         "isub":      InstParser(INST_ISUB,  parse_isub),
         "mov":       InstParser(INST_MOV,   parse_dual_arg),
-        "if_eq":     InstParser(INST_EQ,    parse_eq),
-        "if_ltu":    InstParser(INST_LTU,   parse_pos_pred),
-        "if_lts":    InstParser(INST_LTS,   parse_pos_pred),
-        "if_les":    InstParser(INST_LES,   parse_pos_pred),
-        "if_neq":    InstParser(INST_EQ,    parse_neq),
-        "if_geu":    InstParser(INST_LTU,   parse_neg_pred),
-        "if_ges":    InstParser(INST_LTS,   parse_neg_pred),
-        "if_gts":    InstParser(INST_LES,   parse_neg_pred),
+        "if_eq":     InstParser(INST_EQ,    pred_parser(PRED_AS_IS,  (INST_EQ,  PRED_AS_IS))),
+        "if_ltu":    InstParser(INST_LTU,   pred_parser(PRED_AS_IS,  None)),
+        "if_lts":    InstParser(INST_LTS,   pred_parser(PRED_AS_IS,  (INST_LES, PRED_INVERT))),
+        "if_les":    InstParser(INST_LES,   pred_parser(PRED_AS_IS,  (INST_LTS, PRED_INVERT))),
+        "if_neq":    InstParser(INST_EQ,    pred_parser(PRED_INVERT, (INST_EQ,  PRED_INVERT))),
+        "if_geu":    InstParser(INST_LTU,   pred_parser(PRED_INVERT, None)),
+        "if_ges":    InstParser(INST_LTS,   pred_parser(PRED_INVERT, (INST_LES, PRED_AS_IS))),
+        "if_gts":    InstParser(INST_LES,   pred_parser(PRED_INVERT, (INST_LTS, PRED_AS_IS))),
         "istat":     InstParser(INST_ISTAT, parse_single_arg),
         "rol":       InstParser(INST_ROL,   parse_single_arg),
         "ror":       InstParser(INST_ROR,   parse_single_arg),
