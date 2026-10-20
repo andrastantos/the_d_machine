@@ -137,12 +137,12 @@ class PseudoOpString(InstructionBase):
         bytes = list(value.encode())
         bytes.append(0) # zero terminate string
         if len(bytes) & 1 != 0: bytes.append(0)
-        words = list(bytes[i:i+2] for i in range(0, len(bytes), 2))
+        words = list(bytes[i+1]*256+bytes[i] for i in range(0, len(bytes), 2))
         self.value = words
     def machine_code(self, symbol_table: SymbolTable) -> Sequence[int]:
-        return self.values
+        return self.value
     def get_size(self) -> int:
-        return len(self.values)
+        return len(self.value)
 
 
 _tokenizer_re = re.compile(r'(?=[\, \[\]\+\-\*\/\(\)\&\|\~\;])|(?<=[\, \[\]\+\-\*\/\(\)\&\|\~\;])')
