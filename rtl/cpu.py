@@ -1126,9 +1126,15 @@ class Cpu(Module):
         mmu_sel         = and_gate(io_decoder.decode(0b111), io_page)
         int_ctrl_sel    = and_gate(io_decoder.decode(0b110), io_page)
 
+        # An access violation cancels the bus cycles of the offending instruction. This must
+        # include the internal I/O registers too, otherwise user code could write the MMU or
+        # interrupt controller registers through an access that faults.
+        gated_bus_wr = and_gate(sequencer.bus_wr, not_gate(mmu.av))
+        gated_bus_rd = and_gate(sequencer.bus_rd, not_gate(mmu.av))
+
         int_ctrl.bus_d_in <<= self.bus_d_out
-        int_ctrl.bus_wr <<= and_gate(int_ctrl_sel, sequencer.bus_wr)
-        int_ctrl.bus_rd <<= and_gate(int_ctrl_sel, sequencer.bus_rd)
+        int_ctrl.bus_wr <<= and_gate(int_ctrl_sel, gated_bus_wr)
+        int_ctrl.bus_rd <<= and_gate(int_ctrl_sel, gated_bus_rd)
         int_ctrl.l_interrupt_ld <<= sequencer.l_interrupt_ld
         int_ctrl.interrupts <<= concat(self.interrupts, mmu.interrupt)
 
@@ -1140,7 +1146,7 @@ class Cpu(Module):
         sequencer.exception <<= mmu.av
 
         mmu.bus_d <<= self.bus_d_out
-        mmu.bus_wr <<= and_gate(mmu_sel, sequencer.bus_wr)
+        mmu.bus_wr <<= and_gate(mmu_sel, gated_bus_wr)
         mmu.int_en <<= not_gate(sequencer.intdis)
 
         mmu.logical_addr <<= data_path.logical_addr
@@ -1150,8 +1156,8 @@ class Cpu(Module):
         mmu.inst_fetch <<= sequencer.inst_fetch
 
         self.bus_a <<= data_path.bus_a
-        self.bus_wr <<= and_gate(sequencer.bus_wr, not_gate(mmu.av))
-        self.bus_rd <<= and_gate(sequencer.bus_rd, not_gate(mmu.av))
+        self.bus_wr <<= gated_bus_wr
+        self.bus_rd <<= gated_bus_rd
         self.bus_d_out <<= data_path.bus_d_out
         data_path.bus_d_in <<= and_gate(int_ctrl.bus_d_out, self.bus_d_in)
 
