@@ -1025,10 +1025,10 @@ class Mmu(Module):
 
         self.physical_addr[8:0] <<= self.logical_addr[8:0]
         self.physical_addr[15:9] <<= (self.logical_addr[15:9] + and_gate(mmu_offset, repeat(mmu_en, 7)))[6:0]
-        mmu_limit_check = Wire(Unsigned(7))
-        mmu_limit_check <<= (self.logical_addr[15:9] + not_gate(mmu_limit))[6:0] # We don't set carry_in to 1, so limit is inclusive
-        not_av = or_gate(mmu_limit_check[6], not_gate(mmu_en))
-        av = not_gate(not_av)
+        mmu_limit_check = Wire(Unsigned(8))
+        mmu_limit_check <<= (self.logical_addr[15:9] + not_gate(mmu_limit))[7:0] # We don't set carry_in to 1, so limit is inclusive
+        av = and_gate(mmu_limit_check[7], mmu_en)
+        not_av = not_gate(av)
 
         av_sticky_bit = RSFlop()
 
