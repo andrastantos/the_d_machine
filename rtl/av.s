@@ -4,7 +4,8 @@
 ; that immediates and loaded values above the limit don't cause access
 ; violations, then triggers one and checks the state the handler sees.
 ; The handler terminates with exit code 0 on success, the saved PC if it
-; is not EXPECT_PC, or 1/2 if $r0/$r1 were clobbered.
+; is not EXPECT_PC, 1/2 if $r0/$r1 were clobbered, or 3 if the interrupt
+; controller doesn't read back as enable[15:8] | pending[7:0].
 ;
 ; With --defsym OFFSET=n the MMU offset is n pages: user code is stored at
 ; physical 0x1100 + n * 0x200 but runs at logical 0x1100. A decoy at
@@ -23,6 +24,7 @@
 	.set	OFFSET, 0
 	.endif
 	.set	USER, 0x1100		; logical address of the user code
+	.set	EXIT, -32		; termination port of tb_cpu.py / the ISA simulator
 
 	.text
 	.org	0
@@ -51,18 +53,35 @@ handler:
 	mov	$pc, $pc + (fail_r0 - .)
 	if_neq	$r1, -1
 	mov	$pc, $pc + (fail_r1 - .)
+	; Interrupt controller reads return enable[15:8] | pending[7:0], so the
+	; write-back of the value read keeps the enable mask and acknowledges
+	; exactly the interrupts that were read.
+	mov	$r0, [-2]		; AV (source 0) enabled and pending
+	if_neq	$r0, [$pc + (k0101 - .)]
+	mov	$pc, $pc + (fail_ic - .)
+	mov	$r0, 1
+	mov	[-1], $r0		; MMU: clear AV
+	mov	$r0, [-2]		; acknowledge what's still pending
+	mov	$r0, [-2]		; enable mask kept, nothing pending
+	if_neq	$r0, [$pc + (k0100 - .)]
+	mov	$pc, $pc + (fail_ic - .)
 	mov	$r0, 0
-	mov	[-30], $r0		; success: exit code 0
-	mov	$pc, $pc
-fail_pc: mov	[-30], $sp		; exit code = saved PC
-	mov	$pc, $pc
-fail_r0: mov	$r1, 1
-	mov	[-30], $r1
-	mov	$pc, $pc
-fail_r1: mov	$r0, 2
-	mov	[-30], $r0
+	mov	[EXIT], $r0		; success: exit code 0
 	mov	$pc, $pc
 k1201:	.word	EXPECT_PC
+k0101:	.word	0x0101
+k0100:	.word	0x0100
+fail_pc: mov	[EXIT], $sp		; exit code = saved PC
+	mov	$pc, $pc
+fail_r0: mov	$r1, 1
+	mov	[EXIT], $r1
+	mov	$pc, $pc
+fail_r1: mov	$r0, 2
+	mov	[EXIT], $r0
+	mov	$pc, $pc
+fail_ic: mov	$r1, 3
+	mov	[EXIT], $r1
+	mov	$pc, $pc
 
 	.macro	user_code
 	mov	$r0, -1			; phase 1 computes 0xffff: must not AV
@@ -81,7 +100,7 @@ k1200:	.word	0x1200
 	.macro	page9_code		; logical page 9: never executes
 	mov	$r0, 5
 	mov	$r1, 5
-	mov	[-30], $r0
+	mov	[EXIT], $r0
 	mov	$pc, $pc
 	.endm
 

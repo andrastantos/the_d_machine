@@ -7,7 +7,12 @@ from asm import *
 from disasm import *
 
 termination_code = None
-termination_port = -30
+# Same port as the ISA simulator's EXIT port: reads return 0x8000, writes with bit 15 set are
+# ignored (so the write-back of a read is harmless), any other write terminates the simulation.
+termination_port = -32
+# The CPU decodes 0xfff8...0xffff internally (MMU, interrupt controller). Memory doesn't respond there;
+# the data bus is pulled high, as the CPU ANDs the internal devices' outputs with it.
+io_page_start = 0xfff8
 class Memory(GenericModule):
     clk = ClkPort()
     bus_d_rd = Output(DataType)
@@ -34,6 +39,12 @@ class Memory(GenericModule):
                     self.bus_d_rd <<= None
                     continue
                 addr = int(self.bus_a.sim_value)
+                if addr >= io_page_start:
+                    self.bus_d_rd <<= 0xffff
+                    continue
+                if addr == termination_port & 0xffff:
+                    self.bus_d_rd <<= 0x8000
+                    continue
                 data = self.mem.get(addr, None)
                 if data is not None:
                     print(f"{now}: Reading MEM[0x{addr:04x}] -> 0x{data:04x}")
@@ -56,14 +67,16 @@ class Memory(GenericModule):
                 if data is not None:
                     data &= 0xffff
                     print(f"{now}: Writing MEM[0x{addr:04x}] = 0x{data:04x}")
-                    if addr & 0xffff == (termination_port & 0xffff):
-                        # This is the termination port
-                        print(f"{now}: TERMINATING WITH EXIT CODE: {data:04x}")
-                        assert data is not None
-                        global termination_code
-                        termination_code = data
                 else:
                     print(f"{now}: Writing MEM[0x{addr:04x}] = NONE")
+                if addr >= io_page_start:
+                    continue
+                if addr == termination_port & 0xffff:
+                    if data is not None and data & 0x8000 == 0:
+                        print(f"{now}: TERMINATING WITH EXIT CODE: {data:04x}")
+                        global termination_code
+                        termination_code = data
+                    continue
                 # Write can only flip bits from 0 to 1. So, we have to make sure that all writes happen to locations
                 # that have been reset to 0 by a read previously
                 assert self.mem[addr] == 0

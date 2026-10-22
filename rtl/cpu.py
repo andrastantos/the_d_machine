@@ -1137,14 +1137,17 @@ class IntCtrl(Module):
         del idx
         del sticky_bit
 
-        # We have a wired-or on the data-bus, so things that are disabled, should output a '1'
-        self.bus_d_out <<= or_gate(repeat(not_gate(self.bus_rd), 16), int_stat)
-        # Upper 8 bits are enable/disable, lower 8 are clear pending interrupt
+        # Writes: upper 8 bits are enable/disable, a 1 in the lower 8 bits clears the pending interrupt
         l_int_en.input_port <<= self.bus_d_in[15:8]
-        # This is hard to read. In essence, we AND together the interrupt enable with the sticky bit output, then
-        # OR the whole thing together to create the interrupt output
         l_int_en_out = Wire(Unsigned(8))
         l_int_en_out <<= l_int_en.output_port
+
+        # Reads: the enable mask in the upper 8 bits, pending interrupts in the lower 8. Every read is followed by a write-back
+        # of the value read, so this layout keeps the enable mask and acknowledges exactly the interrupts that were read.
+        # We have a wired-and on the data-bus, so things that are disabled, should output a '1'
+        self.bus_d_out <<= or_gate(repeat(not_gate(self.bus_rd), 16), concat(l_int_en_out, int_stat))
+        # This is hard to read. In essence, we AND together the interrupt enable with the sticky bit output, then
+        # OR the whole thing together to create the interrupt output
         common_interrupt = or_gate(*list(and_gate(int_s, int_en) for int_s, int_en in zip(int_stat, l_int_en_out)))
 
         # We need to clean interrupts up at least a little. Only allow interrupts to change during phase4, when no memory access is happening

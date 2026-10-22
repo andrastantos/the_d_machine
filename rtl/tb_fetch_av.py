@@ -5,7 +5,7 @@
 #
 # The image is a little-endian dump of 16-bit words (objcopy -O binary
 # output). The run ends when the program writes the termination port of
-# tb_cpu.py (-30), whose value is printed as the exit code. See av.s for
+# tb_cpu.py (0xffe0), whose value is printed as the exit code. See av.s for
 # the MMU access violation tests. Writes tb_fetch_av.vcd in the current
 # directory.
 
