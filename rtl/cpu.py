@@ -659,6 +659,9 @@ class Sequencer(Module):
     operand_precheck = Output(logic)
     block_fetch = Input(logic)
     block_operand = Input(logic)
+    # INTDIS as it will be for the next instruction fetch. Differs from intdis only between phase 5 of an
+    # SWAPI and phase 1 of the following instruction.
+    fetch_intdis = Output(logic)
     user_mode = Input(logic)
 
     def body(self):
@@ -764,17 +767,17 @@ class Sequencer(Module):
             phase4, 0,
             phase5, 0,
         )
-        l_int_cycle.latch_port <<= or_gate(phase0, phase5)
+        l_int_cycle.latch_port <<= phase0 # Captured at the fetch, held for the whole instruction
 
         not_serve_interrupt = not_gate(self.serve_interrupt)
 
         self.bus_wr <<= (~self.rst) & SelectOne(
             phase0, 0,
-            phase1, not_serve_interrupt,
+            phase1, not_serve_interrupt & ~self.block_fetch,     # No write-back of a read that wasn't done
             phase2, 0,
             phase3, 0, # SWAP-only cycle
             phase4, 0,
-            phase5, self.opb_is_mem_ref,
+            phase5, self.opb_is_mem_ref & ~self.block_operand,
         )
 
         # Reads that would be access violations are never started (see Mmu). The blocking signals are latched in the preceding
@@ -1001,12 +1004,15 @@ class Sequencer(Module):
         l_intdis.latch_port <<= or_gate(phase5, handling_interrupt)
         l_intdis.reset_value_port <<= 1
         l_intdis_prev.latch_port <<= or_gate(phase1, handling_interrupt)
-        int_dis_next <<= (l_intdis_prev.output_port ^ inst_is_INST_SWAP & inst_field_d_n & ~self.user_mode) | self.rst | handling_interrupt
+        # The interrupt instruction is an SWAPI, but its INTDIS flip must be suppressed: handling_interrupt already set
+        # INTDIS in phase 2, and flipping it in phase 5 would start the handler with interrupts enabled (and in user mode).
+        int_dis_next <<= (l_intdis_prev.output_port ^ inst_is_INST_SWAP & inst_field_d_n & ~self.user_mode & ~l_int_cycle.output_port) | self.rst | handling_interrupt
         l_intdis.input_port <<= int_dis_next
         # We delay the change in interrupt state till the next instruction fetch. This is to prevent the MMU from throwing up when entering user mode.
         # Since interrupts are checked for in phase 0, this means that the first instruction after an ISWAP still executes with interrupts disabled, or
         # to put it differently, the first instruction after an ISWAP will execute even if interrupts are pending.
         self.intdis <<= l_intdis_prev.output_port
+        self.fetch_intdis <<= l_intdis.output_port
 
 
 class Mmu(Module):
@@ -1025,6 +1031,10 @@ class Mmu(Module):
     user_mode = Output(logic)
 
     int_en = Input(logic)
+    # Interrupt enable as it will be for the next instruction fetch. The CPU only switches int_en in phase 1 of the
+    # instruction after an SWAPI (to keep the SWAPI itself in supervisor mode), which would leave the first fetch
+    # after entering user mode untranslated and unchecked.
+    fetch_int_en = Input(logic)
     # Bus reads the sequencer wants to do (before access violations are taken into account): instruction fetch (phase 0)
     # and operand read (phase 2). The ALU output is a bus address only in these cycles.
     fetch_req = Input(logic)
@@ -1051,25 +1061,26 @@ class Mmu(Module):
         # The logical address is the raw ALU output, which is only an address while it's latched for a bus cycle.
         # In other phases it's an immediate, an operation result or the next PC: those must neither be translated
         # (immediates are read back from the address latch in phase 4) nor checked against the limit.
-        mmu_en = and_gate(mmu_active, or_gate(self.fetch_req, self.operand_req))
+        fetch_mmu_active = and_gate(mmu_user_mode, self.fetch_int_en)
+        mmu_en = or_gate(and_gate(fetch_mmu_active, self.fetch_req), and_gate(mmu_active, self.operand_req))
 
         self.physical_addr[8:0] <<= self.logical_addr[8:0]
         self.physical_addr[15:9] <<= (self.logical_addr[15:9] + and_gate(mmu_offset, repeat(mmu_en, 7)))[6:0]
         mmu_limit_check = Wire(Unsigned(8))
         mmu_limit_check <<= (self.logical_addr[15:9] + not_gate(mmu_limit))[7:0] # We don't set carry_in to 1, so limit is inclusive
+        page_over_limit = mmu_limit_check[7] # Carry out of page + ~limit: set if the logical page is above the limit
         # The limit check is done one phase early, in phase 5 (next PC) and phase 1 (operand address), and latched. This way it's
         # stable by the time the bus cycle starts in phase 0 or 2, and the sequencer can leave the read strobe off from the start:
         # a read of core memory that's started and cut short would destroy the word without writing it back. Phase 5 and 0, as
         # well as phase 1 and 2 compute the same address, so it doesn't matter if the latches close a little late.
         # Fetch and operand checks are kept separately: phase 1 (where the operand is checked) also writes back the instruction,
         # which must only be blocked by an AV in the fetch itself.
-        limit_fail = and_gate(mmu_limit_check[7], mmu_active)
         l_block_fetch = HighLatch()
         l_block_fetch.latch_port <<= self.fetch_precheck
-        l_block_fetch.input_port <<= limit_fail
+        l_block_fetch.input_port <<= and_gate(page_over_limit, fetch_mmu_active)
         l_block_operand = HighLatch()
         l_block_operand.latch_port <<= self.operand_precheck
-        l_block_operand.input_port <<= limit_fail
+        l_block_operand.input_port <<= and_gate(page_over_limit, mmu_active)
         self.block_fetch <<= l_block_fetch.output_port
         self.block_operand <<= l_block_operand.output_port
         av = or_gate(
@@ -1199,6 +1210,7 @@ class Cpu(Module):
         mmu.bus_d <<= self.bus_d_out
         mmu.bus_wr <<= and_gate(mmu_sel, gated_bus_wr)
         mmu.int_en <<= not_gate(sequencer.intdis)
+        mmu.fetch_int_en <<= not_gate(sequencer.fetch_intdis)
 
         mmu.logical_addr <<= data_path.logical_addr
         data_path.physical_addr <<= mmu.physical_addr
