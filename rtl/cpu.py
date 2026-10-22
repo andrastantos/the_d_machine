@@ -428,6 +428,7 @@ class DataPath(Module):
     alu_inv_b_in = Input(logic)
 
     intdis = Input(logic)
+    fetch_av = Input(logic) # Access violation during instruction fetch: don't latch the (undriven) bus into the instruction register
 
     alu_c_in = Input(logic)
     alu_c_out = Output(logic)
@@ -519,8 +520,13 @@ class DataPath(Module):
         l_r1.input_port <<= l_alu_result.output_port
 
         serve_interrupt = and_gate(not_gate(self.intdis), self.interrupt)
-        serve_interrupt_n = not_gate(serve_interrupt)
         self.serve_interrupt <<= serve_interrupt
+        # On a faulting fetch the bus isn't driven. Instead of latching whatever is on it, we load the interrupt instruction.
+        # It has no effect: the access violation cancels its bus cycles and register update, and SWAPI doesn't change INTDIS
+        # in user mode. The interrupt itself is taken at the next instruction boundary with the saved PC pointing past the
+        # faulting address.
+        int_inst_sel = or_gate(serve_interrupt, self.fetch_av)
+        int_inst_sel_n = not_gate(int_inst_sel)
 
         # We're creating the input mux for the instruction latch. This is highly optimized because the only alternatives to bus_d
         # are constants. So, we examine them bit-by-bit and generate the most optimal logic. We are also careful about priorities:
@@ -528,7 +534,7 @@ class DataPath(Module):
         assert (INST_SWAP ^ INST_MOV).bit_count() == 1, "INST_MOV and INST_SWAP should differ in one bit only. Review instruction codes!"
         rst_inst = (INST_MOV  << OPCODE_OFS) | (DEST_REG << D_OFS) | (OPB_MEM_IMMED << OPB_OFS) | (OPA_PC << OPA_OFS) | (0 << IMMED_OFS)
         int_inst = (INST_SWAP << OPCODE_OFS) | (DEST_REG << D_OFS) | (OPB_MEM_IMMED << OPB_OFS) | (OPA_PC << OPA_OFS) | (1 << IMMED_OFS)
-        int_or_reset = or_gate(serve_interrupt, self.rst)
+        int_or_reset = or_gate(int_inst_sel, self.rst)
         rst_n = not_gate(self.rst)
         int_or_reset_n = not_gate(int_or_reset)
         l_inst_input = Wire(DataType)
@@ -547,9 +553,9 @@ class DataPath(Module):
             else:
                 # Reset and interrupts are different, we'll have to be more considerate
                 if int_inst_bit == 1:
-                    int_or_inst = or_gate(serve_interrupt, bus_d_in_bit)
+                    int_or_inst = or_gate(int_inst_sel, bus_d_in_bit)
                 else:
-                    int_or_inst = and_gate(serve_interrupt_n, bus_d_in_bit)
+                    int_or_inst = and_gate(int_inst_sel_n, bus_d_in_bit)
                 if rst_inst_bit == 1:
                     l_inst_bit <<= or_gate(self.rst, int_or_inst)
                 else:
@@ -603,7 +609,6 @@ class Sequencer(Module):
     l_inst_ld =       Output(logic)
     l_interrupt_ld =  Output(logic)
 
-    inst_fetch =      Output(logic)
 
     l_bus_d_load_bus_d =        Output(logic)
     l_bus_d_load_alu_result =   Output(logic)
@@ -647,6 +652,13 @@ class Sequencer(Module):
 
     # MMU interface
     opb_is_mem_ref = Output(logic)
+    # MMU interface for access violations, see Mmu
+    fetch_req = Output(logic)
+    operand_req = Output(logic)
+    fetch_precheck = Output(logic)
+    operand_precheck = Output(logic)
+    block_fetch = Input(logic)
+    block_operand = Input(logic)
     user_mode = Input(logic)
 
     def body(self):
@@ -741,7 +753,7 @@ class Sequencer(Module):
                 # Not a predicate instruction --> field D determines if we write to registers
                 and_gate(inst_is_not_predicate, inst_field_d_n)
             ),
-            not_gate(self.exception) # If there's an exception, we prevent register updates. NOTE: this assumes exceptions auto-clear once the excepting instruction is cancelled.
+            not_gate(self.exception) # If there's an exception, we prevent register updates. NOTE: this assumes exceptions auto-clear once the handler is entered.
         )
 
         l_int_cycle.input_port <<= (~self.rst) & SelectOne(
@@ -765,10 +777,14 @@ class Sequencer(Module):
             phase5, self.opb_is_mem_ref,
         )
 
+        # Reads that would be access violations are never started (see Mmu). The blocking signals are latched in the preceding
+        # phase, so they are stable when the phase starts and the strobe doesn't glitch.
+        self.fetch_req <<= (~self.rst) & phase0 & not_serve_interrupt
+        self.operand_req <<= (~self.rst) & phase2 & self.opb_is_mem_ref
         self.bus_rd <<= (~self.rst) & SelectOne(
-            phase0, not_serve_interrupt,
+            phase0, not_serve_interrupt & ~self.block_fetch,
             phase1, 0,
-            phase2, self.opb_is_mem_ref,
+            phase2, self.opb_is_mem_ref & ~self.block_operand,
             phase3, 0, # SWAP-only cycle
             phase4, 0,
             phase5, 0,
@@ -819,7 +835,9 @@ class Sequencer(Module):
         )
 
         self.l_inst_ld <<= phase0
-        self.inst_fetch <<= or_gate(phase0, phase1)
+        # The ALU computes the next bus address one phase before it's used: the next PC in phase 5 and the operand in phase 1
+        self.fetch_precheck <<= phase5
+        self.operand_precheck <<= phase1
         self.l_interrupt_ld <<= phase5
 
         opa_decoder = OneHotDecode()
@@ -972,7 +990,7 @@ class Sequencer(Module):
         condition_match = raw_condition_match ^ ~self.inst_field_d
 
         l_skip.latch_port <<= or_gate(phase1, phase4) # clear in phase 1, set, if needed in phase4
-        l_skip.input_port <<= phase4 & inst_is_predicate & condition_match
+        l_skip.input_port <<= phase4 & inst_is_predicate & condition_match & ~self.exception # A cancelled predicate must not skip either
 
         # Interrupt enable/disable can happen in phase 0 for external interrupts or in phase 5 for ISWAP.
         # We capture both in phase 1.
@@ -1007,8 +1025,16 @@ class Mmu(Module):
     user_mode = Output(logic)
 
     int_en = Input(logic)
-    opb_is_mem_ref = Input(logic)
-    inst_fetch = Input(logic)
+    # Bus reads the sequencer wants to do (before access violations are taken into account): instruction fetch (phase 0)
+    # and operand read (phase 2). The ALU output is a bus address only in these cycles.
+    fetch_req = Input(logic)
+    operand_req = Input(logic)
+    # The phases preceding those (5 and 1), where the ALU already computes the same address.
+    fetch_precheck = Input(logic)
+    operand_precheck = Input(logic)
+    # Asserted if the upcoming fetch or operand read must not be started, because it's an access violation.
+    block_fetch = Output(logic)
+    block_operand = Output(logic)
 
     def body(self):
         l_mmu_ctrl = HighLatch()
@@ -1021,13 +1047,35 @@ class Mmu(Module):
         mmu_clear_av = self.bus_d[0] & self.bus_wr & ~self.clk # Including clock as a safey measure against data bus glitches. Not sure it's needed
 
         # We MUST disable the MMU once we're not in user mode. The CPU sequencer relies on us removing the exception input once we're in the handler.
-        mmu_en = and_gate(self.int_en, or_gate(self.opb_is_mem_ref, self.inst_fetch), self.user_mode)
+        mmu_active = and_gate(mmu_user_mode, self.int_en)
+        # The logical address is the raw ALU output, which is only an address while it's latched for a bus cycle.
+        # In other phases it's an immediate, an operation result or the next PC: those must neither be translated
+        # (immediates are read back from the address latch in phase 4) nor checked against the limit.
+        mmu_en = and_gate(mmu_active, or_gate(self.fetch_req, self.operand_req))
 
         self.physical_addr[8:0] <<= self.logical_addr[8:0]
         self.physical_addr[15:9] <<= (self.logical_addr[15:9] + and_gate(mmu_offset, repeat(mmu_en, 7)))[6:0]
         mmu_limit_check = Wire(Unsigned(8))
         mmu_limit_check <<= (self.logical_addr[15:9] + not_gate(mmu_limit))[7:0] # We don't set carry_in to 1, so limit is inclusive
-        av = and_gate(mmu_limit_check[7], mmu_en)
+        # The limit check is done one phase early, in phase 5 (next PC) and phase 1 (operand address), and latched. This way it's
+        # stable by the time the bus cycle starts in phase 0 or 2, and the sequencer can leave the read strobe off from the start:
+        # a read of core memory that's started and cut short would destroy the word without writing it back. Phase 5 and 0, as
+        # well as phase 1 and 2 compute the same address, so it doesn't matter if the latches close a little late.
+        # Fetch and operand checks are kept separately: phase 1 (where the operand is checked) also writes back the instruction,
+        # which must only be blocked by an AV in the fetch itself.
+        limit_fail = and_gate(mmu_limit_check[7], mmu_active)
+        l_block_fetch = HighLatch()
+        l_block_fetch.latch_port <<= self.fetch_precheck
+        l_block_fetch.input_port <<= limit_fail
+        l_block_operand = HighLatch()
+        l_block_operand.latch_port <<= self.operand_precheck
+        l_block_operand.input_port <<= limit_fail
+        self.block_fetch <<= l_block_fetch.output_port
+        self.block_operand <<= l_block_operand.output_port
+        av = or_gate(
+            and_gate(l_block_fetch.output_port, self.fetch_req),
+            and_gate(l_block_operand.output_port, self.operand_req)
+        )
         not_av = not_gate(av)
 
         av_sticky_bit = RSFlop()
@@ -1040,8 +1088,11 @@ class Mmu(Module):
         # We're working on logical address pre-address latch. The memory subsystem however sees the latched address.
         # The write-back portion of accesses happen without a new latch into the address latch (being the point of a latch there).
         # This means that the instantenous AV bit is not useful. What is useful is to prevent any and all memory accesses after an AV as long as the MMU is enabled.
-        self.av <<= and_gate(av_sticky_bit.q, mmu_en)
-        self.user_mode <<= and_gate(mmu_user_mode, self.int_en)
+        # This is also what cancels the rest of the faulting instruction (bus cycles, register and skip updates), for every
+        # phase and every operand type. That matters for faulting instruction fetches, where the 'instruction' that
+        # executes is whatever happened to be on the bus. It stays asserted until the handler is entered and disables interrupts.
+        self.av <<= and_gate(av_sticky_bit.q, mmu_active)
+        self.user_mode <<= mmu_active
 
 
 class IntCtrl(Module):
@@ -1152,8 +1203,12 @@ class Cpu(Module):
         mmu.logical_addr <<= data_path.logical_addr
         data_path.physical_addr <<= mmu.physical_addr
         sequencer.user_mode <<= mmu.user_mode
-        mmu.opb_is_mem_ref <<= sequencer.opb_is_mem_ref
-        mmu.inst_fetch <<= sequencer.inst_fetch
+        mmu.fetch_req <<= sequencer.fetch_req
+        mmu.operand_req <<= sequencer.operand_req
+        mmu.fetch_precheck <<= sequencer.fetch_precheck
+        mmu.operand_precheck <<= sequencer.operand_precheck
+        sequencer.block_fetch <<= mmu.block_fetch
+        sequencer.block_operand <<= mmu.block_operand
 
         self.bus_a <<= data_path.bus_a
         self.bus_wr <<= gated_bus_wr
@@ -1197,6 +1252,7 @@ class Cpu(Module):
         data_path.alu_inv_b_in <<= sequencer.alu_inv_b
 
         data_path.intdis <<= sequencer.intdis
+        data_path.fetch_av <<= or_gate(mmu.block_fetch, mmu.av) # Only matters in phase 0, when the instruction latch is open
 
         data_path.alu_c_in <<= sequencer.alu_c_in
 
