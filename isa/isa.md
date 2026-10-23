@@ -178,20 +178,56 @@ NOP:
 High level language support
 -------------------------------
 
-Function calls and returns:
-- The stack frame needs to be prepared by the caller by SP-relative MOV-s (or other means storing the arguments on the stack)
-- The return address is stored in the stack by a MOV. This cannot be done directly from the PC Since the PC as that doesn't yet point to the right instruction. There is a special addressing mode (PC+immediate) that can be used to calculate the return address and be stored in a different register, say R1. This value then can be stored in the stack.
-- SP is incremented to point to the memory location *after* the return address.
-- The function is called by loading its address into the PC.
-- The called function allocates its frame on the stack (advancing SP in the process); executed and accesses local variables as well as arguments by SP-relative addressing.
-- Prior to return the stack is restored
-- The PC is loaded using SP-relative addressing, which returns execution to the caller
-- The caller adjusts SP to remove arguments from the stack
+This is the calling convention the toolchain (GDB's unwinder in particular) assumes.
 
-Potential optimizations to function calls:
-- We could require that arguments are freed by the callee, but that makes variable argument passing convoluted *and* that the return address is put on the stack before all arguments, not after.
-- We could pass arguments as well as the return value in registers
-- We could even say that R1 is a link register, containing the return address and require the callee to store it in it's own stack-frame, if needed. This, combined with R0 being an argument/return value register could be relatively efficient.
+Stack:
+- The stack grows down. SP points to the first free location: a push is a store to [$sp] followed by `sub $sp, 1`.
+
+Calls:
+- The caller stores the address of the callee in the free location and swaps it with PC. This jumps to the callee and leaves the return address (the address of the SWAP plus one) in the same location:
+
+  ```
+      mov  $r1, [$pc + (lit_f - .)]   ; the address of f
+      mov  [$sp], $r1
+      swap $pc, [$sp]                 ; call f; [$sp] = return address
+      ...
+  lit_f: .word f
+  ```
+
+- The callee allocates its frame below the return address with `sub $sp, N`. The return address is then at [$sp+N], locals at [$sp+1]..[$sp+N-1]; [$sp] is free, ready for the next call. A function that needs no frame (a leaf without locals) skips this.
+- To return, the callee frees its frame, then loads PC from the return address:
+
+  ```
+      add  $sp, N
+      mov  $pc, [$sp]
+  ```
+
+Arguments and return values:
+- The first argument is passed in R0. Further arguments are pushed by the caller before the call, so the callee finds them above its return address ([$sp+N+1], [$sp+N+2], ... after its prologue). The caller removes them after the call returns.
+- Results of up to 16 bits are returned in R0, 32-bit results in R1:R0 (low word in R0).
+
+Registers:
+- R0 and R1 are caller saved: a call may change them.
+- SP is preserved: on return it has the same value as before the call.
+
+Example: `int main(int a)` with one local, calling `add2(a, 7)`:
+
+```
+main:   sub  $sp, 2                   ; frame: return address at [$sp+2]
+        mov  [$sp+1], $r0             ; the local
+        mov  $r1, 7
+        mov  [$sp], $r1               ; push the second argument
+        sub  $sp, 1
+        mov  $r1, [$pc + (lit_add2 - .)]
+        mov  [$sp], $r1
+        swap $pc, [$sp]               ; add2(a, 7), first argument in R0
+        add  $sp, 1                   ; pop the argument
+        add  $sp, 2                   ; free the frame
+        mov  $pc, [$sp]               ; return, result in R0
+lit_add2: .word add2
+```
+
+Debuggers unwind a frame from the location holding its return address (the caller's SP at the time of the call): the caller's PC is the value stored there, the caller's SP is its address. Within a function, the SP adjustments between the start of the function and the current PC tell how far SP is below that location.
 
 Miscellaneous quirks
 ------------------------
