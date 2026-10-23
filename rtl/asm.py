@@ -24,6 +24,19 @@ opb_immed_reg_names = {
     "$r0": OPB_IMMED_R0,
 }
 
+# Memory pseudo-registers: $mr0..$mr31 are aliases of [0]..[31]. Negative absolute
+# addresses are the I/O page; they have no aliases.
+_mem_reg_re = re.compile(r'\$mr(\d+)$')
+
+def mem_reg(token: str) -> Optional[int]:
+    m = _mem_reg_re.match(token)
+    if m is None:
+        return None
+    n = int(m.group(1))
+    if n > (IMMED_MASK >> 1):
+        raise AsmError(f"memory pseudo-register {token} is out of range ($mr0..$mr{IMMED_MASK >> 1})")
+    return n
+
 class AsmError(Exception):
     def __init__(self, message: str):
         self.message = message
@@ -192,6 +205,9 @@ def parse_constant_expression(line: Sequence[str], cursor: int, *, force_plus: b
     '''
 
 def parse_opb(line: Sequence[str], cursor: int, *, allow_immed: bool):
+    n = mem_reg(line[cursor])
+    if n is not None:
+        return OPB_MEM_IMMED, Expression([str(n)]), cursor + 1
     if line[cursor] == "[":
         cursor += 1
         if line[cursor] not in opb_mem_reg_names:
@@ -238,6 +254,7 @@ def parse_dual_arg(inst_code: int, line: Sequence[str], *, is_swapi = False) -> 
     # $r0, [$sp]     0        OPA_R0      OPB_MEM_IMMED_SP     0
     # $sp, [$r0-12]  0        OPA_SP      OPB_MEM_IMMED_R0     -12
     # $sp, [12]      0        OPA_SP      OPB_MEM_IMMED        12
+    # $sp, $mr12     0        OPA_SP      OPB_MEM_IMMED        12
     # [$r0], $pc     1        OPA_PC      OPB_MEM_IMMED_R0     0
     # [$sp-2], $r0   1        OPA_R0      OPB_MEM_IMMED_SP     -2
     #
@@ -246,7 +263,7 @@ def parse_dual_arg(inst_code: int, line: Sequence[str], *, is_swapi = False) -> 
     # $r1, [3]       0        OPA_R1      OPB_MEM_IMMED_PC     3
     cursor = 1
     try:
-        if line[cursor] == "[":
+        if line[cursor] == "[" or mem_reg(line[cursor]) is not None:
             d = 1
             opb, immed, cursor = parse_opb(line, cursor, allow_immed=False)
             if line[cursor] != ",":
@@ -281,7 +298,7 @@ def parse_single_arg(inst_code: int, line: Sequence[str]) -> Instruction:
     # We can't describe the case where we would target an 'IMMED' field, but that's not a valid thing to do anyway
     cursor = 1
     try:
-        if line[cursor] == "[":
+        if line[cursor] == "[" or mem_reg(line[cursor]) is not None:
             d = 1
             opb, immed, cursor = parse_opb(line, cursor, allow_immed=False)
             opa = OPA_PC

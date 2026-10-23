@@ -34,6 +34,9 @@ opb_formats = {
 }
 
 def _format_opb(opb: int, immed: int) -> str:
+    # [0]..[31] are shown as the memory pseudo-registers $mr0..$mr31
+    if opb == OPB_MEM_IMMED and immed >= 0:
+        return f"$mr{immed}"
     sign = "+" if immed >= 0 else ""
     return opb_formats[opb].replace("{s}",sign).replace("{}", str(immed))
 
