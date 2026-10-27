@@ -203,12 +203,16 @@ Calls:
   ```
 
 Arguments and return values:
-- The first argument is passed in R0. Further arguments are pushed by the caller before the call, so the callee finds them above its return address ([$sp+N+1], [$sp+N+2], ... after its prologue). The caller removes them after the call returns.
+- The first argument is passed in R0 if it fits in a word. Further arguments are pushed by the caller before the call, so the callee finds them above its return address ([$sp+N+1], [$sp+N+2], ... after its prologue). The caller removes them after the call returns.
+- A first argument wider than a word (a `long`, a struct) goes on the stack instead, and so do all the arguments after it: R0 is then not used. Unnamed (`...`) arguments always go on the stack.
+- Multi-word arguments are stored low word first (at the lower address).
 - Results of up to 16 bits are returned in R0, 32-bit results in R1:R0 (low word in R0).
+- Structs and unions of up to 32 bits are returned the same way. Larger results are returned in memory: the caller passes the address of the result as a hidden first argument in R0, and the real arguments all go on the stack.
 
 Registers:
 - R0 and R1 are caller saved: a call may change them.
 - SP is preserved: on return it has the same value as before the call.
+- The memory registers (see below) follow their own caller/callee saved split.
 
 Example: `int main(int a)` with one local, calling `add2(a, 7)`:
 
@@ -228,6 +232,62 @@ lit_add2: .word add2
 ```
 
 Debuggers unwind a frame from the location holding its return address (the caller's SP at the time of the call): the caller's PC is the value stored there, the caller's SP is its address. Within a function, the SP adjustments between the start of the function and the current PC tell how far SP is below that location.
+
+### Memory registers
+
+Memory locations 0 to 31 can be reached by every instruction through its immediate field, so the toolchain treats them as 32 extra registers, $mr0 to $mr31 (`$mrN` is the same as `[N]`). The C ABI divides them up as:
+
+| Registers   | Use                                                                 |
+|-------------|---------------------------------------------------------------------|
+| $mr0-$mr2   | hardware: reset vector, interrupt vector, scratch for enabling/disabling interrupts |
+| $mr3-$mr5   | constants 0x00ff, 0xff00 and 0x7fff, set up by crt0 and never changed |
+| $mr6-$mr18  | caller saved ($mr18 also holds the static chain of nested functions) |
+| $mr19-$mr31 | callee saved                                                        |
+
+- Compiled code never writes $mr0-$mr5 in the default (supervisor) mode.
+- Code compiled with `-muser-mode` runs in user mode, behind the MMU. There locations 0-2 have no hardware role (the vectors and the interrupt enable scratch belong to the supervisor), so the compiler uses $mr0-$mr2 as further caller saved registers. `-muser-mode` is a separate multilib, and `__TDM_USER_MODE__` is defined for it.
+
+### C data types
+
+C uses 8-bit `char`s, even though memory is addressed in 16-bit words:
+
+| Type                        | Size     | Alignment |
+|-----------------------------|----------|-----------|
+| `char` (unsigned by default)| 8 bits   | 8 bits; a word for whole objects (see below) |
+| `short`, `int`              | 16 bits  | 16 bits   |
+| `long`                      | 32 bits  | 16 bits   |
+| `long long`                 | 64 bits  | 16 bits   |
+| data pointer, `size_t`      | 16 bits  | 16 bits   |
+| function pointer            | 16 bits  | 16 bits   |
+
+- Multi-word values are stored low word first. Within a word, the low octet comes first.
+- Every object, `char` objects included (globals, statics, locals, string literals), starts on a word boundary. This is an ABI rule, not just a code generation choice: code may rely on it when accessing `char` objects.
+- Inside arrays and structs, `char`s are packed two per word. `char a[5]` takes 3 words; in `struct { char c, d; int i; }` `c` and `d` share the first word.
+- The assembler supports this with `.octet` (one octet; consecutive `.octet`s pack into words, low octet first) and with strings, which are packed two characters per word.
+
+### Byte pointers
+
+Data pointers are byte addresses in "LSB" form: the address of an octet is twice the address of the word holding it, plus 1 for its high octet (bits 15:8), plus 0 for its low octet (bits 7:0).
+
+- A data pointer to word address W is 2*W. To access memory through it, the code shifts it right by 1 (`ror`) and uses the result as a word address. Pointer arithmetic is ordinary integer arithmetic.
+- Because pointers are 16 bits, C data must live in the first 32K words of memory (word addresses 0x0000-0x7fff).
+- Code addresses (function pointers, return addresses, labels) are plain word addresses and can be anywhere in the 64K word address space.
+- The SP holds a word address. The compiler converts between it and byte pointers when it takes the address of a stack object.
+- In assembly, `%bptr(sym)` gives the byte pointer of a symbol (2 * its word address); the linker resolves it with its own relocation (R_TDM_BYTEPTR16). For example `.word %bptr(arr) + 4` initializes a pointer to `arr[2]` of an `int` array.
+
+### The stack scratch word and interrupts
+
+Compiled code uses the word just below the stack pointer, [$sp-1], as scratch space: many C operations expand into instruction sequences that free up R1 by saving it there and restoring it afterwards. [$sp] can also hold live data at any moment, for example between storing a callee address and the SWAP that calls it, or between storing an argument and the `sub $sp, 1` that pushes it.
+
+Interrupt handlers (and anything else that can interrupt compiled code on its stack) must therefore leave both [$sp] and [$sp-1] of the interrupted code untouched. A handler that uses the interrupted stack should first move SP down past them:
+
+```
+isr:    sub  $sp, 2                   ; skip [$sp] and [$sp-1] of the interrupted code
+        mov  [$sp], $r0               ; now safe to save registers
+        ...
+```
+
+and add 2 back before returning. A handler with its own stack is not affected.
 
 Miscellaneous quirks
 ------------------------
