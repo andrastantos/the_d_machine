@@ -241,10 +241,12 @@ Memory locations 0 to 31 can be reached by every instruction through its immedia
 |-------------|---------------------------------------------------------------------|
 | $mr0-$mr2   | hardware: reset vector, interrupt vector, scratch for enabling/disabling interrupts |
 | $mr3-$mr5   | constants 0x00ff, 0xff00 and 0x7fff, set up by crt0 and never changed |
-| $mr6-$mr18  | caller saved ($mr18 also holds the static chain of nested functions) |
+| $mr6        | frame pointer in functions that need one; otherwise callee saved    |
+| $mr7-$mr18  | caller saved ($mr18 also holds the static chain of nested functions) |
 | $mr19-$mr31 | callee saved                                                        |
 
 - Compiled code never writes $mr0-$mr5 in the default (supervisor) mode.
+- Functions that move SP by a run time amount (`alloca`, variable-sized arrays) or that are the target of a nonlocal goto (`__builtin_setjmp`) keep a frame pointer in $mr6. After saving the callee saved registers the prologue copies SP to $mr6, so like SP it holds a word address, and the frame is addressed from it. The epilogue restores SP from $mr6. Other functions may use $mr6 as an ordinary callee saved register.
 - Code compiled with `-muser-mode` runs in user mode, behind the MMU. There locations 0-2 have no hardware role (the vectors and the interrupt enable scratch belong to the supervisor), so the compiler uses $mr0-$mr2 as further caller saved registers. `-muser-mode` is a separate multilib, and `__TDM_USER_MODE__` is defined for it.
 
 ### C data types
