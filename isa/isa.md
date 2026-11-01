@@ -291,6 +291,17 @@ isr:    sub  $sp, 2                   ; skip [$sp] and [$sp-1] of the interrupte
 
 and add 2 back before returning. A handler with its own stack is not affected.
 
+### Literal pools
+
+An instruction's immediate only holds -32..31, so compiled code loads wider values (constants, addresses of data and functions, far branch targets) from a word in the code, PC-relative: `mov $r1, [$pc+(.Llit5-.)]`. These words are collected in literal pools inside each function, each word within -32..31 words of the instructions that use it:
+
+- A pool goes where execution doesn't fall through: after an unconditional jump or a return. Where none is in reach, the compiler puts one in the middle of the code with a jump over it, `mov $pc, $pc+N` (N is the number of words plus 1).
+- The uses of a value that are in reach of one entry share it.
+- A far jump loads its target from a pool: `mov $pc, [$pc+(.Llit7-.)]`. A far conditional branch is the predicate followed by such a jump.
+- A value that ends up out of reach of any pool stays next to its use, with a jump over it (`mov $r1, [$pc+2]`, `mov $pc, $pc+2`, `.word value`).
+
+A pool's words are data in the text section: a disassembler shows them as instructions, and the line table may count them in a neighbouring line. Code that isn't compiled (assembly, crt0) needn't use pools; it can load its literals in any of these ways.
+
 Miscellaneous quirks
 ------------------------
 
