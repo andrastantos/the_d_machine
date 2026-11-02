@@ -207,7 +207,7 @@ Arguments and return values:
 - A first argument wider than a word (a `long`, a struct) goes on the stack instead, and so do all the arguments after it: R0 is then not used. Unnamed (`...`) arguments always go on the stack.
 - Multi-word arguments are stored low word first (at the lower address).
 - Results of up to 16 bits are returned in R0, 32-bit results in R1:R0 (low word in R0).
-- Structs and unions of up to 32 bits are returned the same way. Larger results are returned in memory: the caller passes the address of the result as a hidden first argument in R0, and the real arguments all go on the stack.
+- A struct or union is returned the same way if it is one octet long, or two or four octets long and word aligned (it has a member of a type of a word or more, such as an `int`, a `long` or a pointer). Others, such as a struct of two to four `char`s, and results larger than 32 bits (`long long`, `double`) are returned in memory: the caller passes the address of the result as a hidden first argument in R0, and the real arguments all go on the stack. The callee returns that address in R0 (a byte pointer, as for any C data pointer).
 
 Registers:
 - R0 and R1 are caller saved: a call may change them.
